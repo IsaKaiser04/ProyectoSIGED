@@ -2,7 +2,6 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.filters import SearchFilter, OrderingFilter
-from django_filters.rest_framework import DjangoFilterBackend
 from .models import Distributivo
 from .serializers import DistributivoSerializer
 from .services import DistributivoService
@@ -23,11 +22,21 @@ class DistributivoViewSet(viewsets.ModelViewSet):
     serializer_class = DistributivoSerializer
     
     # Filtros y búsqueda
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['docente', 'materia', 'paralelo', 'horario']
+    filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['docente', 'materia', 'horario']
     ordering_fields = ['created_at', 'horas', 'docente']
     ordering = ['-created_at']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        params = self.request.query_params
+
+        for field in ['docente', 'materia', 'paralelo', 'horario']:
+            value = params.get(field)
+            if value:
+                queryset = queryset.filter(**{f'{field}__iexact': value})
+
+        return queryset
 
     def get_success_response(self, data=None, message="", status_code=status.HTTP_200_OK):
         """
