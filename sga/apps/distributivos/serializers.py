@@ -35,25 +35,6 @@ class DistributivoSerializer(serializers.ModelSerializer):
                 "La materia es requerida"
             )
         return value
-
-    def validate(self, data):
-        """Validar que no exista duplicado docente+horario (excepto en actualización)"""
-        docente = data.get('docente')
-        horario = data.get('horario')
-
-        # Si es actualización, excluir el registro actual
-        query = Distributivo.objects.filter(
-            docente=docente,
-            horario=horario
-        )
-        
-        # Si estamos actualizando, excluir la instancia actual
-        if self.instance:
-            query = query.exclude(pk=self.instance.pk)
-
-        if query.exists():
-            raise serializers.ValidationError({
-                "error": "El docente ya tiene una clase asignada en ese horario"
-            })
-
-        return data
+    # Se delega la restricción de unicidad al modelo (UniqueConstraint).
+    # Evitamos validaciones que consulten la base de datos aquí para mantener
+    # el serializer simple.
