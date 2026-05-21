@@ -29,7 +29,12 @@ ALLOWED_HOSTS = []
 
 
 # Application definition
-
+""" La función de esta sección es definir las aplicaciones instaladas
+en el proyecto Django, incluyendo las aplicaciones predeterminadas de Django
+la aplicación de terceros 'rest_framework' y la aplicación personalizada 'apps.actoresAcademicos'. 
+También se definen los middlewares que se utilizarán para procesar las solicitudes HTTP, la configuración de las plantillas,
+la configuración de la base de datos y otras configuraciones relacionadas con el proyecto.
+"""
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -38,8 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'apps.actoresAcademicos.apps.ActoresacademicosConfig',
-
+    'apps.actoresAcademicos',
 ]
 
 MIDDLEWARE = [
