@@ -38,7 +38,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'apps.actoresAcademicos.apps.ActoresacademicosConfig',
+    
+    'apps.planificacion.apps.PlanificacionConfig',
+    'apps.configuracion.apps.ConfiguracionConfig',
+    'apps.actoresAcademicos.apps.ActoresAcademicosConfig',
+    
+    
 
 ]
 

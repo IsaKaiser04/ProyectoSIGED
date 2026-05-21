@@ -1,7 +1,7 @@
 from django.db import models
 
 
-class Docente(models.Model):
+class Institucion(models.Model):
     nombre = models.CharField(max_length=150)
 
     def __str__(self):

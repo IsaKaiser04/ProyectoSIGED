@@ -1,0 +1,6 @@
+from .educacion_view import EducacionNivelListCreateView, EducacionNivelDetailView, EducacionSubNivelListCreateView, EducacionSubNivelDetailView
+from .plan_estudio_view import PlanEstudioListCreateView, PlanEstudioDetailView, GradoListCreateView, GradoDetailView, AsignaturaListCreateView, AsignaturaDetailView
+from .anio_lectivo_view import AnioLectivoListCreateView, AnioLectivoDetailView, PeriodoAcademicoListCreateView, PeriodoAcademicoDetailView
+from .oferta_view import OfertaAcademicaListCreateView, OfertaAcademicaDetailView, GradoOfertadoListCreateView, GradoOfertadoDetailView, AsignaturaOfertadaListCreateView, AsignaturaOfertadaDetailView
+from .paralelo_view import ParaleloListCreateView, ParaleloDetailView
+from .calificacion_view import CalificacionListCreateView, CalificacionDetailView
