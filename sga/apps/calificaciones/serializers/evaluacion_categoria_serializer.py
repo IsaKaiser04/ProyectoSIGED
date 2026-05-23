@@ -1,14 +1,12 @@
 from rest_framework import serializers
-from rest_framework.fields import SerializerMethodField
 from apps.calificaciones.models.evaluacionCategoria import EvaluacionCategoria
 from apps.calificaciones.models.tipoCalculo import TipoCalculo
 
 class EvaluacionCategoriaSerializer(serializers.ModelSerializer):
-    tipo_calculo_label = SerializerMethodField()
 
     class Meta:
         model = EvaluacionCategoria
-        fields = ['id', 'nombre', 'nota_minima', 'nota_maxima', 'tipo_calculo', 'tipo_calculo_label']
+        fields = ['id', 'nombre', 'nota_minima', 'nota_maxima', 'tipo_calculo']
 
     def get_tipo_calculo_label(self, obj):
         return obj.get_tipo_calculo_display()

@@ -1,10 +1,6 @@
 from django.db import models
 
 
-class EvaluacionTipo(models.Model):
-    nombre = models.CharField(max_length=100, unique=True)
-    descripcion = models.TextField(blank=True)
-    activo = models.BooleanField(default=True)
-
-    def __str__(self):
-        return self.nombre
+class EvaluacionTipo(models.TextChoices):
+    CUALITATIVA = 'CUALITATIVA', 'Cualitativa'
+    CUANTITATIVA = 'CUANTITATIVA', 'Cuantitativa'

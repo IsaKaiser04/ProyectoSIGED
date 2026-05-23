@@ -1,21 +1,15 @@
 from django.db import models
-
+from apps.calificaciones.models.evaluacionTipo import EvaluacionTipo
 
 class EvaluacionRubrica(models.Model):
     nombre = models.CharField(max_length=150)
-    descripcion = models.TextField(blank=True)
     institucion_id = models.PositiveBigIntegerField(null=True, blank=True)
-    activo = models.BooleanField(default=True)
+    esActivo = models.BooleanField(default=True)
 
-    evaluacion_tipo = models.ForeignKey(
-        'EvaluacionTipo',
-        on_delete=models.PROTECT,
-        related_name='rubricas',
-    )
-    libro = models.ForeignKey(
-        'EvaluacionLibro',
-        on_delete=models.CASCADE,
-        related_name='rubricas',
+    evaluacion_tipo = models.CharField(
+        max_length=20,
+        choices=EvaluacionTipo.choices,
+        default=EvaluacionTipo.CUALITATIVA
     )
 
     def __str__(self):

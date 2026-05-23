@@ -1,10 +1,8 @@
 from django.db import models
 
 
-class IncidenciaTipo(models.Model):
-    nombre = models.CharField(max_length=100, unique=True)
-    descripcion = models.TextField(blank=True)
-    activo = models.BooleanField(default=True)
-
-    def __str__(self):
-        return self.nombre
+class IncidenciaTipo(models.TextChoices):
+    COMPORTAMIENTO = 'COMPORTAMIENTO', 'Comportamiento'
+    ACADEMICO = 'ACADEMICO', 'Académico'
+    ASISTENCIAL = 'ASISTENCIAL', 'Asistencial'
+    
