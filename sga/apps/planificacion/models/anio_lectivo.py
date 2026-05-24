@@ -1,23 +1,21 @@
 from django.db import models
-
 from .enums import PeriodoTipo
 
+
 class AnioLectivo(models.Model):
-    nombre = models.CharField(max_length=100)
+    nombre = models.CharField(max_length=50)
     fechaInicio = models.DateField()
     fechaFin = models.DateField()
-    
     esActivo = models.BooleanField(default=True)
 
-    # Referencia externa
-    institucion = models.ForeignKey(
-        'configuracion.Institucion',
-        on_delete=models.PROTECT,
-        related_name='anios_lectivos'
-    )
+    # institucion = models.ForeignKey('actoresAcademicos.Institucion', on_delete=models.CASCADE, related_name='anios_lectivos')
 
     def __str__(self):
         return self.nombre
+
+    class Meta:
+        verbose_name = 'Año Lectivo'
+        verbose_name_plural = 'Años Lectivos'
 
 
 class PeriodoAcademico(models.Model):
@@ -25,19 +23,12 @@ class PeriodoAcademico(models.Model):
     nombre = models.CharField(max_length=100)
     fechaInicio = models.DateField()
     fechaFin = models.DateField()
-
-
-    tipo = models.CharField(
-        max_length=20,
-        choices=PeriodoTipo.choices
-    )
-
-  
-    anioLectivo = models.ForeignKey(
-        'planificacion.AnioLectivo',
-        on_delete=models.CASCADE,
-        related_name='periodos'
-    )
+    periodoTipo = models.CharField(max_length=20, choices=PeriodoTipo.choices)
+    anioLectivo = models.ForeignKey(AnioLectivo, on_delete=models.CASCADE, related_name='periodos_academicos')
 
     def __str__(self):
-        return self.nombre
+        return f"{self.nombre} - {self.anioLectivo.nombre}"
+
+    class Meta:
+        verbose_name = 'Período Académico'
+        verbose_name_plural = 'Períodos Académicos'

@@ -1,16 +1,13 @@
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework import generics
+from ..models.calificacion import Calificacion
+from ..serializers.calificacion_serializer import CalificacionSerializer
 
-from ..models import Calificacion
-from ..serializers import CalificacionSerializer
 
-
-class CalificacionListCreateView(ListCreateAPIView):
+class CalificacionListCreateView(generics.ListCreateAPIView):
     queryset = Calificacion.objects.all()
     serializer_class = CalificacionSerializer
-    permission_classes = []
 
 
-class CalificacionDetailView(RetrieveUpdateDestroyAPIView):
+class CalificacionDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Calificacion.objects.all()
     serializer_class = CalificacionSerializer
-    permission_classes = []

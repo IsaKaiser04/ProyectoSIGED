@@ -1,40 +1,33 @@
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework import generics
+from ..models.plan_estudio import PlanEstudio, Grado, Asignatura
+from ..serializers.plan_estudio_serializer import PlanEstudioSerializer, GradoSerializer, AsignaturaSerializer
 
-from ..models import Asignatura, Grado, PlanEstudio
-from ..serializers import AsignaturaSerializer, GradoSerializer, PlanEstudioSerializer
 
-
-class PlanEstudioListCreateView(ListCreateAPIView):
+class PlanEstudioListCreateView(generics.ListCreateAPIView):
     queryset = PlanEstudio.objects.all()
     serializer_class = PlanEstudioSerializer
-    permission_classes = []
 
 
-class PlanEstudioDetailView(RetrieveUpdateDestroyAPIView):
+class PlanEstudioDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = PlanEstudio.objects.all()
     serializer_class = PlanEstudioSerializer
-    permission_classes = []
 
 
-class GradoListCreateView(ListCreateAPIView):
+class GradoListCreateView(generics.ListCreateAPIView):
     queryset = Grado.objects.all()
     serializer_class = GradoSerializer
-    permission_classes = []
 
 
-class GradoDetailView(RetrieveUpdateDestroyAPIView):
+class GradoDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Grado.objects.all()
     serializer_class = GradoSerializer
-    permission_classes = []
 
 
-class AsignaturaListCreateView(ListCreateAPIView):
+class AsignaturaListCreateView(generics.ListCreateAPIView):
     queryset = Asignatura.objects.all()
     serializer_class = AsignaturaSerializer
-    permission_classes = []
 
 
-class AsignaturaDetailView(RetrieveUpdateDestroyAPIView):
+class AsignaturaDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Asignatura.objects.all()
     serializer_class = AsignaturaSerializer
-    permission_classes = []

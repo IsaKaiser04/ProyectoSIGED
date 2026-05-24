@@ -1,28 +1,23 @@
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework import generics
+from ..models.educacion import EducacionNivel, EducacionSubNivel
+from ..serializers.educacion_serializer import EducacionNivelSerializer, EducacionSubNivelSerializer
 
-from ..models import EducacionNivel, EducacionSubNivel
-from ..serializers import EducacionNivelSerializer, EducacionSubNivelSerializer
 
-
-class EducacionNivelListCreateView(ListCreateAPIView):
+class EducacionNivelListCreateView(generics.ListCreateAPIView):
     queryset = EducacionNivel.objects.all()
     serializer_class = EducacionNivelSerializer
-    permission_classes = []
 
 
-class EducacionNivelDetailView(RetrieveUpdateDestroyAPIView):
+class EducacionNivelDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = EducacionNivel.objects.all()
     serializer_class = EducacionNivelSerializer
-    permission_classes = []
 
 
-class EducacionSubNivelListCreateView(ListCreateAPIView):
+class EducacionSubNivelListCreateView(generics.ListCreateAPIView):
     queryset = EducacionSubNivel.objects.all()
     serializer_class = EducacionSubNivelSerializer
-    permission_classes = []
 
 
-class EducacionSubNivelDetailView(RetrieveUpdateDestroyAPIView):
+class EducacionSubNivelDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = EducacionSubNivel.objects.all()
     serializer_class = EducacionSubNivelSerializer
-    permission_classes = []

@@ -1,40 +1,33 @@
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework import generics
+from ..models.oferta import OfertaAcademica, GradoOfertado, AsignaturaOfertada
+from ..serializers.oferta_serializer import OfertaAcademicaSerializer, GradoOfertadoSerializer, AsignaturaOfertadaSerializer
 
-from ..models import AsignaturaOfertada, GradoOfertado, OfertaAcademica
-from ..serializers import AsignaturaOfertadaSerializer, GradoOfertadoSerializer, OfertaAcademicaSerializer
 
-
-class OfertaAcademicaListCreateView(ListCreateAPIView):
+class OfertaAcademicaListCreateView(generics.ListCreateAPIView):
     queryset = OfertaAcademica.objects.all()
     serializer_class = OfertaAcademicaSerializer
-    permission_classes = []
 
 
-class OfertaAcademicaDetailView(RetrieveUpdateDestroyAPIView):
+class OfertaAcademicaDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = OfertaAcademica.objects.all()
     serializer_class = OfertaAcademicaSerializer
-    permission_classes = []
 
 
-class GradoOfertadoListCreateView(ListCreateAPIView):
+class GradoOfertadoListCreateView(generics.ListCreateAPIView):
     queryset = GradoOfertado.objects.all()
     serializer_class = GradoOfertadoSerializer
-    permission_classes = []
 
 
-class GradoOfertadoDetailView(RetrieveUpdateDestroyAPIView):
+class GradoOfertadoDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = GradoOfertado.objects.all()
     serializer_class = GradoOfertadoSerializer
-    permission_classes = []
 
 
-class AsignaturaOfertadaListCreateView(ListCreateAPIView):
+class AsignaturaOfertadaListCreateView(generics.ListCreateAPIView):
     queryset = AsignaturaOfertada.objects.all()
     serializer_class = AsignaturaOfertadaSerializer
-    permission_classes = []
 
 
-class AsignaturaOfertadaDetailView(RetrieveUpdateDestroyAPIView):
+class AsignaturaOfertadaDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = AsignaturaOfertada.objects.all()
     serializer_class = AsignaturaOfertadaSerializer
-    permission_classes = []

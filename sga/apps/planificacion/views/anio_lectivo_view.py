@@ -1,28 +1,23 @@
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework import generics
+from ..models.anio_lectivo import AnioLectivo, PeriodoAcademico
+from ..serializers.anio_lectivo_serializer import AnioLectivoSerializer, PeriodoAcademicoSerializer
 
-from ..models import AnioLectivo, PeriodoAcademico
-from ..serializers import AnioLectivoSerializer, PeriodoAcademicoSerializer
 
-
-class AnioLectivoListCreateView(ListCreateAPIView):
+class AnioLectivoListCreateView(generics.ListCreateAPIView):
     queryset = AnioLectivo.objects.all()
     serializer_class = AnioLectivoSerializer
-    permission_classes = []
 
 
-class AnioLectivoDetailView(RetrieveUpdateDestroyAPIView):
+class AnioLectivoDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = AnioLectivo.objects.all()
     serializer_class = AnioLectivoSerializer
-    permission_classes = []
 
 
-class PeriodoAcademicoListCreateView(ListCreateAPIView):
+class PeriodoAcademicoListCreateView(generics.ListCreateAPIView):
     queryset = PeriodoAcademico.objects.all()
     serializer_class = PeriodoAcademicoSerializer
-    permission_classes = []
 
 
-class PeriodoAcademicoDetailView(RetrieveUpdateDestroyAPIView):
+class PeriodoAcademicoDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = PeriodoAcademico.objects.all()
     serializer_class = PeriodoAcademicoSerializer
-    permission_classes = []

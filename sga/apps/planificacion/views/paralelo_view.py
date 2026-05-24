@@ -1,16 +1,13 @@
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework import generics
+from ..models.paralelo import Paralelo
+from ..serializers.paralelo_serializer import ParaleloSerializer
 
-from ..models import Paralelo
-from ..serializers import ParaleloSerializer
 
-
-class ParaleloListCreateView(ListCreateAPIView):
+class ParaleloListCreateView(generics.ListCreateAPIView):
     queryset = Paralelo.objects.all()
     serializer_class = ParaleloSerializer
-    permission_classes = []
 
 
-class ParaleloDetailView(RetrieveUpdateDestroyAPIView):
+class ParaleloDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Paralelo.objects.all()
     serializer_class = ParaleloSerializer
-    permission_classes = []
