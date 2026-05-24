@@ -18,7 +18,7 @@ from apps.dece.serializers import (
 )
 
 
-class AdaptacionCurricularModelTest(TestCase):
+class TestAdaptacionCurricularModel(TestCase):
     def test_create_model(self):
         adaptacion = AdaptacionCurricular.objects.create(
             matricula_referencia='MAT-001',
@@ -30,7 +30,7 @@ class AdaptacionCurricularModelTest(TestCase):
         self.assertEqual(str(adaptacion), 'Material en braille')
 
 
-class AdaptacionCurricularSerializerTest(TestCase):
+class TestAdaptacionCurricularSerializer(TestCase):
     def test_serializer_valid(self):
         serializer = AdaptacionCurricularSerializer(data={
             'matricula_referencia': 'MAT-002',
@@ -42,7 +42,7 @@ class AdaptacionCurricularSerializerTest(TestCase):
         self.assertTrue(serializer.is_valid(), serializer.errors)
 
 
-class AdaptacionCurricularAPITest(APITestCase):
+class TestAdaptacionCurricularAPI(APITestCase):
     def setUp(self):
         self.adaptacion = AdaptacionCurricular.objects.create(
             matricula_referencia='MAT-010',
