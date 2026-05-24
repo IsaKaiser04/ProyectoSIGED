@@ -1,316 +1,189 @@
-from django.test import TestCase, Client
-from rest_framework.test import APITestCase, APIClient
+from django.test import TestCase
 from rest_framework import status
-from .models import Distributivo
-from .serializers import DistributivoSerializer
-import json
+from rest_framework.test import APIClient, APITestCase
+
+from .models import (
+    DiasSemana,
+    Distributivo,
+    DistributivoAsignatura,
+    Horario,
+    HorarioTipo,
+    JornadaHora,
+    PlanificacionCurricular,
+    PlanificacionCurricularHistorial,
+    PlanificacionEstado,
+)
+from .serializers import DistributivoSerializer, HorarioSerializer
+
 
 class DistributivoModelTest(TestCase):
-    """Pruebas del modelo Distributivo"""
-    
-    def setUp(self):
-        """Crear datos de prueba"""
-        self.distributivo = Distributivo.objects.create(
-            docente="Juan Pérez",
-            materia="Matemáticas",
-            paralelo="A",
-            horas=6,
-            horario="Lunes 08:00-10:00"
-        )
-    
-    def test_crear_distributivo(self):
-        """Verificar que se crea correctamente un distributivo"""
-        self.assertTrue(isinstance(self.distributivo, Distributivo))
-        self.assertEqual(self.distributivo.docente, "Juan Pérez")
-        self.assertEqual(self.distributivo.materia, "Matemáticas")
-
-    def test_str_distributivo(self):
-        """Verificar representación en string"""
-        self.assertEqual(
-            str(self.distributivo),
-            "Juan Pérez - Matemáticas (Lunes 08:00-10:00)"
+    def test_creacion_distributivo(self):
+        distributivo = Distributivo.objects.create(
+            anio_lectivo_referencia='2025-2026',
+            docente_referencia='Docente Demo',
+            observacion='Carga inicial',
         )
 
-    def test_horas_rango_valido(self):
-        """Verificar que horas está en rango válido"""
-        self.assertGreaterEqual(self.distributivo.horas, 1)
-        self.assertLessEqual(self.distributivo.horas, 40)
-
-    def test_constraint_unique_docente_horario(self):
-        """Verificar que no se permita duplicado docente+horario"""
-        with self.assertRaises(Exception):
-            Distributivo.objects.create(
-                docente="Juan Pérez",
-                materia="Física",
-                paralelo="B",
-                horas=4,
-                horario="Lunes 08:00-10:00"
-            )
+        self.assertEqual(str(distributivo), 'Docente Demo - 2025-2026')
+        self.assertEqual(Distributivo.objects.count(), 1)
 
 
 class DistributivoSerializerTest(TestCase):
-    """Pruebas del serializador"""
-    
-    def setUp(self):
-        self.distributivo = Distributivo.objects.create(
-            docente="María García",
-            materia="Química",
-            paralelo="C",
-            horas=5,
-            horario="Martes 10:00-12:00"
-        )
+    def test_serializer_valida_campos_requeridos(self):
+        serializer = DistributivoSerializer(data={
+            'anio_lectivo_referencia': '2025-2026',
+            'docente_referencia': 'Docente Demo',
+            'observacion': 'Carga inicial',
+        })
 
-    def test_serializer_valido(self):
-        """Verificar serialización válida"""
-        serializer = DistributivoSerializer(self.distributivo)
-        data = serializer.data
-        
-        self.assertEqual(data['docente'], "María García")
-        self.assertEqual(data['materia'], "Química")
-        self.assertEqual(data['horas'], 5)
-        self.assertIn('created_at', data)
-        self.assertIn('updated_at', data)
-
-    def test_validacion_horas_negativas(self):
-        """Verificar que no acepte horas negativas"""
-        data = {
-            'docente': 'Juan',
-            'materia': 'Historia',
-            'paralelo': 'A',
-            'horas': -5,
-            'horario': 'Miércoles 14:00-16:00'
-        }
-        serializer = DistributivoSerializer(data=data)
-        self.assertFalse(serializer.is_valid())
-        self.assertIn('horas', serializer.errors)
-
-    def test_validacion_horas_cero(self):
-        """Verificar que no acepte cero horas"""
-        data = {
-            'docente': 'Juan',
-            'materia': 'Historia',
-            'paralelo': 'A',
-            'horas': 0,
-            'horario': 'Miércoles 14:00-16:00'
-        }
-        serializer = DistributivoSerializer(data=data)
-        self.assertFalse(serializer.is_valid())
-
-    def test_validacion_horas_excede_maximo(self):
-        """Verificar que no acepte más de 40 horas"""
-        data = {
-            'docente': 'Juan',
-            'materia': 'Historia',
-            'paralelo': 'A',
-            'horas': 50,
-            'horario': 'Miércoles 14:00-16:00'
-        }
-        serializer = DistributivoSerializer(data=data)
-        self.assertFalse(serializer.is_valid())
-
-    def test_validacion_duplicado_docente_horario(self):
-        """Verificar que rechaza duplicado docente+horario"""
-        data = {
-            'docente': 'María García',
-            'materia': 'Biología',
-            'paralelo': 'D',
-            'horas': 4,
-            'horario': 'Martes 10:00-12:00'  # Ya existe
-        }
-        serializer = DistributivoSerializer(data=data)
-        self.assertFalse(serializer.is_valid())
-        # El error se captura en non_field_errors por el constraint unique_together
-        self.assertIn('non_field_errors', serializer.errors)
-
-    def test_update_permite_mismo_horario(self):
-        """Verificar que UPDATE permite cambiar solo docente/materia sin error duplicado"""
-        data = {
-            'docente': 'María García',
-            'materia': 'Física',  # Cambiado
-            'paralelo': 'C',
-            'horas': 5,
-            'horario': 'Martes 10:00-12:00'  # Mismo horario
-        }
-        serializer = DistributivoSerializer(self.distributivo, data=data)
         self.assertTrue(serializer.is_valid(), serializer.errors)
 
+    def test_serializer_rechaza_docente_vacio(self):
+        serializer = DistributivoSerializer(data={
+            'anio_lectivo_referencia': '2025-2026',
+            'docente_referencia': '',
+        })
 
-class DistributivoAPITest(APITestCase):
-    """Pruebas de los endpoints REST"""
-    
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('docente_referencia', serializer.errors)
+
+
+class HorarioSerializerTest(TestCase):
+    def test_serializer_rechaza_hora_invalida(self):
+        distributivo = Distributivo.objects.create(
+            anio_lectivo_referencia='2025-2026',
+            docente_referencia='Docente Demo',
+        )
+        asignatura = DistributivoAsignatura.objects.create(
+            distributivo=distributivo,
+            asignatura_ofertada_referencia='Matematicas',
+        )
+        jornada = JornadaHora.objects.create(
+            nombre='Matutina',
+            hora_inicio='07:00',
+            hora_fin='12:00',
+        )
+
+        serializer = HorarioSerializer(data={
+            'distributivo': distributivo.id,
+            'distributivo_asignatura': asignatura.id,
+            'jornada_hora': jornada.id,
+            'hora_inicio': '10:00',
+            'hora_fin': '09:00',
+            'tipo_horario': HorarioTipo.CLASE,
+            'dia_semana': DiasSemana.LUNES,
+        })
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('hora_fin', serializer.errors)
+
+
+class DistributivosAPITest(APITestCase):
     def setUp(self):
         self.client = APIClient()
-        self.base_url = '/api/distributivos/'
-        
-        self.distributivo1 = Distributivo.objects.create(
-            docente="Carlos López",
-            materia="Inglés",
-            paralelo="A",
-            horas=4,
-            horario="Lunes 14:00-16:00"
+        self.distributivo = Distributivo.objects.create(
+            anio_lectivo_referencia='2025-2026',
+            docente_referencia='Docente Demo',
+            observacion='Inicial',
         )
-        
-        self.distributivo2 = Distributivo.objects.create(
-            docente="Rosa Martínez",
-            materia="Español",
-            paralelo="B",
-            horas=5,
-            horario="Martes 16:00-18:00"
+        self.asignatura = DistributivoAsignatura.objects.create(
+            distributivo=self.distributivo,
+            asignatura_ofertada_referencia='Matematicas',
+        )
+        self.jornada = JornadaHora.objects.create(
+            nombre='Matutina',
+            hora_inicio='07:00',
+            hora_fin='12:00',
+            institucion_educativa_referencia='INST-UUID-1234',
+        )
+        self.planificacion = PlanificacionCurricular.objects.create(
+            distributivo_asignatura=self.asignatura,
+            observacion='Pendiente de revision',
+            estado=PlanificacionEstado.BORRADOR,
+        )
+        self.historial = PlanificacionCurricularHistorial.objects.create(
+            planificacion_curricular=self.planificacion,
+            estado_anterior=PlanificacionEstado.BORRADOR,
+            estado_actual=PlanificacionEstado.POR_APROBAR,
+            observacion='Enviado a revision',
+        )
+        self.horario = Horario.objects.create(
+            distributivo=self.distributivo,
+            distributivo_asignatura=self.asignatura,
+            jornada_hora=self.jornada,
+            hora_inicio='08:00',
+            hora_fin='09:00',
+            observacion='Primer bloque',
+            tipo_horario=HorarioTipo.CLASE,
+            dia_semana=DiasSemana.LUNES,
         )
 
-    # Tests GET
-    def test_listar_distributivos(self):
-        """Verificar listado de distributivos"""
-        response = self.client.get(self.base_url)
+    def test_listados_principales(self):
+        endpoints = [
+            '/api/distributivos/',
+            '/api/distributivos-asignaturas/',
+            '/api/horarios/',
+            '/api/jornadas/',
+            '/api/planificaciones/',
+            '/api/planificaciones-historial/',
+        ]
+
+        for endpoint in endpoints:
+            response = self.client.get(endpoint)
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_filtrar_por_institucion(self):
+        # Asegura que el endpoint permite filtrar por institucion_educativa_referencia
+        response = self.client.get('/api/jornadas/?institucion_educativa_referencia=INST-UUID-1234')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data['success'])
-        self.assertEqual(len(response.data['data']), 2)
+        data = response.json()
+        self.assertTrue(any(item.get('institucion_educativa_referencia') == 'INST-UUID-1234' for item in data))
 
-    def test_obtener_distributivo_por_id(self):
-        """Verificar obtención de distributivo por ID"""
-        url = f"{self.base_url}{self.distributivo1.id}/"
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data['success'])
-        self.assertEqual(response.data['data']['docente'], "Carlos López")
+    def test_crear_distributivo(self):
+        response = self.client.post('/api/distributivos/', {
+            'anio_lectivo_referencia': '2026-2027',
+            'docente_referencia': 'Nuevo Docente',
+            'observacion': 'Creado por API',
+        }, format='json')
 
-    def test_obtener_distributivo_inexistente(self):
-        """Verificar error al obtener distributivo inexistente"""
-        url = f"{self.base_url}999/"
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
-    def test_filtrar_por_docente(self):
-        """Verificar filtrado por docente"""
-        response = self.client.get(f"{self.base_url}?docente=Carlos López")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data['success'])
-        self.assertEqual(len(response.data['data']), 1)
-        self.assertEqual(response.data['data'][0]['docente'], "Carlos López")
-
-    def test_buscar_por_materia(self):
-        """Verificar búsqueda por materia"""
-        response = self.client.get(f"{self.base_url}?search=Inglés")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data['success'])
-
-    # Tests POST
-    def test_crear_distributivo_valido(self):
-        """Verificar creación de distributivo válido"""
-        data = {
-            'docente': 'nuevo Docente',
-            'materia': 'Arte',
-            'paralelo': 'C',
-            'horas': 3,
-            'horario': 'Miércoles 08:00-09:00'
-        }
-        response = self.client.post(self.base_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertTrue(response.data['success'])
-        self.assertEqual(response.data['message'], 'Distributivo creado correctamente')
-        self.assertEqual(Distributivo.objects.count(), 3)
+        self.assertEqual(Distributivo.objects.count(), 2)
 
-    def test_crear_distributivo_sin_docente(self):
-        """Verificar rechazo si falta docente"""
-        data = {
-            'materia': 'Arte',
-            'paralelo': 'C',
-            'horas': 3,
-            'horario': 'Miércoles 08:00-09:00'
-        }
-        response = self.client.post(self.base_url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    def test_crear_jornada(self):
+        response = self.client.post('/api/jornadas/', {
+            'nombre': 'Vespertina',
+            'hora_inicio': '13:00',
+            'hora_fin': '18:00',
+            'institucion_educativa_referencia': 'INST-API-0001',
+        }, format='json')
 
-    def test_crear_distributivo_horas_invalidas(self):
-        """Verificar rechazo si horas son inválidas"""
-        data = {
-            'docente': 'Nuevo',
-            'materia': 'Arte',
-            'paralelo': 'C',
-            'horas': 0,
-            'horario': 'Miércoles 08:00-09:00'
-        }
-        response = self.client.post(self.base_url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-    def test_crear_duplicado_docente_horario(self):
-        """Verificar rechazo de duplicado docente+horario"""
-        data = {
-            'docente': 'Carlos López',
-            'materia': 'Matemáticas',
-            'paralelo': 'B',
-            'horas': 6,
-            'horario': 'Lunes 14:00-16:00'  # Ya existe
-        }
-        response = self.client.post(self.base_url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    def test_crear_horario(self):
+        response = self.client.post('/api/horarios/', {
+            'distributivo': self.distributivo.id,
+            'distributivo_asignatura': self.asignatura.id,
+            'jornada_hora': self.jornada.id,
+            'hora_inicio': '09:00',
+            'hora_fin': '10:00',
+            'observacion': 'Bloque 2',
+            'tipo_horario': HorarioTipo.COMPLEMENTARIA,
+            'dia_semana': DiasSemana.MARTES,
+        }, format='json')
 
-    # Tests PUT
-    def test_actualizar_distributivo_completo(self):
-        """Verificar actualización completa (PUT)"""
-        data = {
-            'docente': 'Carlos López',
-            'materia': 'Francés',
-            'paralelo': 'A',
-            'horas': 5,
-            'horario': 'Lunes 14:00-16:00'
-        }
-        url = f"{self.base_url}{self.distributivo1.id}/"
-        response = self.client.put(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_actualizar_planificacion(self):
+        response = self.client.put(f'/api/planificaciones/{self.planificacion.id}/', {
+            'distributivo_asignatura': self.asignatura.id,
+            'observacion': 'Actualizada',
+            'estado': PlanificacionEstado.POR_APROBAR,
+        }, format='json')
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data['success'])
-        self.assertEqual(response.data['data']['materia'], 'Francés')
 
-    def test_actualizar_distributivo_parcial(self):
-        """Verificar actualización parcial (PATCH)"""
-        data = {'materia': 'Ética'}
-        url = f"{self.base_url}{self.distributivo1.id}/"
-        response = self.client.patch(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data['success'])
+    def test_eliminar_historial(self):
+        response = self.client.delete(f'/api/planificaciones-historial/{self.historial.id}/')
 
-    def test_actualizar_mismo_horario_no_falla(self):
-        """Verificar que UPDATE con mismo horario funciona"""
-        data = {
-            'docente': 'Carlos López',
-            'materia': 'Educación Física',
-            'paralelo': 'A',
-            'horas': 2,
-            'horario': 'Lunes 14:00-16:00'  # Mismo horario
-        }
-        url = f"{self.base_url}{self.distributivo1.id}/"
-        response = self.client.put(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data['success'])
-
-    # Tests DELETE
-    def test_eliminar_distributivo(self):
-        """Verificar eliminación de distributivo"""
-        url = f"{self.base_url}{self.distributivo1.id}/"
-        response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertTrue(response.data['success'])
-        self.assertEqual(Distributivo.objects.count(), 1)
-
-    def test_eliminar_distributivo_inexistente(self):
-        """Verificar error al eliminar inexistente"""
-        url = f"{self.base_url}999/"
-        response = self.client.delete(url)
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
-    # Tests de endpoints personalizados
-    def test_endpoint_por_docente(self):
-        """Verificar endpoint personalizado /por-docente/"""
-        response = self.client.get(f"{self.base_url}por-docente/Carlos/")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data['success'])
-        self.assertEqual(len(response.data['data']), 1)
-
-    def test_endpoint_estadisticas(self):
-        """Verificar endpoint de estadísticas"""
-        response = self.client.get(f"{self.base_url}estadisticas/")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data['success'])
-        self.assertIn('total_distributivos', response.data['data'])
-        self.assertEqual(response.data['data']['total_distributivos'], 2)
-
+        self.assertEqual(PlanificacionCurricularHistorial.objects.count(), 0)

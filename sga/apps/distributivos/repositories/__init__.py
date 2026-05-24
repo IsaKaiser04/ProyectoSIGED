@@ -1,0 +1,6 @@
+from .distributivo_asignatura_repository import DistributivoAsignaturaRepository
+from .distributivo_repository import DistributivoRepository
+from .horario_repository import HorarioRepository
+from .jornada_hora_repository import JornadaHoraRepository
+from .planificacion_curricular_historial_repository import PlanificacionCurricularHistorialRepository
+from .planificacion_curricular_repository import PlanificacionCurricularRepository

@@ -1,0 +1,9 @@
+from .distributivo_asignatura_view import DistributivoAsignaturaDetailView, DistributivoAsignaturaListCreateView
+from .distributivo_view import DistributivoDetailView, DistributivoListCreateView
+from .horario_view import HorarioDetailView, HorarioListCreateView
+from .jornada_hora_view import JornadaHoraDetailView, JornadaHoraListCreateView
+from .planificacion_curricular_historial_view import (
+    PlanificacionCurricularHistorialDetailView,
+    PlanificacionCurricularHistorialListCreateView,
+)
+from .planificacion_curricular_view import PlanificacionCurricularDetailView, PlanificacionCurricularListCreateView
