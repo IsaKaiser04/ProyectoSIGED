@@ -4,9 +4,9 @@ from apps.calificaciones.serializers.evaluacion_categoria_serializer import Eval
 
 
 class EvaluacionCategoriaListCreateView(generics.ListCreateAPIView):
-    queryset = EvaluacionCategoria.objects.all()
+    queryset = EvaluacionCategoria.objects.prefetch_related('subcategorias')
     serializer_class = EvaluacionCategoriaSerializer
 
 class EvaluacionCategoriaDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = EvaluacionCategoria.objects.all()
+    queryset = EvaluacionCategoria.objects.prefetch_related('subcategorias')
     serializer_class = EvaluacionCategoriaSerializer

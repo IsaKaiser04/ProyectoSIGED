@@ -3,10 +3,18 @@ from apps.calificaciones.models.evaluacionCategoria import EvaluacionCategoria
 from apps.calificaciones.models.tipoCalculo import TipoCalculo
 
 class EvaluacionCategoriaSerializer(serializers.ModelSerializer):
+    #mtodo de solo lectura
+    subcategorias = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = EvaluacionCategoria
-        fields = ['id', 'nombre', 'nota_minima', 'nota_maxima', 'tipo_calculo']
+        fields = ['id', 'nombre', 'nota_minima', 'nota_maxima', 
+        'subcategorias', 'periodoAcademico_id', 'tipo_calculo']
+
+    def get_subcategorias(self, obj):
+        # Retorna las subcategorías hijas directas
+        subcats = obj.subcategorias.all()
+        return EvaluacionCategoriaSerializer(subcats, many=True).data
 
     def get_tipo_calculo_label(self, obj):
         return obj.get_tipo_calculo_display()

@@ -3,8 +3,11 @@ from apps.calificaciones.models.evaluacionTipo import EvaluacionTipo
 
 class EvaluacionRubrica(models.Model):
     nombre = models.CharField(max_length=150)
-    institucion_id = models.PositiveBigIntegerField(null=True, blank=True)
     esActivo = models.BooleanField(default=True)
+    institucion_id = models.PositiveBigIntegerField(null=True, blank=True)
+    asignatura_id = models.PositiveBigIntegerField(null=True, blank=True)
+    grado_id = models.PositiveBigIntegerField(null=True, blank=True)
+
 
     evaluacion_tipo = models.CharField(
         max_length=20,

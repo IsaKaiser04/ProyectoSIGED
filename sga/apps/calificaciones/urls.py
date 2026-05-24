@@ -4,6 +4,7 @@ from apps.calificaciones.views.evaluacion_categoria_view import EvaluacionCatego
 from apps.calificaciones.views.evaluacion_rubrica_view import EvaluacionRubricaListView, EvaluacionRubricaDetailView
 from apps.calificaciones.views.evaluacion_equivalencia_view import EvaluacionEquivalenciaListView, EvaluacionEquivalenciaDetailView
 from apps.calificaciones.views.evaluacion_criterio_view import EvaluacionCriterioListView, EvaluacionCriterioDetailView
+from apps.calificaciones.views.evaluacion_libro_view import EvaluacionLibroListView, EvaluacionLibroDetailView
 
 urlpatterns = [
 
@@ -22,6 +23,10 @@ urlpatterns = [
     #evaluacion criterio
     path('evaluacion-criterio/', EvaluacionCriterioListView.as_view(), name='evaluacion_criterio_list_create'),
     path('evaluacion-criterio/<int:pk>/', EvaluacionCriterioDetailView.as_view(), name='evaluacion_criterio_detail'),
+
+    #evaluacion libro
+    path('evaluacion-libro/', EvaluacionLibroListView.as_view(), name='evaluacion_libro_list_create'),
+    path('evaluacion-libro/<int:pk>/', EvaluacionLibroDetailView.as_view(), name='evaluacion_libro_detail'),
 
 ]
 

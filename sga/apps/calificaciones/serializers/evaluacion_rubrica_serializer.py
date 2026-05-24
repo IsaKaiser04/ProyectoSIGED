@@ -6,7 +6,7 @@ class EvaluacionRubricaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = EvaluacionRubrica
-        fields = ['id', 'nombre', 'institucion_id', 'esActivo', 'evaluacion_tipo']
+        fields = ['id', 'nombre', 'esActivo', 'institucion_id', 'asignatura_id', 'grado_id', 'evaluacion_tipo']
 
     def get_evaluacion_tipo_label(self, obj):
         return obj.get_evaluacion_tipo_display()
