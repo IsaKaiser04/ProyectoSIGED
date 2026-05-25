@@ -28,3 +28,6 @@ class Dece(Usuario):
     
     def __str__(self):
         return f"{self.nombres} {self.apellidos} - DECE"
+    
+
+#on_delete: significa que si la cuenta asociada se borra, el perfil de dece se quedará sin cuenta pero no se eliminará (SET_NULL). Esto es útil para mantener el historial del dece aunque su cuenta ya no exista.

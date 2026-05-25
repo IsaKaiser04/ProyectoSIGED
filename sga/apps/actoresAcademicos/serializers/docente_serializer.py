@@ -4,20 +4,23 @@
 """
 from rest_framework import serializers
 from apps.actoresAcademicos.models.docente import Docente
-from .cuenta_serializer import CuentaSerializer
-from ..models.cuenta import Cuenta
-from django.db import transaction
+from apps.actoresAcademicos.serializers.usuario_serializer import UsuarioSerializer
+from apps.ubicacion.serializers.direccion_serializer import DireccionSerializer
+from apps.actoresAcademicos.serializers.cuenta_serializer import CuentaSerializer
+
 
 class DocenteSerializer(serializers.ModelSerializer):
-    cuenta = CuentaSerializer()
     # Campo calculado/derivado que definimos en el modelo
     anios_experiencia = serializers.ReadOnlyField() 
-
+    direccion_domicilio = DireccionSerializer()
+    cuenta = CuentaSerializer()
     class Meta:
         model = Docente
-        fields = ['id', 'nombres', 'apellidos', 'identificacion', 'tipo_identificacion', 'fecha_nacimiento', 'celular', 'correo_personal', 'correo_institucional', 'especialidad', 'fecha_ingreso', 'anios_experiencia', 'cuenta']
+        fields = [
+                    'id', 'nombres', 'apellidos', 'identificacion', 'tipo_identificacion', 
+                    'fecha_nacimiento', 'celular', 'correo_personal', 'correo_institucional', 
+                    'especialidad', 'fecha_ingreso', 'anios_experiencia', 
+                    'direccion_domicilio', 'cuenta'
+                ]   
     def create(self, validated_data):
-        cuenta_data = validated_data.pop('cuenta')
-        nueva_cuenta = Cuenta.objects.create(**cuenta_data)
-        docente = Docente.objects.create(cuenta=nueva_cuenta, **validated_data)
-        return docente
+        return self.registrar_usuario_transaccional(Docente, validated_data)

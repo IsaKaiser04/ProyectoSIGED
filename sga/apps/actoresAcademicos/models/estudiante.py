@@ -1,9 +1,13 @@
+"""Importaciones necesarias para definir el modelo"""   
 from django.db import models
 from .usuario import Usuario
 from .cuenta import Cuenta
 
-# Modelo que representa a un estudiante, hereda de Usuario y agrega un campo para la foto del estudiante.
+"""Modelo que representa a un estudiante, hereda de
+   Usuario y agrega un campo para la foto del 
+   estudiante."""
 class Estudiante(Usuario):
+    #Atributos
     cuenta = models.OneToOneField(
         Cuenta, 
         on_delete=models.CASCADE, 
@@ -17,6 +21,6 @@ class Estudiante(Usuario):
         blank=True,
         null=True
     )
-
+    #Método para representar el objeto como una cadena
     def __str__(self):
         return f"{self.nombres} {self.apellidos}"

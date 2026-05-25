@@ -14,3 +14,15 @@ class RolTipo(models.TextChoices):
     SECRETARIA = 'SECRETARIA', 'Secretaria'
     ESTUDIANTE = 'ESTUDIANTE', 'Estudiante'
     DECE = 'DECE', 'DECE'
+
+class TipoContrato(models.TextChoices):
+    TITULAR = 'TIT', 'Titular'
+    INVITADO = 'INV', 'Invitado'
+    OCASIONAL = 'OCA', 'Ocasional'
+    HONORARIOS = 'HON', 'Honorarios'
+    EMERITOS = 'EME', 'Eméritos'
+
+class TipoDedicacion(models.TextChoices):
+    TIEMPO_COMPLETO = 'TC', 'Tiempo completo'
+    TIEMPO_PARCIAL = 'TP', 'Tiempo parcial'
+    MEDIO_TIEMPO = 'MT', 'Medio tiempo'

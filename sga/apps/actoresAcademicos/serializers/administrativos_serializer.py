@@ -1,64 +1,39 @@
-"""este archivo tiene la función de crear el serializador para el modelo Administrador,
-    utilizando el serializador de modelo de Django REST Framework para convertir las instancias 
-    del modelo Administrador en formatos JSON y viceversa.
-"""
-from rest_framework import serializers
-from ..models.administrativo import Autoridad, Secretaria, Dece, Administrador
-from ..models.cuenta import Cuenta
-from .cuenta_serializer import CuentaSerializer
-from django.db import transaction
-
-
-class AutoridadSerializer(serializers.ModelSerializer):
+from apps.actoresAcademicos.serializers.usuario_serializer import UsuarioSerializer
+from apps.actoresAcademicos.models.administrativo import Autoridad, Secretaria, Dece, Administrador
+from apps.ubicacion.serializers.direccion_serializer import DireccionSerializer
+from apps.actoresAcademicos.serializers.cuenta_serializer import CuentaSerializer
+class AutoridadSerializer(UsuarioSerializer):
+    direccion_domicilio = DireccionSerializer()
     cuenta = CuentaSerializer()
     class Meta:
         model = Autoridad
-        fields = ['id', 'nombres', 'apellidos', 'identificacion', 'tipo_identificacion', 'fecha_nacimiento', 'celular', 'correo_personal', 'correo_institucional', 'cuenta']
-
+        fields = ['id', 'nombres', 'apellidos', 'identificacion', 'tipo_identificacion', 'fecha_nacimiento', 'celular', 'correo_personal', 'correo_institucional', 'direccion_domicilio', 'cuenta']
     def create(self, validated_data):
-        cuenta_data = validated_data.pop('cuenta')
-        with transaction.atomic():
-            nueva_cuenta = Cuenta.objects.create(**cuenta_data)
-            autoridad = Autoridad.objects.create(cuenta=nueva_cuenta, **validated_data)
-        return autoridad
+        return self.registrar_usuario_transaccional(Autoridad, validated_data)
 
-
-class SecretariaSerializer(serializers.ModelSerializer):
+class SecretariaSerializer(UsuarioSerializer):
+    direccion_domicilio = DireccionSerializer()
     cuenta = CuentaSerializer()
     class Meta:
         model = Secretaria
-        fields = ['id', 'nombres', 'apellidos', 'identificacion', 'tipo_identificacion', 'fecha_nacimiento', 'celular', 'correo_personal', 'correo_institucional', 'cuenta']
-
+        fields = ['id', 'nombres', 'apellidos', 'identificacion', 'tipo_identificacion', 'fecha_nacimiento', 'celular', 'correo_personal', 'correo_institucional', 'direccion_domicilio', 'cuenta']
     def create(self, validated_data):
-        cuenta_data = validated_data.pop('cuenta')
-        with transaction.atomic():
-            nueva_cuenta = Cuenta.objects.create(**cuenta_data)
-            secretaria = Secretaria.objects.create(cuenta=nueva_cuenta, **validated_data)
-        return secretaria
+        return self.registrar_usuario_transaccional(Secretaria, validated_data)
 
-
-class DeceSerializer(serializers.ModelSerializer):
+class DeceSerializer(UsuarioSerializer):
+    direccion_domicilio = DireccionSerializer()
     cuenta = CuentaSerializer()
     class Meta:
         model = Dece
-        fields = ['id', 'nombres', 'apellidos', 'identificacion', 'tipo_identificacion', 'fecha_nacimiento', 'celular', 'correo_personal', 'cuenta']
+        fields = ['id', 'nombres', 'apellidos', 'identificacion', 'tipo_identificacion', 'fecha_nacimiento', 'celular', 'correo_personal', 'direccion_domicilio', 'cuenta']
     def create(self, validated_data):
-        cuenta_data = validated_data.pop('cuenta')
-        with transaction.atomic():
-            nueva_cuenta = Cuenta.objects.create(**cuenta_data)
-            dece = Dece.objects.create(cuenta=nueva_cuenta, **validated_data)
-        return dece
+        return self.registrar_usuario_transaccional(Dece, validated_data)
 
-
-class AdministradorSerializer(serializers.ModelSerializer):
-    cuenta = CuentaSerializer()  # Quitamos read_only para que acepte el POST de la cuenta
-
+class AdministradorSerializer(UsuarioSerializer):
+    direccion_domicilio = DireccionSerializer()
+    cuenta = CuentaSerializer()
     class Meta:
         model = Administrador
-        fields = ['id','nombres', 'apellidos', 'identificacion', 'tipo_identificacion', 'fecha_nacimiento', 'celular', 'correo_personal', 'rol_administrado','cuenta']
+        fields = ['id', 'nombres', 'apellidos', 'identificacion', 'tipo_identificacion', 'fecha_nacimiento', 'celular', 'correo_personal', 'rol_administrado', 'direccion_domicilio', 'cuenta']
     def create(self, validated_data):
-        cuenta_data = validated_data.pop('cuenta')
-        with transaction.atomic():
-            nueva_cuenta = Cuenta.objects.create(**cuenta_data)
-            administrador = Administrador.objects.create(cuenta=nueva_cuenta, **validated_data)
-        return administrador
+        return self.registrar_usuario_transaccional(Administrador, validated_data)

@@ -1,20 +1,21 @@
 from rest_framework import serializers
+from apps.actoresAcademicos.serializers.usuario_serializer import UsuarioSerializer
 from apps.actoresAcademicos.models.estudiante import Estudiante
-from .cuenta_serializer import CuentaSerializer
-from ..models.cuenta import Cuenta
-from django.db import transaction
+from apps.ubicacion.serializers.direccion_serializer import DireccionSerializer
+from apps.actoresAcademicos.serializers.cuenta_serializer import CuentaSerializer
 
-class EstudianteSerializer(serializers.ModelSerializer):
-    # Esto serializa el objeto completo de la cuenta, no solo el ID
-    cuenta = CuentaSerializer() 
+class EstudianteSerializer(UsuarioSerializer, serializers.ModelSerializer):
+    # Aquí mapeamos los sub-objetos del JSON
+    direccion_domicilio = DireccionSerializer()
+    cuenta = CuentaSerializer()
 
     class Meta:
         model = Estudiante
-        fields = ['id', 'nombres', 'apellidos', 'identificacion', 'tipo_identificacion', 'fecha_nacimiento', 'celular', 'correo_personal', 'foto', 'cuenta']
+        fields = [
+            'id', 'nombres', 'apellidos', 'identificacion', 'tipo_identificacion', 
+            'fecha_nacimiento', 'celular', 'correo_personal', 'foto', 
+            'direccion_domicilio', 'cuenta'
+        ]
     
     def create(self, validated_data):
-        cuenta_data = validated_data.pop('cuenta')
-        with transaction.atomic():
-            nueva_cuenta = Cuenta.objects.create(**cuenta_data)
-            estudiante = Estudiante.objects.create(cuenta=nueva_cuenta, **validated_data)
-        return estudiante
+        return self.registrar_usuario_transaccional(Estudiante, validated_data)

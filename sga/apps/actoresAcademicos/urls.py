@@ -13,8 +13,7 @@ urlpatterns = [
     # Gestión de Cuentas del Sistema
     path('cuentas/', CuentaListAPIView.as_view(), name='cuenta-list'),
     path('cuentas/<int:pk>/', CuentaDetailUpdateDestroyAPIView.as_view(), name='cuenta-detail'),
-]
-urlpatterns = [
+
     # Administradores
     path('administradores/', AdministradorListCreateView.as_view(), name='administrador-list-create'),
     path('administradores/<int:pk>/', AdministradorDetailView.as_view(), name='administrador-detail'),
