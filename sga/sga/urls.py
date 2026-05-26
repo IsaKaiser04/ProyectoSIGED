@@ -30,6 +30,8 @@ urlpatterns = [
 
 
     path('api/', include('apps.distributivos.urls')),
+
+    path('api/comunicacion/', include('apps.comunicacion.urls')),
 ]
 
 if settings.DEBUG:
