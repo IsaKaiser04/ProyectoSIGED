@@ -14,6 +14,10 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+""" La función de este archivo es definir las rutas URL para el proyecto Django, 
+incluyendo la ruta para el panel de administración de Django y las rutas
+ específicas de la aplicación de actores académicos. 
+ """
 from django.contrib import admin
 from django.urls import path, include
 from django.urls import include, path
@@ -29,7 +33,6 @@ urlpatterns = [
     path('', RedirectView.as_view(url='/api/', permanent=False)),
     path('admin/', admin.site.urls),
     path('api/planificacion/', include('apps.planificacion.urls')),
-    path('api/', include('apps.actoresAcademicos.urls')),
     path('api/', include('apps.calificaciones.urls')),
 
 
@@ -37,6 +40,9 @@ urlpatterns = [
 
     path('api/comunicacion/', include('apps.comunicacion.urls')),
     path('api/', include('apps.dece.urls')),
+    path('api/actoresAcademicos/',include('apps.actoresAcademicos.urls')),
+    path('api/ubicacion/', include('apps.ubicacion.urls')),
+    path('api/institucion/', include('apps.institucion.urls')), 
 ]
 
 if settings.DEBUG:
