@@ -20,6 +20,10 @@ from django.urls import include, path
 from django.views.generic import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
+from django.conf import settings
+from django.conf.urls.static import static
+from django.urls import include, path
+from django.views.generic import RedirectView
 
 urlpatterns = [
     path('', RedirectView.as_view(url='/api/', permanent=False)),
@@ -32,6 +36,7 @@ urlpatterns = [
     path('api/', include('apps.distributivos.urls')),
 
     path('api/comunicacion/', include('apps.comunicacion.urls')),
+    path('api/', include('apps.dece.urls')),
 ]
 
 if settings.DEBUG:

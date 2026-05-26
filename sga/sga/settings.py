@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'apps.distributivos.apps.DistributivosConfig',
     'apps.comunicacion.apps.ComunicacionConfig',
 
+    'apps.dece.apps.DeceConfig',
 ]
 
 MIDDLEWARE = [
