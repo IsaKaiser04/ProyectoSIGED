@@ -1,15 +1,22 @@
 from django.db import models
+from apps.calificaciones.models.evaluacionCategoria import EvaluacionCategoria
+from apps.calificaciones.models.promedioCategoria import PromedioCategoria
 
 
 class AsignaturaEvaluacion(models.Model):
-    nombre = models.CharField(max_length=150)
-    descripcion = models.TextField(blank=True)
-    fecha_inicio = models.DateField(null=True, blank=True)
-    fecha_fin = models.DateField(null=True, blank=True)
-    activo = models.BooleanField(default=True)
-
     distributivo_asignatura_id = models.PositiveBigIntegerField()
-    entrega_id = models.PositiveBigIntegerField(null=True, blank=True)
+    
+    evaluacion_categoria = models.ForeignKey(
+        EvaluacionCategoria,
+        on_delete=models.CASCADE,
+        related_name='asignaturas_evaluacion',
+    )
+    
+    promedio_categoria = models.ForeignKey(
+        PromedioCategoria,
+        on_delete=models.CASCADE,
+        related_name='asignaturas_evaluaciones',
+    )
 
     def __str__(self):
-        return self.nombre
+        return f"AsignaturaEvaluacion {self.id} - Asignatura ID: {self.distributivo_asignatura_id}"

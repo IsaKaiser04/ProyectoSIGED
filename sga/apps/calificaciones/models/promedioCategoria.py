@@ -1,25 +1,18 @@
 from django.db import models
+from apps.calificaciones.models.promedio import Promedio
 
 
 class PromedioCategoria(models.Model):
-    valor = models.DecimalField(max_digits=6, decimal_places=2, default=0)
-    observacion = models.TextField(blank=True)
+    notaCuantitativa = models.DecimalField(max_digits=5, decimal_places=2)
+    notaCualitativa = models.CharField(max_length=255)
 
+    
     promedio = models.ForeignKey(
-        'Promedio',
+        Promedio,
         on_delete=models.CASCADE,
         related_name='promedios_categoria',
     )
-    evaluacion_categoria = models.ForeignKey(
-        'EvaluacionCategoria',
-        on_delete=models.PROTECT,
-        related_name='promedios_categoria',
-    )
-    asignatura_evaluacion = models.ForeignKey(
-        'AsignaturaEvaluacion',
-        on_delete=models.PROTECT,
-        related_name='promedios_categoria',
-    )
+
     promedio_categoria_padre = models.ForeignKey(
         'self',
         on_delete=models.CASCADE,
@@ -29,4 +22,4 @@ class PromedioCategoria(models.Model):
     )
 
     def __str__(self):
-        return str(self.valor)
+        return str(self.notaCuantitativa)
