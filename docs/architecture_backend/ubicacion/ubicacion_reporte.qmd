@@ -1,0 +1,123 @@
+---
+title: "SIGED — Reporte de Arquitectura y Avance — Módulo ubicacion"
+date: "2026-05-27"
+format:
+  html:
+    toc: true
+    number-sections: true
+    code-fold: true
+---
+
+## Alcance y regla de modularidad
+
+Este reporte audita **exclusivamente** el módulo `ubicacion` (carpeta `sga/apps/ubicacion/`).
+
+Este módulo es **infraestructura de datos** transversal: otros módulos lo consumen vía FK (`Direccion`).
+
+## Inventario de implementación
+
+- **Models (persistencia)**
+  - `models/pais.py`: `Pais`.
+  - `models/provincia.py`: `Provincia` (FK a `Pais`).
+  - `models/canton.py`: `Canton` (FK a `Provincia`).
+  - `models/parroquia.py`: `Parroquia` (FK a `Canton`).
+  - `models/direccion.py`: `Direccion` (FK a `Parroquia`).
+
+- **Serializers (DRF)**
+  - `PaisSerializer`, `ProvinciaSerializer`, `CantonSerializer`, `ParroquiaSerializer`, `DireccionSerializer`.
+  - `DireccionSerializer` incluye un campo calculado `parroquia_detalle` para devolver jerarquía completa (pais/provincia/canton/parroquia).
+
+- **Views (DRF ViewSets)**
+  - `PaisViewSet`, `ProvinciaViewSet`, `CantonViewSet`, `ParroquiaViewSet`, `DireccionViewSet`.
+
+- **Rutas**
+  - `urls.py` usa `DefaultRouter` y registra:
+    - `paises`, `provincias`, `cantones`, `parroquias`, `direcciones`.
+  - Integración global detectada en `sga/sga/urls.py`: prefijo `/api/ubicacion/`.
+
+- **Services / Repositories**
+  - Carpetas `services/` y `repositories/` existen, pero no se observó implementación funcional (pendiente de confirmar contenido).
+
+## Avance real (estimación)
+
+### Resumen
+
+- **Avance estimado global:** **~70%**
+
+### Criterios usados (rubrica rápida)
+
+- **Capa de dominio/persistencia (Models + constraints):** 90%
+  - Jerarquía geográfica completa con restricciones `unique`/`unique_together`.
+- **Capa de exposición (API: ViewSet + router):** 85%
+  - CRUD completo por `ModelViewSet`.
+- **Capa de aplicación (services / casos de uso):** 10%
+  - No se observa una capa explícita; pero este módulo suele ser “catálogo” y puede requerir menos lógica.
+- **Capa de acceso a datos (repositories):** 0%
+  - No se observa repositorio.
+- **Pruebas automatizadas:** 0–10%
+  - No se evidencian pruebas específicas.
+
+> Nota: el porcentaje es una **estimación arquitectónica** (cumplimiento por capas), no cobertura real.
+
+## Auditoría por capas (constitución)
+
+### Models (✅)
+
+- La jerarquía está correctamente normalizada:
+  - `Pais 1 -> N Provincia -> N Canton -> N Parroquia -> N Direccion`.
+- Restricciones de unicidad por ámbito:
+  - `Provincia`: `unique_together(nombre,pais)`.
+  - `Canton`: `unique_together(nombre,provincia)`.
+  - `Parroquia`: `unique_together(nombre,canton)`.
+- Decisión de integridad referencial:
+  - FK de `Direccion` a `Parroquia` usa `PROTECT`, lo cual protege direcciones referenciadas de ser invalidadas al borrar parroquias.
+
+### Serializers (✅/⚠️)
+
+- Serializers son simples y adecuados para catálogos.
+- `DireccionSerializer`:
+  - `parroquia` es `write_only` y `parroquia_detalle` devuelve el árbol de ubicación para lecturas.
+  - Riesgo: `get_parroquia_detalle` puede incurrir en consultas adicionales si no se usa `select_related` en views (N+1 en listados grandes).
+
+### Views / Rutas (✅)
+
+- Se usa `ModelViewSet` + `DefaultRouter`, proporcionando CRUD estándar.
+- Esto es consistente con un módulo de catálogos.
+
+### Services / Repositories (❌)
+
+- No se observa una capa explícita.
+- Si la “constitución” exige repositorios/servicios, el módulo hoy no los cumple; aunque para catálogos puede aceptarse como excepción documentada.
+
+## Endpoints (derivados del router)
+
+Base path (según configuración global): `/api/ubicacion/`
+
+- `GET|POST /api/ubicacion/paises/`
+- `GET|PUT|PATCH|DELETE /api/ubicacion/paises/<id>/`
+
+- `GET|POST /api/ubicacion/provincias/`
+- `GET|PUT|PATCH|DELETE /api/ubicacion/provincias/<id>/`
+
+- `GET|POST /api/ubicacion/cantones/`
+- `GET|PUT|PATCH|DELETE /api/ubicacion/cantones/<id>/`
+
+- `GET|POST /api/ubicacion/parroquias/`
+- `GET|PUT|PATCH|DELETE /api/ubicacion/parroquias/<id>/`
+
+- `GET|POST /api/ubicacion/direcciones/`
+- `GET|PUT|PATCH|DELETE /api/ubicacion/direcciones/<id>/`
+
+## Hallazgos y riesgos
+
+- **Riesgo de rendimiento (N+1):** `DireccionSerializer.parroquia_detalle` accede a `parroquia.canton.provincia.pais`; en listados masivos conviene `select_related('parroquia__canton__provincia__pais')`.
+- **Capas vacías:** `services/` y `repositories/` existen pero no aportan aún; si se adoptó el patrón por capas, aquí queda incompleto.
+
+## Recomendaciones (To‑Do)
+
+1. Optimización de lecturas de direcciones.
+   - En `DireccionViewSet.queryset`, usar `select_related('parroquia__canton__provincia__pais')`.
+2. Definir si `ubicacion` es “módulo de catálogo” exento de services/repos.
+   - Si NO es exento, agregar `repositories`/`services` para consultas típicas (búsqueda por nombre, filtros jerárquicos).
+3. Añadir pruebas.
+   - Tests básicos de unicidad y CRUD de router.
