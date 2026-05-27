@@ -44,14 +44,16 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
-    'apps.actoresAcademicos.apps.ActoresacademicosConfig',
-    'apps.calificaciones.apps.CalificacionesConfig',    
-    'apps.planificacion.apps.PlanificacionConfig',
-    'apps.distributivos.apps.DistributivosConfig',
-    'apps.comunicacion.apps.ComunicacionConfig',
-    'apps.dece.apps.DeceConfig',
+    'apps.actoresAcademicos',
+    'apps.calificaciones',    
+    'apps.planificacion',
+    'apps.distributivos',
+    'apps.comunicacion',
+    'apps.dece',
     'apps.ubicacion', 
     'apps.institucion',  
+    'apps.gobernanza',
+
 ]
 
 MIDDLEWARE = [

@@ -33,16 +33,15 @@ urlpatterns = [
     path('', RedirectView.as_view(url='/api/', permanent=False)),
     path('admin/', admin.site.urls),
     path('api/planificacion/', include('apps.planificacion.urls')),
-    path('api/', include('apps.calificaciones.urls')),
-
-
-    path('api/', include('apps.distributivos.urls')),
-
+    path('api/calificaciones/', include('apps.calificaciones.urls')),
+    path('api/distributivos/', include('apps.distributivos.urls')),
     path('api/comunicacion/', include('apps.comunicacion.urls')),
-    path('api/', include('apps.dece.urls')),
+    path('api/dece/', include('apps.dece.urls')),
     path('api/actoresAcademicos/',include('apps.actoresAcademicos.urls')),
     path('api/ubicacion/', include('apps.ubicacion.urls')),
     path('api/institucion/', include('apps.institucion.urls')), 
+    path('api/gobernanza/', include('apps.gobernanza.urls')),
+
 ]
 
 if settings.DEBUG:
