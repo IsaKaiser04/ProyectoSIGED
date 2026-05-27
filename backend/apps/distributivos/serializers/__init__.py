@@ -1,0 +1,6 @@
+from .distributivo_asignatura_serializer import DistributivoAsignaturaSerializer
+from .distributivo_serializer import DistributivoSerializer
+from .horario_serializer import HorarioSerializer
+from .jornada_hora_serializer import JornadaHoraSerializer
+from .planificacion_curricular_historial_serializer import PlanificacionCurricularHistorialSerializer
+from .planificacion_curricular_serializer import PlanificacionCurricularSerializer
