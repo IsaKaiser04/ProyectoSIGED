@@ -35,7 +35,7 @@ urlpatterns = [
     path('evaluacion-libro/', EvaluacionLibroListView.as_view(), name='evaluacion_libro_list_create'),
     path('evaluacion-libro/<int:pk>/', EvaluacionLibroDetailView.as_view(), name='evaluacion_libro_detail'),
 
-    # incidencias
+    # incidencia
     path('incidencias/', IncidenciaListView.as_view(), name='incidencia_list_create'),
     path('incidencias/<int:pk>/', IncidenciaDetailView.as_view(), name='incidencia_detail'),
 
