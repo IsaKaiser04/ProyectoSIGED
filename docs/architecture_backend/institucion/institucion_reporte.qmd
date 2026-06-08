@@ -1,0 +1,119 @@
+---
+title: "SIGED — Reporte de Arquitectura y Avance — Módulo institucion"
+date: "2026-05-27"
+format:
+  html:
+    toc: true
+    number-sections: true
+    code-fold: true
+---
+
+## Alcance y regla de modularidad
+
+Este reporte audita **exclusivamente** el módulo `institucion` (carpeta `sga/apps/institucion/`).
+
+Dependencias externas observadas:
+
+- `apps.ubicacion.models.direccion.Direccion` (asociación 1:1 con `Institucion`).
+
+## Inventario de implementación
+
+- **Modelos**
+  - `models/institucion.py`: entidad `Institucion`.
+  - `models/enums.py`: `ZonasCoordinacion`, `Regimen`, `Sostenimiento`, `Modalidad`, `Jornada`.
+- **Serializers (DRF)**
+  - `serializers/institucion_serializer.py`: `InstitucionSerializer`.
+- **Vistas (DRF generics)**
+  - `views/institucion_view.py`: `InstitucionListCreateView`, `InstitucionDetailView`.
+- **Rutas**
+  - `urls.py`: monta `/instituciones/` y `/instituciones/<pk>/`.
+  - Integración global detectada en `sga/sga/urls.py`: prefijo `/api/institucion/`.
+- **Servicios / Repositorios**
+  - No se encontraron capas `services/` ni `repositories/` para este módulo.
+- **Pruebas**
+  - `tests.py` existe pero no fue evidenciado contenido/escenarios específicos del módulo (requiere revisión/implementación).
+
+## Avance real (estimación)
+
+### Resumen
+
+- **Avance estimado global:** **~60%**
+
+### Criterios usados (rubrica rápida)
+
+- **Capa de dominio/persistencia (Models + constraints):** 90%
+  - Modelo simple y completo para los campos actuales.
+- **Capa de exposición (API: serializers + views + urls):** 80%
+  - CRUD base funcional con DRF `generics`.
+- **Capa de aplicación (services / casos de uso):** 0%
+  - No existe capa explícita; toda la orquestación es “directa”.
+- **Capa de acceso a datos (repositories):** 0%
+  - ORM usado directamente desde las views.
+- **Validaciones/reglas de negocio y transacciones:** 40%
+  - Validaciones quedan en manos de defaults del ORM/DRF (unique, required, choices).
+- **Pruebas automatizadas (unit/API):** 0–10%
+  - No se observan tests activos del módulo.
+
+> Nota: el porcentaje es una **estimación arquitectónica** respecto al cumplimiento del patrón por capas (“constitución”). No es una métrica de cobertura real.
+
+## Auditoría por capas (constitución)
+
+### Models (✅)
+
+- `Institucion` modela correctamente:
+  - Identidad: `codigo_amie` (unique), `ruc` (unique).
+  - Catálogos por `choices`: zona, régimen, sostenimiento, modalidad, jornada.
+  - Relación obligatoria con `Direccion` (1:1, `PROTECT`).
+
+### Repositories (❌)
+
+- No existe capa de repositorio.
+- Consecuencia: las consultas quedan ancladas a DRF/ORM desde `views`.
+
+### Services (❌)
+
+- No existe capa de servicios/casos de uso.
+- Consecuencia: si aparecen reglas de negocio (p.ej., creación atómica `Institucion + Direccion`), no hay un lugar natural para implementarlas sin engordar `serializers` o `views`.
+
+### Serializers (⚠️)
+
+- `InstitucionSerializer` expone `fields='__all__'`.
+  - Pro: rapidez, CRUD inmediato.
+  - Riesgo: acopla la API al esquema interno (cambios futuros rompen contratos).
+- Se añadieron `*_display` para devolver los labels de `choices` (bien para UX).
+- Actualmente **no** se soporta creación/actualización anidada de `Direccion` (se espera un `direccion` como PK), lo cual puede ser insuficiente si el caso de uso requiere alta “end-to-end”.
+
+### Views (⚠️)
+
+- Uso de `generics.ListCreateAPIView` y `RetrieveUpdateDestroyAPIView` con `queryset = Institucion.objects.all()`.
+- No se observan `permission_classes`/`authentication_classes` a nivel de vista.
+  - Si la “constitución” exige controles de acceso por módulo, aquí falta explicitarlos (o documentar que se heredan globalmente desde settings).
+
+## Hallazgos y riesgos
+
+- **Falta de capas `services/` y `repositories/`:** incumplimiento directo de la separación por capas.
+- **Contrato de API frágil:** `fields='__all__'` puede exponer cambios internos y generar breaking changes.
+- **Creación de institución depende de `Direccion` existente:** el POST requiere `direccion` (id) válido; si se necesita crear dirección junto con institución, falta caso de uso transaccional.
+
+## Recomendaciones (To‑Do)
+
+1. Crear `repositories/` y `services/` en `sga/apps/institucion/`.
+   - `InstitucionRepository`: operaciones de lectura/escritura (incluye búsquedas por `codigo_amie`, `ruc`).
+   - `InstitucionService`: casos de uso (p.ej. `crear_institucion_con_direccion(...)` atómico).
+2. Definir contrato de API estable.
+   - Reemplazar `fields='__all__'` por lista explícita.
+   - Decidir si `direccion` será:
+     - PK (actual), o
+     - anidado (crear/actualizar `Direccion` desde el mismo endpoint).
+3. Seguridad por defecto.
+   - Confirmar y documentar `permission_classes` globales o agregar por vista.
+4. Añadir pruebas.
+   - Tests de API para CRUD y validación de `choices`.
+   - Test de constraint unique (`codigo_amie`, `ruc`).
+
+## Evidencia (rutas)
+
+- Base path (según configuración global): `/api/institucion/`
+- Endpoints:
+  - `GET/POST /api/institucion/instituciones/`
+  - `GET/PUT/PATCH/DELETE /api/institucion/instituciones/<id>/`
