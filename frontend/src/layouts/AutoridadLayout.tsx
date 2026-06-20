@@ -62,30 +62,29 @@ export const AutoridadLayout: React.FC<AutoridadLayoutProps> = ({
         <header className="topbar">
           <span className="topbar-title">Panel Autoridad / Control Estratégico</span>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-            <ConnectionIndicator />
-            <div className="topbar-user">
-              <div className="topbar-info">
-                <div className="topbar-name">Luis Maques</div>
-                <div className="topbar-role">Autoridad Académica</div>
-              </div>
-              <div 
-                style={{ 
-                  width: "40px", 
-                  height: "40px", 
-                  borderRadius: "8px", 
-                  background: "var(--background)", 
-                  color: "var(--primary)", 
-                  display: "flex", 
-                  alignItems: "center", 
-                  justifyContent: "center", 
-                  fontWeight: 700,
-                  fontSize: "14px",
-                  border: "1px solid var(--outline-variant)"
-                }}
-              >
-                AA
-              </div>
+          <div className="topbar-user">
+            <div className="topbar-info">
+              <div className="topbar-name">Luis Maques</div>
+              <div className="topbar-role">Autoridad Académica</div>
+            </div>
+            
+            {/* Avatar Cuadrado Estilizado Coherente */}
+            <div 
+              style={{ 
+                width: "40px", 
+                height: "40px", 
+                borderRadius: "8px", 
+                background: "var(--background)", 
+                color: "var(--primary)", 
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "center", 
+                fontWeight: 700,
+                fontSize: "14px",
+                border: "1px solid var(--outline-variant)"
+              }}
+            >
+              AA
             </div>
           </div>
         </header>
@@ -96,7 +95,7 @@ export const AutoridadLayout: React.FC<AutoridadLayoutProps> = ({
         </main>
       </div>
 
-      <ToastContainer />
+
     </div>
   );
 };

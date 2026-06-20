@@ -9,7 +9,6 @@ from .oferta_view import OfertaAcademicaListCreateView, OfertaAcademicaDetailVie
 from .oferta_view import GradoOfertadoListCreateView, GradoOfertadoDetailView
 from .oferta_view import AsignaturaOfertadaListCreateView, AsignaturaOfertadaDetailView
 from .paralelo_view import ParaleloListCreateView, ParaleloDetailView
-from .calificacion_view import CalificacionListCreateView, CalificacionDetailView
 
 __all__ = [
     'EducacionNivelListCreateView', 'EducacionNivelDetailView',
@@ -23,5 +22,5 @@ __all__ = [
     'GradoOfertadoListCreateView', 'GradoOfertadoDetailView',
     'AsignaturaOfertadaListCreateView', 'AsignaturaOfertadaDetailView',
     'ParaleloListCreateView', 'ParaleloDetailView',
-    'CalificacionListCreateView', 'CalificacionDetailView',
+    #CalificacionDetailView
 ]

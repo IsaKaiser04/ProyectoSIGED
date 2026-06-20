@@ -7,6 +7,16 @@ class PlanEstudioListCreateView(generics.ListCreateAPIView):
     queryset = PlanEstudio.objects.all()
     serializer_class = PlanEstudioSerializer
 
+    def perform_create(self, serializer):
+        # 1. Intentamos obtener la institución del usuario logueado en un futuro:
+        # id_institucion = getattr(self.request.user, 'autoridad_perfil', None).institucion_id
+        
+        # 2. Por el momento, si no viene en el JSON ni en el usuario, 
+        # le clavamos la institución con ID 1 por defecto.
+        institucion_id = self.request.data.get('institucion', 1)
+        
+        # 3. Guardamos el registro inyectando de forma segura la relación
+        serializer.save(institucion_id=institucion_id)
 
 class PlanEstudioDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = PlanEstudio.objects.all()

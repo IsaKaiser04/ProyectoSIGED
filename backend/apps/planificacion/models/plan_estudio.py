@@ -1,14 +1,19 @@
 from django.db import models
-
+from apps.institucion.models.institucion import Institucion
 
 class PlanEstudio(models.Model):
     nombre = models.CharField(max_length=200)
     esActivo = models.BooleanField(default=True)
 
-    # institucion = models.ForeignKey('actoresAcademicos.Institucion', on_delete=models.CASCADE, related_name='planes_estudio')
+# 💡 Conexión obligatoria con la Institución
+    institucion = models.ForeignKey(
+        Institucion, 
+        on_delete=models.CASCADE, 
+        related_name='planes_estudio'
+    )
 
     def __str__(self):
-        return self.nombre
+        return f"{self.nombre} - {self.institucion.nombre}"
 
     class Meta:
         verbose_name = 'Plan de Estudio'

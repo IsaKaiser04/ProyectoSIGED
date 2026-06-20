@@ -11,7 +11,6 @@ from .views import (
     GradoOfertadoDetailView, GradoOfertadoListCreateView,
     AsignaturaOfertadaDetailView, AsignaturaOfertadaListCreateView,
     ParaleloDetailView, ParaleloListCreateView,
-    CalificacionDetailView, CalificacionListCreateView,
 )
 
 urlpatterns = [
@@ -41,6 +40,4 @@ urlpatterns = [
 
     path('paralelos/', ParaleloListCreateView.as_view(), name='paralelo-list-create'),
     path('paralelos/<int:pk>/', ParaleloDetailView.as_view(), name='paralelo-detail'),
-    path('calificaciones/', CalificacionListCreateView.as_view(), name='calificacion-list-create'),
-    path('calificaciones/<int:pk>/', CalificacionDetailView.as_view(), name='calificacion-detail'),
 ]

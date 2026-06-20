@@ -33,10 +33,14 @@ class PlanEstudioSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PlanEstudio
-        fields = ['id', 'nombre', 'esActivo', 'grados']
+        # 💡 AGREGAMOS 'institucion' a los campos expuestos
+        fields = ['id', 'nombre', 'esActivo', 'institucion', 'grados']
         extra_kwargs = {
             'nombre': {'required': True, 'max_length': 200},
             'esActivo': {'default': True},
+            # 💡 Hacemos que institucion no sea obligatoria en el JSON 
+            # para que el backend pueda poner la de defecto si falta.
+            'institucion': {'required': False} 
         }
 
     def create(self, validated_data):

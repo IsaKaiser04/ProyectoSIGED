@@ -7,6 +7,15 @@ import { OfertaParalelosDashboard } from "../features/planificacion/dashboards/O
 import { AniosLectivosDashboard } from "../features/planificacion/dashboards/AniosLectivosDashboard";
 import { PeriodosAcademicosDashboard } from "../features/planificacion/dashboards/PeriodosAcademicosDashboard";
 
+// ──────────────────────────────────────────────────────────────────────────
+// Importa aquí los dashboards reales conforme los vayas construyendo,
+// siguiendo el mismo patrón que ya usaste en features/ubicacion:
+//
+// import { PlanesEstudioDashboard } from '../features/planificacion/PlanesEstudioDashboard';
+// import { DistributivoDashboard } from '../features/distributivos/DistributivoDashboard';
+// import { GobernanzaDashboard } from '../features/gobernanza/GobernanzaDashboard';
+// ──────────────────────────────────────────────────────────────────────────
+
 const InicioAutoridad = () => (
   <div className="content-heading" style={{ padding: "24px" }}>
     <h2>Bienvenido, Autoridad Académica</h2>

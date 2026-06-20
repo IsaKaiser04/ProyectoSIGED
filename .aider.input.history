@@ -1,0 +1,156 @@
+
+# 2026-06-16 10:34:36.070756
++yes
+
+# 2026-06-17 08:12:36.156442
++Necesito qu me ayudes desarrolladon el sidebar y dashboards correspondientes a AutoridadAcademica, asi como se desarrollo el de Admin tanto en app y layouts y sus respectivos modulos en features de acuerdo a las siguientes acciones que realiza AutoridadAcademica:En el sistema SIGED, la Autoridad Académica es el actor estratégico responsable de la planificación y supervisión de los procesos pedagógicos dentro de su institución
++. Su gestión se centra principalmente en el Macroproceso 2: Gestión integral de la planificación académica, operando exclusivamente a través de la aplicación web
++.
++A continuación se detallan las áreas y acciones específicas que gestiona este rol:
++1. Gestión del Currículo e Infraestructura Académica
++Es el encargado de estructurar el diseño curricular de la sede educativa mediante las siguientes acciones:
++Planes de Estudio: Administrar y controlar la vigencia (activo/inactivo) de los planes institucionales
++.
++Grados y Asignaturas: Configurar los niveles educativos (EGB, subniveles), definir los periodos pedagógicos y gestionar las materias vinculadas a cada grado
++.
++Oferta Educativa y Paralelos: Habilitar los grados que estarán disponibles en el año lectivo y administrar los paralelos, incluyendo la asignación de cupos máximos
++.
++2. Planificación Temporal y Normativa
++La autoridad define el marco temporal bajo el cual operará la institución:
++Años Lectivos: Configurar las fechas de inicio y fin de cada ciclo escolar
++.
++Periodos Académicos: Dividir el año en trimestres u otros bloques, estableciendo sus fechas exactas de ejecución
++.
++Calendario y Requisitos de Matrícula: Definir los plazos y la documentación necesaria que los representantes deberán presentar para el proceso de inscripción
++.
++3. Gestión del Distributivo y Carga Horaria
++Este es el componente operativo más crítico del rol, donde organiza el talento humano docente:
++Distributivo Docente: Tomar a los profesores registrados por Secretaría y asignarles sus materias, grados y paralelos correspondientes
++.
++Planificación Curricular Anual (PCA): Vincular obligatoriamente el archivo de la PCA a cada asignatura distribuida para asegurar el cumplimiento pedagógico
++.
++Carga Horaria Semanal: Configurar el horario detallado de cada docente, diferenciando entre actividades de tipo clase y actividades complementarias
++.
++4. Supervisión y Gobernanza
++Seguimiento del EVA: Supervisar el Entorno Virtual de Aprendizaje para asegurar la calidad de los recursos y actividades publicados por los docentes
++.
++Documentación de Gobernanza: Adjuntar y mantener actualizada la documentación normativa anual como el PEI (Proyecto Educativo Institucional), CC (Código de Convivencia) y PGR (Plan de Gestión de Riesgos)
++.
+
+# 2026-06-17 08:12:53.533667
++d
+
+# 2026-06-17 08:13:05.953408
++Oferta Educativa y Paralelos: Habilitar los grados que estarán disponibles en el año lectivo y administrar los paralelos, incluyendo la asignación de cupos máximo
++s 
++. 
++2. Planificación Temporal y Normativa 
++La autoridad define el marco temporal bajo el cual operará la institución: 
++Años Lectivos: Configurar las fechas de inicio y fin de cada ciclo escolar 
++. 
++Periodos Académicos: Dividir el año en trimestres u otros bloques, estableciendo sus fechas exactas de ejecución 
++. 
++Calendario y Requisitos de Matrícula: Definir los plazos y la documentación necesaria que los representantes deberán presentar para el proceso de inscripción 
++. 
++3. Gestión del Distributivo y Carga Horaria 
++Este es el componente operativo más crítico del rol, donde organiza el talento humano docente: 
++Distributivo Docente: Tomar a los profesores registrados por Secretaría y asignarles sus materias, grados y paralelos correspondientes 
++. 
++Planificación Curricular Anual (PCA): Vincular obligatoriamente el archivo de la PCA a cada asignatura distribuida para asegurar el cumplimiento pedagógico 
++. 
++Carga Horaria Semanal: Configurar el horario detallado de cada docente, diferenciando entre actividades de tipo clase y actividades complementarias 
++. 
++4. Supervisión y Gobernanza 
++Seguimiento del EVA: Supervisar el Entorno Virtual de Aprendizaje para asegurar la calidad de los recursos y actividades publicados por los docentes 
++. 
++Documentación de Gobernanza: Adjuntar y mantener actualizada la documentación normativa anual como el PEI (Proyecto Educativo Institucional), CC (Código de Conviv
++encia) y PGR (Plan de Gestión de Riesgos) 
+
+# 2026-06-17 08:36:07.969916
++yes
+
+# 2026-06-18 17:26:08.682424
++n
+
+# 2026-06-18 17:29:12.597696
++necesito que analices lo que es el flujo de gestion de Actores Academicos de Administrador,Dece, Autoridad Academica y Secretaria dentro del Dashboard de Administrador para posteriormente hacer lo mismo que el el rol autoridad haga la gestion de docentes y estudiantes
+
+# 2026-06-18 18:08:34.100403
++ n
+
+# 2026-06-18 18:08:41.585393
++no
+
+# 2026-06-18 19:03:06.391973
++n
+
+# 2026-06-18 19:09:26.884078
++/add sga/apps/actoresAcademicos/models/administrativo.py
++/add sga/apps/actoresAcademicos/models/docente.py
++/add sga/apps/actoresAcademicos/models/estudiante.py
++
++/add sga/apps/actoresAcademicos/serializers/usuario_serializer.py
++/add sga/apps/actoresAcademicos/serializers/administrativos_serializer.py
++/add sga/apps/actoresAcademicos/serializers/docente_serializer.py
++/add sga/apps/actoresAcademicos/serializers/estudiante_serializer.py
++
++/add sga/apps/actoresAcademicos/views/autoridad_view.py
++/add sga/apps/actoresAcademicos/views/secretaria_view.py
++/add sga/apps/actoresAcademicos/views/administrador__view.py/add /add sga/apps/actoresAcademicos/models/usuario.py
++/add sga/apps/actoresAcademicos/models/administrativo.py /add sga/apps/actoresAcademicos/views/docente_view.py
++/add sga/apps/actoresAcademicos/views/estudiante_view.py
+
+# 2026-06-18 19:11:25.600060
++n
+
+# 2026-06-18 19:12:14.743711
++/add backend/apps/actoresAcademicos/models/usuario.py
++/add backend/apps/actoresAcademicos/models/administrativo.py
++/add backend/apps/actoresAcademicos/models/docente.py
++/add backend/apps/actoresAcademicos/models/estudiante.py
++
++/add backend/apps/actoresAcademicos/serializers/usuario_serializer.py
++/add backend/apps/actoresAcademicos/serializers/administrativos_serializer.py
++/add backend/apps/actoresAcademicos/serializers/docente_serializer.py
++/add backend/apps/actoresAcademicos/serializers/estudiante_serializer.py
++
++/add backend/apps/actoresAcademicos/views/administrador_view.py
++/add backend/apps/actoresAcademicos/views/autoridad_view.py
++/add backend/apps/actoresAcademicos/views/dece_view.py
++/add backend/apps/actoresAcademicos/views/secretaria_view.py
++/add backend/apps/actoresAcademicos/views/docente_view.py
++/add backend/apps/actoresAcademicos/views/estudiante_view.py
++
++/add backend/apps/actoresAcademicos/urls.py
+
+# 2026-06-18 19:13:25.344075
++n
+
+# 2026-06-18 19:13:47.531439
++/add backend/apps/actoresAcademicos/models/usuario.py
++/add backend/apps/actoresAcademicos/models/administrativo.py
++/add backend/apps/actoresAcademicos/models/docente.py
++/add backend/apps/actoresAcademicos/models/estudiante.py
++
++/add backend/apps/actoresAcademicos/serializers/usuario_serializer.py
++/add backend/apps/actoresAcademicos/serializers/administrativos_serializer.py
++/add backend/apps/actoresAcademicos/serializers/docente_serializer.py
++/add backend/apps/actoresAcademicos/serializers/estudiante_serializer.py
++
++/add backend/apps/actoresAcademicos/views/administrador_view.py
++/add backend/apps/actoresAcademicos/views/autoridad_view.py
++/add backend/apps/actoresAcademicos/views/dece_view.py
++/add backend/apps/actoresAcademicos/views/secretaria_view.py
++/add backend/apps/actoresAcademicos/views/docente_view.py
++/add backend/apps/actoresAcademicos/views/estudiante_view.py
++
++/add backend/apps/actoresAcademicos/urls.py
+
+# 2026-06-18 19:14:56.680309
++n
+
+# 2026-06-18 19:17:48.900564
++Primero analiza el código agregado y explícame cómo está implementado el flujo completo de creación de Administrador, Autoridad Académica, Secretaría y DECE. No modifiques ningún archivo todavía. Indícame qué componentes participan y qué debería reutilizarse para Docente y Estudiante 
+
+# 2026-06-18 20:15:12.439043
++  Perfecto. Ahora implementa Docente y Estudiante siguiendo exactamente ese patrón. Haz los cambios necesarios en models, serializers, views y urls, reutilizando la lógica existente y evitando duplicación de código.

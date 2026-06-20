@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useDocentes } from "./hooks/useDocente.js";
+import { useDocentes } from "./hooks/useDocente..js";
 import { FormularioDocente } from "./components/FormularioDocente";
 import { TablaDocentes } from "./components/DocenteTable";
 
