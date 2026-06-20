@@ -9,13 +9,13 @@ from apps.actoresAcademicos.serializers.docente_serializer import DocenteSeriali
 
 class DocenteListCreateView(generics.ListCreateAPIView):
 
-    queryset = Docente.objects.all()
+    queryset = Docente.objects.select_related('direccion_domicilio', 'cuenta').all()
 
     serializer_class = DocenteSerializer
 
 
 class DocenteDetailView(generics.RetrieveUpdateDestroyAPIView):
 
-    queryset = Docente.objects.all()
+    queryset = Docente.objects.select_related('direccion_domicilio', 'cuenta').all()
 
     serializer_class = DocenteSerializer

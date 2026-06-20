@@ -5,13 +5,13 @@ from apps.actoresAcademicos.serializers.estudiante_serializer import EstudianteS
 
 class EstudianteListCreateView(generics.ListCreateAPIView):
 
-    queryset = Estudiante.objects.all()
+    queryset = Estudiante.objects.select_related('direccion_domicilio', 'cuenta').all()
 
     serializer_class = EstudianteSerializer
 
 class EstudianteDetailView(generics.RetrieveUpdateDestroyAPIView):
 
-    queryset = Estudiante.objects.all()
+    queryset = Estudiante.objects.select_related('direccion_domicilio', 'cuenta').all()
 
     serializer_class = EstudianteSerializer
     

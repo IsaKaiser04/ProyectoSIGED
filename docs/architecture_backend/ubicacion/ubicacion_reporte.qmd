@@ -65,6 +65,8 @@ Este módulo es **infraestructura de datos** transversal: otros módulos lo cons
 
 - La jerarquía está correctamente normalizada:
   - `Pais 1 -> N Provincia -> N Canton -> N Parroquia -> N Direccion`.
+- Se implementó el control de estado (`is_active` bool) en todos los niveles geográficos (soft-delete / inactivación).
+- Se implementó la clasificación de territorios en `Parroquia` vía el enum `TipoParroquiaChoices` (Urbana / Rural).
 - Restricciones de unicidad por ámbito:
   - `Provincia`: `unique_together(nombre,pais)`.
   - `Canton`: `unique_together(nombre,provincia)`.

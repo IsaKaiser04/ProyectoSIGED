@@ -11,6 +11,10 @@ class Canton(models.Model):
         related_name='cantones',
         verbose_name="Provincia Asociada"
     )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Activo"
+    )
 
     class Meta:
         db_table = 'tbl_cantones'

@@ -22,6 +22,10 @@ class Direccion(models.Model):
         related_name='direcciones',
         verbose_name="Parroquia Domiciliaria"
     )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Activa"
+    )
 
     class Meta:
         db_table = 'tbl_direcciones'

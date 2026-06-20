@@ -1,6 +1,7 @@
 from django.db import models
 from .enums import TipoIdentificacion
 from apps.ubicacion.models.direccion import Direccion
+from apps.institucion.models.institucion import Institucion
 # Clase abstracta que representa a un usuario común, con campos básicos de identificación y contacto.
 
 class Usuario(models.Model):

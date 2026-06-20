@@ -137,6 +137,24 @@ usa etiquetas semanticas de HTML5:
 5. Evolucion incremental: la estructura permite agregar autenticacion, rutas
    protegidas, pruebas y estado global sin rehacer la base.
 
+## Relacion con especificaciones frontend
+
+La documentacion de arquitectura frontend se complementa con las
+especificaciones ubicadas en `podsite/spec_front/`. Mientras este SDD describe
+la justificacion arquitectonica, el stack, la estructura de carpetas, el layout
+semantico y la alineacion con backend, las especificaciones frontend establecen
+las reglas normativas para implementar cada modulo.
+
+| Fuente | Contenido | Uso |
+|---|---|---|
+| `docs/architecture_frontend/frontend_sdd.qmd` | Diseno arquitectonico del frontend. | Justifica la tecnologia, la estructura y el flujo base de ejecucion. |
+| `podsite/spec_front/README.md` | Especificacion general del frontend. | Define reglas obligatorias, convenciones, guia UI/UX y relacion con SRS/backend. |
+| `podsite/spec_front/*_front.md` | Especificaciones por modulo. | Detallan requisitos asociados, API base, alcance UI, componentes sugeridos y criterios de aceptacion. |
+| `frontend/src/config/navigation.ts` | Trazabilidad en codigo. | Asocia modulo visual, ruta hash, endpoint `/api/`, requisito funcional y estado de exposicion. |
+
+Esta relacion permite evidenciar que el frontend no solo esta implementado como
+base tecnica, sino tambien documentado y trazado contra sus especificaciones.
+
 ## Flujo de ejecucion local
 
 ```bash

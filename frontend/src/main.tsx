@@ -1,16 +1,11 @@
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { App } from "./app/App";
+// src/main.tsx
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { AppRouter } from "./app/AppRouter";
 import "./styles/global.css";
 
-const root = document.getElementById("root");
-
-if (!root) {
-  throw new Error("No se encontro el nodo root para montar SIGED.");
-}
-
-createRoot(root).render(
-  <StrictMode>
-    <App />
-  </StrictMode>
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <AppRouter />
+  </React.StrictMode>
 );

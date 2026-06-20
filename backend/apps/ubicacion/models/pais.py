@@ -6,6 +6,10 @@ class Pais(models.Model):
         unique=True, 
         verbose_name="Nombre del País"
     )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Activo"
+    )
 
     class Meta:
         db_table = 'tbl_paises'

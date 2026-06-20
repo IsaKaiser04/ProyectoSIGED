@@ -9,13 +9,13 @@ from ..serializers.administrativos_serializer import AdministradorSerializer
 
 class AdministradorListCreateView(generics.ListCreateAPIView):
 
-    queryset = Administrador.objects.all()
+    queryset = Administrador.objects.select_related('cuenta', 'direccion_domicilio__parroquia__canton__provincia__pais').all()
 
     serializer_class = AdministradorSerializer
 
 
 class AdministradorDetailView(generics.RetrieveUpdateDestroyAPIView):
 
-    queryset = Administrador.objects.all()
+    queryset = Administrador.objects.select_related('cuenta', 'direccion_domicilio__parroquia__canton__provincia__pais').all()
 
     serializer_class = AdministradorSerializer
