@@ -1,0 +1,353 @@
+---
+title: "SIGED — Reporte de Arquitectura y Avance — Módulo planificacion"
+date: "2026-05-27"
+format:
+  html:
+    toc: true
+    number-sections: true
+    code-fold: true
+---
+
+## Alcance y regla de modularidad
+
+Este reporte audita **exclusivamente** el módulo `planificacion` (carpeta `sga/apps/planificacion/`).
+
+El módulo concentra la estructura académica base del sistema:
+
+- niveles y subniveles educativos;
+- planes de estudio, grados y asignaturas;
+- años lectivos y períodos académicos;
+- ofertas académicas, grados ofertados y asignaturas ofertadas;
+- paralelos;
+- calificaciones asociadas a asignaturas ofertadas.
+
+Dependencias externas observadas:
+
+- No hay FK activas hacia otros módulos.
+- Existen relaciones comentadas hacia `Institucion`, `Docente`, `Estudiante` y `PeriodoAcademico`, por lo que el diseño parece preparado para integraciones posteriores con actores académicos e institución.
+
+## Inventario de implementación
+
+- **Modelos**
+  - `models/educacion.py`: `EducacionNivel`, `EducacionSubNivel`.
+  - `models/plan_estudio.py`: `PlanEstudio`, `Grado`, `Asignatura`.
+  - `models/anio_lectivo.py`: `AnioLectivo`, `PeriodoAcademico`.
+  - `models/oferta.py`: `OfertaAcademica`, `GradoOfertado`, `AsignaturaOfertada`.
+  - `models/paralelo.py`: `Paralelo`.
+  - `models/calificacion.py`: `Calificacion`.
+  - `models/enums.py`: `PeriodoTipo`.
+
+- **Serializers (DRF)**
+  - `EducacionNivelSerializer`, `EducacionSubNivelSerializer`.
+  - `PlanEstudioSerializer`, `GradoSerializer`, `AsignaturaSerializer`.
+  - `AnioLectivoSerializer`, `PeriodoAcademicoSerializer`.
+  - `OfertaAcademicaSerializer`, `GradoOfertadoSerializer`, `AsignaturaOfertadaSerializer`.
+  - `ParaleloSerializer`.
+  - `CalificacionSerializer`.
+
+- **Vistas (DRF generics)**
+  - Se usa `ListCreateAPIView` y `RetrieveUpdateDestroyAPIView` para cada recurso.
+  - Las vistas consultan directamente con `Model.objects.all()`.
+
+- **Rutas**
+  - `urls.py` declara rutas explícitas con `path`.
+  - Integración global detectada en `sga/sga/urls.py`: prefijo `/api/planificacion/`.
+
+- **Servicios / Repositorios**
+  - Las carpetas `services/` y `repositories/` existen, pero solo contienen `__init__.py`.
+  - No se observa implementación funcional de capa de servicios ni repositorios.
+
+- **Pruebas**
+  - `tests.py` existe, pero contiene únicamente el esqueleto generado por Django.
+
+## Avance real (estimación)
+
+### Resumen
+
+- **Avance estimado global:** **~58%**
+
+### Lectura rápida de cumplimiento
+
+- **Cumplimiento funcional CRUD:** alto para RF-05 y RF-06.
+- **Cumplimiento del modelo de clases objetivo:** parcial; el código actual coincide más con la vista As-Is que con el Target/Spec.
+- **Cumplimiento C4 Nivel 3 / constitución por capas:** bajo/parcial; faltan services, repositories, autenticación/permisos por rol y separación estricta de lógica.
+- **Cumplimiento de integridad académica:** parcial; existen relaciones base, pero faltan reglas y constraints de negocio.
+
+### Criterios usados (rúbrica rápida)
+
+- **Capa de dominio/persistencia (Models + relaciones):** 80%
+  - El grafo académico principal está modelado y conectado internamente.
+  - Faltan algunas restricciones de negocio importantes en base de datos.
+- **Capa de exposición (API: serializers + views + urls):** 85%
+  - CRUD base disponible para todos los recursos principales.
+- **Validaciones de API:** 55%
+  - Hay validaciones útiles en serializers: fechas, cupos y rangos de calificación.
+  - Faltan validaciones cruzadas relevantes entre entidades relacionadas.
+- **Capa de aplicación (services / casos de uso):** 0%
+  - No existe capa explícita; la lógica queda repartida entre serializers y views.
+- **Capa de acceso a datos (repositories):** 0%
+  - ORM usado directamente desde views y serializers.
+- **Pruebas automatizadas:** 0-10%
+  - No se observan pruebas específicas.
+
+> Nota: el porcentaje es una **estimación arquitectónica** respecto al cumplimiento del patrón por capas, no una métrica de cobertura real.
+
+## Cumplimiento vs SRS / requisitos
+
+Fuentes contrastadas:
+
+- SRS: `podsite/.specify/memory/srs-req-siged-006.md`.
+- Trazabilidad: `podsite/.specify/memory/traceability-req-siged-006.md`.
+- Constitución técnica: `podsite/.specify/memory/constitution.md`.
+- C4 Nivel 2: `podsite/.specify/memory/c4-nivel-2-contenedores-siged.md`.
+- C4 Nivel 3: `podsite/.specify/memory/c4-nivel-3-componentes-backend-siged.md`.
+- UML del módulo: `podsite/specs/planificacion_uml.md`.
+
+| Requisito | Alcance esperado | Evidencia en `apps.planificacion` | Estado |
+|---|---|---|---|
+| RF-05 | Gestionar planes de estudio, grados escolares y asignaturas | Modelos `PlanEstudio`, `Grado`, `Asignatura`; serializers, views y endpoints `planes-estudio/`, `grados/`, `asignaturas/` | **Parcial alto** |
+| RF-06 | Configurar años lectivos, períodos académicos, oferta educativa y paralelos | Modelos `AnioLectivo`, `PeriodoAcademico`, `OfertaAcademica`, `GradoOfertado`, `AsignaturaOfertada`, `Paralelo`; endpoints publicados | **Parcial alto** |
+| RF-11 | Registrar y gestionar calificaciones parciales, finales y supletorios | Existe `Calificacion` asociada a `AsignaturaOfertada`, pero sin estudiante, período académico ni tipo de evaluación | **Parcial bajo** |
+| RF-20 | Exponer servicios mediante API REST | Endpoints DRF publicados bajo `/api/planificacion/` | **Parcial** |
+| RNF-02 | API REST JSON/HTTPS | DRF usa JSON renderer/parser; HTTPS no se verifica en entorno local | **Parcial** |
+| RNF-03 | Seguridad, autenticación y autorización | No se observan JWT ni permisos por rol en settings o vistas del módulo | **No cumple / pendiente** |
+| RNF-06 | Modularidad y separación de responsabilidades | Hay carpetas por capa, pero `services/` y `repositories/` están vacías | **Parcial bajo** |
+| RNF-08 | Integridad de datos académicos | Hay FK y algunas validaciones; faltan constraints e invariantes cruzadas | **Parcial** |
+
+Conclusión funcional: el módulo cubre la **exposición CRUD básica** de RF-05 y RF-06, pero todavía no implementa completamente los flujos escolares esperados ni la seguridad/arquitectura exigida por la constitución.
+
+## Cumplimiento vs UML de clases
+
+El archivo `podsite/specs/planificacion_uml.md` diferencia dos vistas:
+
+- **Target/Spec:** modelo objetivo esperado.
+- **As-Is:** modelo real existente en `sga/apps/planificacion/models/`.
+
+### Entidades del Target/Spec
+
+| Clase esperada | Estado en código actual | Observación |
+|---|---|---|
+| `Institucion` | **No implementada como FK activa** | Aparece solo comentada en `PlanEstudio` y `AnioLectivo`; vive en otro módulo. |
+| `EducacionNivel` | **Implementada** | Incluye `nombre`, `codigo`, `periodoPedagogicoMinutos`, `periodoPedagogicoSemanaMinimo`. |
+| `EducacionSubNivel` | **Implementada** | Incluye FK real a `EducacionNivel`, alineada con el As-Is. |
+| `PlanEstudio` | **Parcial** | Faltan `descripcion` y `duracionAnios` del Target/Spec. |
+| `AnioLectivo` | **Implementada parcial** | Faltaría relación activa con `Institucion`. |
+| `PeriodoAcademico` | **Implementada** | Incluye `periodoTipo` con choices. |
+| `PeriodoTipo` | **Implementada** | Enum `BIMESTRE`, `TRIMESTRE`, `QUIMESTRE`. |
+| `CursoAcademico` | **No implementada** | En código se usa `Grado` como estructura equivalente parcial. |
+| `CursoAsignatura` | **No implementada** | En código se usa la relación directa `Asignatura -> Grado` y `AsignaturaOfertada -> Asignatura`. |
+| `OfertaAcademica` | **Implementada parcial** | Se asocia 1:1 con `AnioLectivo`; no depende de `CursoAcademico`. |
+| `GradoOfertado` | **Implementada** | Conecta `OfertaAcademica` y `Grado`. |
+| `Paralelo` | **Parcial** | Falta `docenteTutor` activo hacia `Docente`; está comentado. |
+| `Docente` | **No implementada aquí** | Es dependencia externa de `actoresAcademicos`; no hay FK activa desde `Paralelo`. |
+| `Asignatura` | **Implementada** | Asociada a `Grado`, no a `CursoAsignatura`. |
+| `AsignaturaOfertada` | **Implementada** | Conecta `GradoOfertado` y `Asignatura`. |
+| `Calificacion` | **Parcial** | Asociada a `AsignaturaOfertada`; faltan `Estudiante` y `PeriodoAcademico` activos para una nota escolar completa. |
+
+### Relaciones del Target/Spec
+
+Cumple o se aproxima:
+
+- `EducacionNivel -> EducacionSubNivel` existe.
+- `PlanEstudio -> Grado -> Asignatura` cubre parcialmente la idea de malla curricular.
+- `AnioLectivo -> PeriodoAcademico` existe.
+- `PeriodoAcademico -> PeriodoTipo` existe vía `choices`.
+- `AnioLectivo -> OfertaAcademica` existe como `OneToOneField`.
+- `OfertaAcademica -> GradoOfertado -> Paralelo` existe.
+- `GradoOfertado -> AsignaturaOfertada` existe.
+- `Asignatura -> AsignaturaOfertada` existe.
+- `AsignaturaOfertada -> Calificacion` existe.
+
+Brechas frente al Target/Spec:
+
+- `Institucion -> PlanEstudio` y `Institucion -> AnioLectivo` no están activas.
+- `CursoAcademico` no existe como entidad; se reemplazó por `Grado`.
+- `CursoAsignatura` no existe; no hay entidad intermedia para carga horaria semanal por curso.
+- `Paralelo -> Docente` no está activa.
+- `Asignatura -> Calificacion` del Target se resolvió como `AsignaturaOfertada -> Calificacion`, lo cual es más contextual, pero todavía incompleto sin estudiante/período.
+- No hay cardinalidades reforzadas con constraints para duplicados por ámbito.
+
+## Cumplimiento vs C4 / constitución
+
+### C4 Nivel 2 (contenedores)
+
+El módulo sí forma parte del **Backend API Django** y está montado en `INSTALLED_APPS` y en `sga/sga/urls.py` bajo `/api/planificacion/`.
+
+Cumplimiento:
+
+- Backend Django expone API REST para clientes externos.
+- Persistencia mediante Django Models.
+- Respuestas configuradas como JSON por DRF.
+
+Brechas:
+
+- No se verifica HTTPS en entorno local.
+- No se observa autenticación JWT ni permisos por rol para proteger los endpoints.
+
+### C4 Nivel 3 (componentes backend)
+
+| Componente C4 esperado | Estado en módulo `planificacion` | Cumplimiento |
+|---|---|---|
+| API REST | URLs publicadas bajo `/api/planificacion/` | **Cumple parcial** |
+| Views | Existen CBVs DRF por recurso | **Cumple** |
+| Serializers / DTO | Existen serializers explícitos | **Cumple parcial** |
+| Auth / Permissions | No hay configuración o clases aplicadas en el módulo | **No cumple** |
+| Services | Carpeta existe vacía | **No cumple** |
+| Repository | Carpeta existe vacía | **No cumple** |
+| Models | Modelos principales implementados | **Cumple parcial** |
+| Database | Migrations existen; SQLite local configurado | **Cumple parcial** |
+
+Lectura arquitectónica: el módulo está en una etapa de **CRUD con dominio persistente**, pero todavía no alcanza el C4 Nivel 3 esperado porque las vistas y serializers interactúan directamente con modelos y no delegan en services/repositories.
+
+## Auditoría por capas (constitución)
+
+### Models (✅/⚠️)
+
+El módulo define una estructura académica coherente:
+
+- `EducacionNivel 1 -> N EducacionSubNivel`.
+- `PlanEstudio 1 -> N Grado 1 -> N Asignatura`.
+- `AnioLectivo 1 -> N PeriodoAcademico`.
+- `AnioLectivo 1 -> 1 OfertaAcademica`.
+- `OfertaAcademica 1 -> N GradoOfertado 1 -> N AsignaturaOfertada`.
+- `GradoOfertado 1 -> N Paralelo`.
+- `AsignaturaOfertada 1 -> N Calificacion`.
+
+Aspectos positivos:
+
+- `EducacionNivel.codigo` y `EducacionSubNivel.codigo` son únicos.
+- `OfertaAcademica` usa `OneToOneField` con `AnioLectivo`, evitando más de una oferta por año lectivo.
+- `PeriodoAcademico.periodoTipo` usa `choices` mediante `PeriodoTipo`.
+
+Riesgos:
+
+- No hay constraints para evitar duplicados por ámbito, por ejemplo:
+  - grados repetidos dentro del mismo plan de estudio;
+  - asignaturas repetidas dentro del mismo grado;
+  - períodos repetidos dentro del mismo año lectivo;
+  - paralelos repetidos dentro del mismo grado ofertado.
+- Las FK usan `CASCADE` en todo el módulo. Esto simplifica borrados, pero puede eliminar estructuras académicas completas si se borra una entidad padre.
+- Hay relaciones comentadas hacia institución, docente, estudiante y período académico; esto deja casos de uso importantes fuera del modelo activo.
+
+### Serializers (✅/⚠️)
+
+Los serializers exponen contratos explícitos con listas de `fields`, lo cual es mejor que `fields='__all__'`.
+
+Validaciones observadas:
+
+- `AnioLectivoSerializer` y `PeriodoAcademicoSerializer` validan que `fechaFin` sea posterior a `fechaInicio`.
+- `ParaleloSerializer` valida que `cuposOcupados` no supere `cuposMaximo`.
+- `CalificacionSerializer` restringe la calificación cuantitativa entre 0 y 100.
+- Varios serializers definen `extra_kwargs` con campos requeridos y mínimos.
+
+Riesgos:
+
+- `AnioLectivoSerializer` expone `periodosAcademicos`, pero el `related_name` real del modelo es `periodos_academicos`. Sin `source='periodos_academicos'`, ese campo puede no devolver datos correctamente.
+- `OfertaAcademicaSerializer` expone `gradosOfertados`, pero el `related_name` real es `grados_ofertados`.
+- `GradoOfertadoSerializer` expone `asignaturasOfertadas`, pero el `related_name` real es `asignaturas_ofertadas`.
+- Los serializers anidados son de solo lectura; la creación de estructuras completas debe hacerse en múltiples requests.
+- Faltan validaciones cruzadas, por ejemplo:
+  - que un `EducacionSubNivel` corresponda al `EducacionNivel` seleccionado en `Grado`;
+  - que una `AsignaturaOfertada` pertenezca al mismo grado base que su `GradoOfertado`;
+  - que un `PeriodoAcademico` esté dentro del rango de fechas del `AnioLectivo`.
+
+### Views / Rutas (✅/⚠️)
+
+- El uso de `ListCreateAPIView` y `RetrieveUpdateDestroyAPIView` da CRUD completo por recurso.
+- Las rutas son explícitas y fáciles de leer.
+- No se observan filtros, búsquedas, ordenamiento ni paginación específica del módulo.
+- No se observan `permission_classes`/`authentication_classes` a nivel de vista.
+- Las consultas no usan `select_related`/`prefetch_related`, lo que puede producir N+1 cuando se serialicen relaciones anidadas o se agreguen campos calculados.
+
+### Services / Repositories (❌)
+
+- Las carpetas existen, pero no contienen lógica funcional.
+- En este módulo sí hay casos de uso que justifican una capa de servicio:
+  - crear plan de estudio completo con grados y asignaturas;
+  - generar oferta académica desde un plan de estudio;
+  - crear paralelos con control de cupos;
+  - registrar calificaciones con estudiante, período y asignatura ofertada cuando esas relaciones se activen.
+
+### Pruebas (❌)
+
+- No se evidencian pruebas unitarias ni de API.
+- Dado que el módulo coordina estructura académica central, la ausencia de tests aumenta el riesgo de regresiones silenciosas.
+
+## Endpoints (derivados de `urls.py`)
+
+Base path (según configuración global): `/api/planificacion/`
+
+- `GET|POST /api/planificacion/niveles/`
+- `GET|PUT|PATCH|DELETE /api/planificacion/niveles/<id>/`
+
+- `GET|POST /api/planificacion/subniveles/`
+- `GET|PUT|PATCH|DELETE /api/planificacion/subniveles/<id>/`
+
+- `GET|POST /api/planificacion/planes-estudio/`
+- `GET|PUT|PATCH|DELETE /api/planificacion/planes-estudio/<id>/`
+
+- `GET|POST /api/planificacion/grados/`
+- `GET|PUT|PATCH|DELETE /api/planificacion/grados/<id>/`
+
+- `GET|POST /api/planificacion/asignaturas/`
+- `GET|PUT|PATCH|DELETE /api/planificacion/asignaturas/<id>/`
+
+- `GET|POST /api/planificacion/anios-lectivos/`
+- `GET|PUT|PATCH|DELETE /api/planificacion/anios-lectivos/<id>/`
+
+- `GET|POST /api/planificacion/periodos/`
+- `GET|PUT|PATCH|DELETE /api/planificacion/periodos/<id>/`
+
+- `GET|POST /api/planificacion/ofertas/`
+- `GET|PUT|PATCH|DELETE /api/planificacion/ofertas/<id>/`
+
+- `GET|POST /api/planificacion/grados-ofertados/`
+- `GET|PUT|PATCH|DELETE /api/planificacion/grados-ofertados/<id>/`
+
+- `GET|POST /api/planificacion/asignaturas-ofertadas/`
+- `GET|PUT|PATCH|DELETE /api/planificacion/asignaturas-ofertadas/<id>/`
+
+- `GET|POST /api/planificacion/paralelos/`
+- `GET|PUT|PATCH|DELETE /api/planificacion/paralelos/<id>/`
+
+- `GET|POST /api/planificacion/calificaciones/`
+- `GET|PUT|PATCH|DELETE /api/planificacion/calificaciones/<id>/`
+
+## Hallazgos y riesgos
+
+- **Campos anidados posiblemente rotos:** varios serializers usan nombres camelCase que no coinciden con los `related_name` snake_case del modelo.
+- **Falta de services/repositories:** el módulo expone CRUD, pero no encapsula casos de uso académicos.
+- **Reglas académicas incompletas:** faltan validaciones entre plan, grado, subnivel, oferta, asignatura y período.
+- **Riesgo de duplicados:** faltan constraints por ámbito en modelos clave.
+- **Borrado en cascada amplio:** un delete accidental de entidades padre puede borrar estructura académica dependiente.
+- **Integraciones pendientes:** institución, docente, estudiante y período académico aparecen comentados, por lo que calificaciones y paralelos aún no están completamente conectados al dominio escolar real.
+- **Sin pruebas automatizadas:** no hay respaldo para validaciones, rutas ni contratos de serializer.
+
+## Recomendaciones (To-Do)
+
+1. Corregir serializers anidados con `source`.
+   - `periodosAcademicos = PeriodoAcademicoSerializer(source='periodos_academicos', many=True, read_only=True)`.
+   - `gradosOfertados = GradoOfertadoSerializer(source='grados_ofertados', many=True, read_only=True)`.
+   - `asignaturasOfertadas = AsignaturaOfertadaSerializer(source='asignaturas_ofertadas', many=True, read_only=True)`.
+2. Agregar constraints por ámbito.
+   - `unique_together` o `UniqueConstraint` para grados, asignaturas, períodos, grados ofertados, asignaturas ofertadas y paralelos.
+3. Crear capa de servicios.
+   - `PlanEstudioService`: creación/consulta de malla curricular.
+   - `OfertaAcademicaService`: generación de oferta desde plan de estudio.
+   - `ParaleloService`: control de cupos.
+   - `CalificacionService`: registro y validación de notas.
+4. Crear repositories si la constitución del proyecto exige separación estricta.
+   - Encapsular consultas frecuentes con `select_related`/`prefetch_related`.
+5. Definir estrategia de integraciones.
+   - Activar o rediseñar relaciones con `Institucion`, `Docente`, `Estudiante` y `PeriodoAcademico`.
+6. Añadir pruebas.
+   - Tests de API para CRUD de cada recurso.
+   - Tests de validaciones de fechas, cupos y calificaciones.
+   - Tests para serializers anidados.
+   - Tests de constraints cuando se agreguen.
+
+## Evidencia (rutas)
+
+- Base path: `/api/planificacion/`
+- Archivo de rutas local: `sga/apps/planificacion/urls.py`
+- Integración global: `sga/sga/urls.py`
