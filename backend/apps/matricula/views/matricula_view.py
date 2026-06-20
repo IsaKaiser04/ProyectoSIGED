@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status
+﻿from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from apps.matricula.services.matricula_service import MatriculaService
@@ -16,7 +16,7 @@ class MatriculaViewSet(viewsets.ViewSet):
         return Response(data)
 
     def create(self, request):
-        data, errors = MatriculaService.create(request.data)
+        data, errors = MatriculaService.create(request.data, user_id=request.user.id if request.user.is_authenticated else None)
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
         return Response(data, status=status.HTTP_201_CREATED)
@@ -38,32 +38,23 @@ class MatriculaViewSet(viewsets.ViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['post'])
-    def cambiar_estado(self, request, pk=None):
-        nuevo_estado = request.data.get('estado')
-        if not nuevo_estado:
-            return Response({'error': 'Debe proporcionar un estado'}, status=status.HTTP_400_BAD_REQUEST)
-        data, errors = MatriculaService.update(pk, {'estado': nuevo_estado})
-        if errors:
-            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
-        return Response(data)
-
-    @action(detail=True, methods=['post'])
     def legalizar(self, request, pk=None):
-        data, errors = MatriculaService.update(pk, {'estado': Matricula.MatriculaEstado.LEGALIZADA})
-        if errors:
-            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
-        return Response(data)
-
-    @action(detail=True, methods=['post'])
-    def rechazar(self, request, pk=None):
-        data, errors = MatriculaService.update(pk, {'estado': Matricula.MatriculaEstado.RECHAZADA})
+        data, errors = MatriculaService.legalizar(pk, request.user.id if request.user.is_authenticated else None)
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
         return Response(data)
 
     @action(detail=True, methods=['post'])
     def anular(self, request, pk=None):
-        data, errors = MatriculaService.update(pk, {'estado': Matricula.MatriculaEstado.ANULADA})
+        motivo = request.data.get('motivo', 'Anulación sin motivo')
+        success, errors = MatriculaService.anular(pk, motivo)
+        if not success:
+            return Response(errors, status=status.HTTP_404_NOT_FOUND)
+        return Response({'mensaje': 'Matricula anulada y cupo liberado correctamente'})
+
+    @action(detail=True, methods=['post'])
+    def rechazar(self, request, pk=None):
+        data, errors = MatriculaService.update(pk, {'estado': Matricula.MatriculaEstado.RECHAZADA})
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
         return Response(data)

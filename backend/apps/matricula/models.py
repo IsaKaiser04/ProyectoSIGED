@@ -1,4 +1,5 @@
-from django.db import models
+﻿from django.db import models
+from django.conf import settings
 
 
 class MatriculaRequisitoTipo(models.TextChoices):
@@ -59,14 +60,30 @@ class MatriculaPeriodo(models.Model):
 
 
 class Matricula(models.Model):
+    codigo_unico = models.CharField(max_length=20, unique=True, null=True, blank=True, editable=False)
     fecha_registro = models.DateField(auto_now_add=True)
     promedio_anual = models.IntegerField(null=True, blank=True)
     estado = models.CharField(max_length=20, choices=MatriculaEstado.choices, default=MatriculaEstado.PREMATRICULA)
+    
     representante_id = models.IntegerField(null=True, blank=True)
     secretaria_id = models.IntegerField(null=True, blank=True)
     estudiante_id = models.IntegerField(null=True, blank=True)
     paralelo_id = models.IntegerField(null=True, blank=True)
     matricula_periodo = models.ForeignKey(MatriculaPeriodo, on_delete=models.PROTECT, related_name='matriculas', null=True, blank=True)
+    
+    # Excepción de Cupos
+    exceder_cupo_autorizado = models.BooleanField(default=False)
+    
+    # Vinculacion con DECE
+    tiene_discapacidad = models.BooleanField(default=False)
+    tipo_discapacidad = models.CharField(max_length=100, blank=True, null=True)
+    grado_discapacidad = models.CharField(max_length=100, blank=True, null=True)
+    
+    # Trazabilidad y Auditoria
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='matriculas_creadas', on_delete=models.SET_NULL, null=True, blank=True)
+    legalizada_por = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='matriculas_legalizadas', on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         db_table = 'matricula'
@@ -83,6 +100,10 @@ class Requisito(models.Model):
     estado = models.CharField(max_length=20, choices=RequisitoEstado.choices, default=RequisitoEstado.PENDIENTE)
     matricula = models.ForeignKey(Matricula, on_delete=models.CASCADE, related_name='requisitos')
     matricula_requisito = models.ForeignKey(MatriculaRequisito, on_delete=models.PROTECT, related_name='requisitos_entregados')
+    
+    # Trazabilidad de revision
+    revisado_por = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='requisitos_revisados', on_delete=models.SET_NULL, null=True, blank=True)
+    fecha_revision = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = 'requisito'

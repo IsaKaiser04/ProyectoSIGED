@@ -1,4 +1,4 @@
-"""
+﻿"""
 URL configuration for sga project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
@@ -30,6 +30,7 @@ from django.urls import include, path
 from django.views.generic import RedirectView
 
 urlpatterns = [
+    path('api/asistencia/', include('apps.asistencia.urls')),
     path('', RedirectView.as_view(url='/api/', permanent=False)),
     path('admin/', admin.site.urls),
     path('api/planificacion/', include('apps.planificacion.urls')),

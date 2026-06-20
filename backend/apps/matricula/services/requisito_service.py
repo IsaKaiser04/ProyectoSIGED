@@ -1,5 +1,7 @@
+from django.utils import timezone
 from apps.matricula.repositories.requisito_repository import RequisitoRepository
 from apps.matricula.serializers.requisito_serializer import RequisitoSerializer
+from apps.matricula.models import Requisito
 
 
 class RequisitoService:
@@ -30,6 +32,30 @@ class RequisitoService:
             instance = RequisitoRepository.update(requisito, serializer.validated_data)
             return RequisitoSerializer(instance).data, None
         return None, serializer.errors
+
+    @staticmethod
+    def validar(pk, user_id):
+        requisito = RequisitoRepository.get_by_id(pk)
+        if not requisito:
+            return None
+        requisito.estado = Requisito.RequisitoEstado.VALIDADO
+        requisito.revisado_por_id = user_id
+        requisito.fecha_revision = timezone.now()
+        requisito.save()
+        return RequisitoSerializer(requisito).data, None
+
+    @staticmethod
+    def rechazar(pk, user_id, observacion=""):
+        requisito = RequisitoRepository.get_by_id(pk)
+        if not requisito:
+            return None
+        requisito.estado = Requisito.RequisitoEstado.NO_VALIDADO
+        requisito.revisado_por_id = user_id
+        requisito.fecha_revision = timezone.now()
+        if observacion:
+            requisito.observacion = observacion
+        requisito.save()
+        return RequisitoSerializer(requisito).data, None
 
     @staticmethod
     def delete(pk):
