@@ -1,0 +1,749 @@
+﻿
+
+# ==========================================================
+# ARCHIVO: C:\Users\USUARIO\Documents\ProyectoSIGED\backend\apps\asistencia\admin.py
+# ==========================================================
+
+from django.contrib import admin
+from apps.asistencia.models import Clase, Asistencia, Incidencia
+
+for model in [Clase, Asistencia, Incidencia]:
+    try:
+        admin.site.unregister(model)
+    except admin.sites.NotRegistered:
+        pass
+
+
+@admin.register(Clase)
+class ClaseAdmin(admin.ModelAdmin):
+    list_display = ('tema', 'fecha', 'hora_inicio', 'hora_fin', 'estado')
+    list_filter = ('estado', 'fecha')
+    search_fields = ('tema', 'descripcion')
+
+
+@admin.register(Asistencia)
+class AsistenciaAdmin(admin.ModelAdmin):
+    list_display = ('id', 'clase', 'matricula', 'tipo', 'notificar')
+    list_filter = ('tipo', 'notificar')
+    search_fields = ('observacion',)
+
+
+@admin.register(Incidencia)
+class IncidenciaAdmin(admin.ModelAdmin):
+    list_display = ('id', 'asistencia', 'descripcion_corta')
+    search_fields = ('descripcion',)
+
+    def descripcion_corta(self, obj):
+        return obj.descripcion[:50] + '...' if len(obj.descripcion) > 50 else obj.descripcion
+    descripcion_corta.short_description = 'Descripcion'
+
+# ==========================================================
+# ARCHIVO: C:\Users\USUARIO\Documents\ProyectoSIGED\backend\apps\asistencia\apps.py
+# ==========================================================
+
+from django.apps import AppConfig
+
+
+class AsistenciaConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'apps.asistencia'
+    verbose_name = 'Asistencias'
+
+# ==========================================================
+# ARCHIVO: C:\Users\USUARIO\Documents\ProyectoSIGED\backend\apps\asistencia\models.py
+# ==========================================================
+
+from django.db import models
+
+
+class ClaseEstado(models.TextChoices):
+    PROGRAMADO = 'Programado', 'Programado'
+    EN_CURSO = 'En curso', 'En curso'
+    FINALIZADO = 'Finalizado', 'Finalizado'
+
+
+class AsistenciaTipo(models.TextChoices):
+    ASISTENCIA = 'Asistencia', 'Asistencia'
+    INASISTENCIA = 'Inasistencia', 'Inasistencia'
+    JUSTIFICADO = 'Justificado', 'Justificado'
+    ATRASADO = 'Atrasado', 'Atrasado'
+
+
+class Clase(models.Model):
+    tema = models.CharField(max_length=255)
+    descripcion = models.CharField(max_length=500)
+    fecha = models.DateField()
+    hora_inicio = models.TimeField()
+    hora_fin = models.TimeField()
+    estado = models.CharField(max_length=20, choices=ClaseEstado.choices, default=ClaseEstado.PROGRAMADO)
+    
+    # apps distributivos y calificaciones no existen aun -> IntegerField
+    distributivo_asignatura_id = models.IntegerField()
+    horario_id = models.IntegerField(null=True, blank=True)
+    distributivo_evaluacion_id = models.IntegerField()
+
+    class Meta:
+        db_table = 'clase'
+        verbose_name = 'Clase'
+        verbose_name_plural = 'Clases'
+
+    def __str__(self):
+        return f"{self.tema} - {self.fecha}"
+
+
+class Asistencia(models.Model):
+    observacion = models.CharField(max_length=500, blank=True)
+    notificar = models.BooleanField(default=False)
+    tipo = models.CharField(max_length=20, choices=AsistenciaTipo.choices, default=AsistenciaTipo.ASISTENCIA)
+    
+    clase = models.ForeignKey(Clase, on_delete=models.CASCADE, related_name='asistencias')
+    matricula = models.ForeignKey(
+        'matricula.Matricula',
+        on_delete=models.CASCADE,
+        related_name='asistencias',
+        db_column='matricula_id'
+    )
+
+    class Meta:
+        db_table = 'asistencia'
+        verbose_name = 'Asistencia'
+        verbose_name_plural = 'Asistencias'
+
+    def __str__(self):
+        return f"Asistencia #{self.id} - {self.tipo}"
+
+
+class Incidencia(models.Model):
+    descripcion = models.TextField()
+    asistencia = models.ForeignKey(Asistencia, on_delete=models.CASCADE, related_name='incidencias')
+
+    class Meta:
+        db_table = 'incidencia'
+        verbose_name = 'Incidencia'
+        verbose_name_plural = 'Incidencias'
+
+    def __str__(self):
+        return f"Incidencia #{self.id}"
+
+# ==========================================================
+# ARCHIVO: C:\Users\USUARIO\Documents\ProyectoSIGED\backend\apps\asistencia\tests.py
+# ==========================================================
+
+from django.test import TestCase
+
+# ==========================================================
+# ARCHIVO: C:\Users\USUARIO\Documents\ProyectoSIGED\backend\apps\asistencia\urls.py
+# ==========================================================
+
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from apps.asistencia.views.clase_view import ClaseViewSet
+from apps.asistencia.views.asistencia_view import AsistenciaViewSet
+from apps.asistencia.views.incidencia_view import IncidenciaViewSet
+
+router = DefaultRouter()
+router.register(r'clases', ClaseViewSet, basename='clase')
+router.register(r'asistencias', AsistenciaViewSet, basename='asistencia')
+router.register(r'incidencias', IncidenciaViewSet, basename='incidencia')
+
+urlpatterns = [
+    path('', include(router.urls)),
+]
+
+# ==========================================================
+# ARCHIVO: C:\Users\USUARIO\Documents\ProyectoSIGED\backend\apps\asistencia\__init__.py
+# ==========================================================
+
+
+# ==========================================================
+# ARCHIVO: C:\Users\USUARIO\Documents\ProyectoSIGED\backend\apps\asistencia\repositories\asistencia_repository.py
+# ==========================================================
+
+from apps.asistencia.models import Asistencia
+
+
+class AsistenciaRepository:
+    @staticmethod
+    def get_all():
+        return Asistencia.objects.all()
+
+    @staticmethod
+    def get_by_id(pk):
+        return Asistencia.objects.filter(pk=pk).first()
+
+    @staticmethod
+    def create(data):
+        return Asistencia.objects.create(**data)
+
+    @staticmethod
+    def update(instance, data):
+        for key, value in data.items():
+            setattr(instance, key, value)
+        instance.save()
+        return instance
+
+    @staticmethod
+    def delete(instance):
+        instance.delete()
+
+# ==========================================================
+# ARCHIVO: C:\Users\USUARIO\Documents\ProyectoSIGED\backend\apps\asistencia\repositories\clase_repository.py
+# ==========================================================
+
+from apps.asistencia.models import Clase
+
+
+class ClaseRepository:
+    @staticmethod
+    def get_all():
+        return Clase.objects.all()
+
+    @staticmethod
+    def get_by_id(pk):
+        return Clase.objects.filter(pk=pk).first()
+
+    @staticmethod
+    def create(data):
+        return Clase.objects.create(**data)
+
+    @staticmethod
+    def update(instance, data):
+        for key, value in data.items():
+            setattr(instance, key, value)
+        instance.save()
+        return instance
+
+    @staticmethod
+    def delete(instance):
+        instance.delete()
+
+# ==========================================================
+# ARCHIVO: C:\Users\USUARIO\Documents\ProyectoSIGED\backend\apps\asistencia\repositories\incidencia_repository.py
+# ==========================================================
+
+from apps.asistencia.models import Incidencia
+
+
+class IncidenciaRepository:
+    @staticmethod
+    def get_all():
+        return Incidencia.objects.all()
+
+    @staticmethod
+    def get_by_id(pk):
+        return Incidencia.objects.filter(pk=pk).first()
+
+    @staticmethod
+    def create(data):
+        return Incidencia.objects.create(**data)
+
+    @staticmethod
+    def update(instance, data):
+        for key, value in data.items():
+            setattr(instance, key, value)
+        instance.save()
+        return instance
+
+    @staticmethod
+    def delete(instance):
+        instance.delete()
+
+# ==========================================================
+# ARCHIVO: C:\Users\USUARIO\Documents\ProyectoSIGED\backend\apps\asistencia\repositories\__init__.py
+# ==========================================================
+
+
+# ==========================================================
+# ARCHIVO: C:\Users\USUARIO\Documents\ProyectoSIGED\backend\apps\asistencia\serializers\asistencia_serializer.py
+# ==========================================================
+
+from rest_framework import serializers
+from apps.asistencia.models import Asistencia
+
+
+class AsistenciaSerializer(serializers.ModelSerializer):
+    tipo_display = serializers.CharField(source='get_tipo_display', read_only=True)
+
+    class Meta:
+        model = Asistencia
+        fields = '__all__'
+
+# ==========================================================
+# ARCHIVO: C:\Users\USUARIO\Documents\ProyectoSIGED\backend\apps\asistencia\serializers\clase_serializer.py
+# ==========================================================
+
+from rest_framework import serializers
+from apps.asistencia.models import Clase
+
+
+class ClaseSerializer(serializers.ModelSerializer):
+    estado_display = serializers.CharField(source='get_estado_display', read_only=True)
+
+    class Meta:
+        model = Clase
+        fields = '__all__'
+
+# ==========================================================
+# ARCHIVO: C:\Users\USUARIO\Documents\ProyectoSIGED\backend\apps\asistencia\serializers\incidencia_serializer.py
+# ==========================================================
+
+from rest_framework import serializers
+from apps.asistencia.models import Incidencia
+
+
+class IncidenciaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Incidencia
+        fields = '__all__'
+
+# ==========================================================
+# ARCHIVO: C:\Users\USUARIO\Documents\ProyectoSIGED\backend\apps\asistencia\serializers\__init__.py
+# ==========================================================
+
+
+# ==========================================================
+# ARCHIVO: C:\Users\USUARIO\Documents\ProyectoSIGED\backend\apps\asistencia\services\asistencia_service.py
+# ==========================================================
+
+from apps.asistencia.repositories.asistencia_repository import AsistenciaRepository
+from apps.asistencia.serializers.asistencia_serializer import AsistenciaSerializer
+
+
+class AsistenciaService:
+    @staticmethod
+    def list_all():
+        return AsistenciaSerializer(AsistenciaRepository.get_all(), many=True).data
+
+    @staticmethod
+    def retrieve(pk):
+        asistencia = AsistenciaRepository.get_by_id(pk)
+        return AsistenciaSerializer(asistencia).data if asistencia else None
+
+    @staticmethod
+    def create(data):
+        serializer = AsistenciaSerializer(data=data)
+        if serializer.is_valid():
+            instance = AsistenciaRepository.create(serializer.validated_data)
+            return AsistenciaSerializer(instance).data, None
+        return None, serializer.errors
+
+    @staticmethod
+    def update(pk, data):
+        asistencia = AsistenciaRepository.get_by_id(pk)
+        if not asistencia:
+            return None, None
+        serializer = AsistenciaSerializer(asistencia, data=data, partial=True)
+        if serializer.is_valid():
+            instance = AsistenciaRepository.update(asistencia, serializer.validated_data)
+            return AsistenciaSerializer(instance).data, None
+        return None, serializer.errors
+
+    @staticmethod
+    def delete(pk):
+        asistencia = AsistenciaRepository.get_by_id(pk)
+        if not asistencia:
+            return False
+        AsistenciaRepository.delete(asistencia)
+        return True
+
+# ==========================================================
+# ARCHIVO: C:\Users\USUARIO\Documents\ProyectoSIGED\backend\apps\asistencia\services\clase_service.py
+# ==========================================================
+
+from apps.asistencia.repositories.clase_repository import ClaseRepository
+from apps.asistencia.serializers.clase_serializer import ClaseSerializer
+
+
+class ClaseService:
+    @staticmethod
+    def list_all():
+        return ClaseSerializer(ClaseRepository.get_all(), many=True).data
+
+    @staticmethod
+    def retrieve(pk):
+        clase = ClaseRepository.get_by_id(pk)
+        return ClaseSerializer(clase).data if clase else None
+
+    @staticmethod
+    def create(data):
+        serializer = ClaseSerializer(data=data)
+        if serializer.is_valid():
+            instance = ClaseRepository.create(serializer.validated_data)
+            return ClaseSerializer(instance).data, None
+        return None, serializer.errors
+
+    @staticmethod
+    def update(pk, data):
+        clase = ClaseRepository.get_by_id(pk)
+        if not clase:
+            return None, None
+        serializer = ClaseSerializer(clase, data=data, partial=True)
+        if serializer.is_valid():
+            instance = ClaseRepository.update(clase, serializer.validated_data)
+            return ClaseSerializer(instance).data, None
+        return None, serializer.errors
+
+    @staticmethod
+    def delete(pk):
+        clase = ClaseRepository.get_by_id(pk)
+        if not clase:
+            return False
+        ClaseRepository.delete(clase)
+        return True
+
+# ==========================================================
+# ARCHIVO: C:\Users\USUARIO\Documents\ProyectoSIGED\backend\apps\asistencia\services\incidencia_service.py
+# ==========================================================
+
+from apps.asistencia.models import Incidencia
+from apps.asistencia.serializers.incidencia_serializer import IncidenciaSerializer
+
+
+class IncidenciaService:
+
+    @staticmethod
+    def list_all():
+        incidencias = Incidencia.objects.all()
+        return IncidenciaSerializer(incidencias, many=True).data
+
+    @staticmethod
+    def retrieve(pk):
+        try:
+            incidencia = Incidencia.objects.get(pk=pk)
+            return IncidenciaSerializer(incidencia).data
+        except Incidencia.DoesNotExist:
+            return None
+
+    @staticmethod
+    def create(data):
+        serializer = IncidenciaSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return serializer.data, None
+        return None, serializer.errors
+
+    @staticmethod
+    def update(pk, data):
+        try:
+            incidencia = Incidencia.objects.get(pk=pk)
+        except Incidencia.DoesNotExist:
+            return None, None
+
+        serializer = IncidenciaSerializer(incidencia, data=data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return serializer.data, None
+        return None, serializer.errors
+
+    @staticmethod
+    def delete(pk):
+        try:
+            incidencia = Incidencia.objects.get(pk=pk)
+            incidencia.delete()
+            return True
+        except Incidencia.DoesNotExist:
+            return False
+
+# ==========================================================
+# ARCHIVO: C:\Users\USUARIO\Documents\ProyectoSIGED\backend\apps\asistencia\services\__init__.py
+# ==========================================================
+
+
+# ==========================================================
+# ARCHIVO: C:\Users\USUARIO\Documents\ProyectoSIGED\backend\apps\asistencia\views\asistencia_view.py
+# ==========================================================
+
+from rest_framework import viewsets, status
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from apps.asistencia.services.asistencia_service import AsistenciaService
+from apps.asistencia.models import Asistencia
+
+
+class AsistenciaViewSet(viewsets.ViewSet):
+    def list(self, request):
+        return Response(AsistenciaService.list_all())
+
+    def retrieve(self, request, pk=None):
+        data = AsistenciaService.retrieve(pk)
+        if not data:
+            return Response({'error': 'Asistencia no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(data)
+
+    def create(self, request):
+        data, errors = AsistenciaService.create(request.data)
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, pk=None):
+        data, errors = AsistenciaService.update(pk, request.data)
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+        if not data:
+            return Response({'error': 'Asistencia no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(data)
+
+    def partial_update(self, request, pk=None):
+        return self.update(request, pk)
+
+    def destroy(self, request, pk=None):
+        if not AsistenciaService.delete(pk):
+            return Response({'error': 'Asistencia no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=['get'])
+    def por_clase(self, request):
+        clase_id = request.query_params.get('clase_id')
+        if not clase_id:
+            return Response({'error': 'Debe proporcionar clase_id'}, status=status.HTTP_400_BAD_REQUEST)
+        asistencias = Asistencia.objects.filter(clase_id=clase_id)
+        from apps.asistencia.serializers.asistencia_serializer import AsistenciaSerializer
+        return Response(AsistenciaSerializer(asistencias, many=True).data)
+
+    @action(detail=False, methods=['get'])
+    def por_matricula(self, request):
+        matricula_id = request.query_params.get('matricula_id')
+        if not matricula_id:
+            return Response({'error': 'Debe proporcionar matricula_id'}, status=status.HTTP_400_BAD_REQUEST)
+        asistencias = Asistencia.objects.filter(matricula_id=matricula_id)
+        from apps.asistencia.serializers.asistencia_serializer import AsistenciaSerializer
+        return Response(AsistenciaSerializer(asistencias, many=True).data)
+
+    @action(detail=False, methods=['get'])
+    def por_tipo(self, request):
+        tipo = request.query_params.get('tipo')
+        if not tipo:
+            return Response({'error': 'Debe proporcionar tipo'}, status=status.HTTP_400_BAD_REQUEST)
+        asistencias = Asistencia.objects.filter(tipo=tipo)
+        from apps.asistencia.serializers.asistencia_serializer import AsistenciaSerializer
+        return Response(AsistenciaSerializer(asistencias, many=True).data)
+
+    @action(detail=True, methods=['get'])
+    def incidencias(self, request, pk=None):
+        asistencia = Asistencia.objects.filter(pk=pk).first()
+        if not asistencia:
+            return Response({'error': 'Asistencia no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        from apps.asistencia.serializers.incidencia_serializer import IncidenciaSerializer
+        return Response(IncidenciaSerializer(asistencia.incidencias.all(), many=True).data)
+
+# ==========================================================
+# ARCHIVO: C:\Users\USUARIO\Documents\ProyectoSIGED\backend\apps\asistencia\views\clase_view.py
+# ==========================================================
+
+from rest_framework import viewsets, status
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from apps.asistencia.services.clase_service import ClaseService
+from apps.asistencia.models import Clase
+
+
+class ClaseViewSet(viewsets.ViewSet):
+    def list(self, request):
+        return Response(ClaseService.list_all())
+
+    def retrieve(self, request, pk=None):
+        data = ClaseService.retrieve(pk)
+        if not data:
+            return Response({'error': 'Clase no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(data)
+
+    def create(self, request):
+        data, errors = ClaseService.create(request.data)
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, pk=None):
+        data, errors = ClaseService.update(pk, request.data)
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+        if not data:
+            return Response({'error': 'Clase no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(data)
+
+    def partial_update(self, request, pk=None):
+        return self.update(request, pk)
+
+    def destroy(self, request, pk=None):
+        if not ClaseService.delete(pk):
+            return Response({'error': 'Clase no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=['post'])
+    def iniciar(self, request, pk=None):
+        data, errors = ClaseService.update(pk, {'estado': Clase.ClaseEstado.EN_CURSO})
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+        if not data:
+            return Response({'error': 'Clase no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(data)
+
+    @action(detail=True, methods=['post'])
+    def finalizar(self, request, pk=None):
+        data, errors = ClaseService.update(pk, {'estado': Clase.ClaseEstado.FINALIZADO})
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+        if not data:
+            return Response({'error': 'Clase no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(data)
+
+    @action(detail=False, methods=['get'])
+    def por_estado(self, request):
+        estado = request.query_params.get('estado')
+        if not estado:
+            return Response({'error': 'Debe proporcionar estado'}, status=status.HTTP_400_BAD_REQUEST)
+        clases = Clase.objects.filter(estado=estado)
+        from apps.asistencia.serializers.clase_serializer import ClaseSerializer
+        return Response(ClaseSerializer(clases, many=True).data)
+
+    @action(detail=False, methods=['get'])
+    def por_distributivo(self, request):
+        distributivo_id = request.query_params.get('distributivo_id')
+        if not distributivo_id:
+            return Response({'error': 'Debe proporcionar distributivo_id'}, status=status.HTTP_400_BAD_REQUEST)
+        clases = Clase.objects.filter(distributivo_asignatura_id=distributivo_id)
+        from apps.asistencia.serializers.clase_serializer import ClaseSerializer
+        return Response(ClaseSerializer(clases, many=True).data)
+
+    @action(detail=True, methods=['get'])
+    def asistencias(self, request, pk=None):
+        clase = Clase.objects.filter(pk=pk).first()
+        if not clase:
+            return Response({'error': 'Clase no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        from apps.asistencia.serializers.asistencia_serializer import AsistenciaSerializer
+        return Response(AsistenciaSerializer(clase.asistencias.all(), many=True).data)
+
+# ==========================================================
+# ARCHIVO: C:\Users\USUARIO\Documents\ProyectoSIGED\backend\apps\asistencia\views\incidencia_view.py
+# ==========================================================
+
+from rest_framework import viewsets, status
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from apps.asistencia.services.incidencia_service import IncidenciaService
+from apps.asistencia.models import Incidencia
+from apps.asistencia.serializers.incidencia_serializer import IncidenciaSerializer
+
+
+class IncidenciaViewSet(viewsets.ViewSet):
+    def list(self, request):
+        return Response(IncidenciaService.list_all())
+
+    def retrieve(self, request, pk=None):
+        data = IncidenciaService.retrieve(pk)
+        if not data:
+            return Response({'error': 'Incidencia no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(data)
+
+    def create(self, request):
+        data, errors = IncidenciaService.create(request.data)
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, pk=None):
+        data, errors = IncidenciaService.update(pk, request.data)
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+        if not data:
+            return Response({'error': 'Incidencia no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(data)
+
+    def partial_update(self, request, pk=None):
+        return self.update(request, pk)
+
+    def destroy(self, request, pk=None):
+        if not IncidenciaService.delete(pk):
+            return Response({'error': 'Incidencia no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=['get'])
+    def por_asistencia(self, request):
+        asistencia_id = request.query_params.get('asistencia_id')
+        if not asistencia_id:
+            return Response({'error': 'Debe proporcionar asistencia_id'}, status=status.HTTP_400_BAD_REQUEST)
+        incidencias = Incidencia.objects.filter(asistencia_id=asistencia_id)
+        return Response(IncidenciaSerializer(incidencias, many=True).data)
+
+# ==========================================================
+# ARCHIVO: C:\Users\USUARIO\Documents\ProyectoSIGED\backend\apps\asistencia\views\__init__.py
+# ==========================================================
+
+# ==========================================================
+# MODELOS DE INCIDENCIA EN CALIFICACIONES
+# ==========================================================
+
+from django.db import models
+
+
+class Incidencia(models.Model):
+    asunto = models.CharField(max_length=150)
+    detalle = models.TextField()
+    archivo = models.FileField(upload_to='incidencias/', null=True, blank=True)
+    notificar = models.BooleanField(default=False)
+    fecha_registro = models.DateTimeField(auto_now_add=True)
+
+    incidencia_tipo = models.ForeignKey(
+        'IncidenciaTipo',
+        on_delete=models.PROTECT,
+        related_name='incidencias',
+    )
+    calificaciones = models.ManyToManyField(
+        'Calificacion',
+        related_name='incidencias',
+        blank=True,
+    )
+
+    def __str__(self):
+        return self.asunto
+from django.db import models
+
+
+class IncidenciaTipo(models.TextChoices):
+    COMPORTAMIENTO = 'COMPORTAMIENTO', 'Comportamiento'
+    ACADEMICO = 'ACADEMICO', 'Académico'
+    ASISTENCIAL = 'ASISTENCIAL', 'Asistencial'
+    
+# ==========================================================
+# DOCUMENTACIÓN FRONTEND ASISTENCIA
+# ==========================================================
+
+# Frontend - Asistencia
+
+## Relacion funcional
+
+- Requisitos asociados: RF-12, RF-13.
+- Backend: `apps.asistencia`.
+- API esperada: `/api/asistencia/`.
+- Frontend: `frontend/src/features/asistencia/`.
+
+## Estado backend
+
+El modulo existe en el arbol del backend, pero en la trazabilidad aparece
+pendiente de instalacion en settings y montaje en URLs globales.
+
+## Alcance UI
+
+- Clases.
+- Registro de asistencia.
+- Incidencias.
+- Consultas historicas por estudiante, curso o paralelo.
+
+## Reglas de desarrollo
+
+- Priorizar captura rapida por grupo.
+- Confirmar cambios masivos antes de enviarlos.
+- Separar asistencia diaria de incidencias disciplinarias o academicas.
+
+## Componentes sugeridos
+
+- `AsistenciaRegistroPage`
+- `ClaseSelector`
+- `AsistenciaGrid`
+- `IncidenciaForm`
+
+## Criterios de aceptacion
+
+- La UI contempla estados de clase abierta/cerrada.
+- El modulo no habilita guardado real hasta confirmar API expuesta.
