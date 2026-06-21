@@ -46,6 +46,12 @@ export const getNavigationDocente = (esTutor: boolean): NavGroup[] => {
       ],
     },
     {
+      groupLabel: "Gobernanza (Lectura)",
+      items: [
+        { view: "documentacion-gobernanza", label: "Normativa Institucional", icon: "📜" },
+      ],
+    },
+    {
       groupLabel: "Comunicación",
       items: [
         { view: "buzon-notificaciones", label: "Buzón de Notificaciones", icon: "✉️" },

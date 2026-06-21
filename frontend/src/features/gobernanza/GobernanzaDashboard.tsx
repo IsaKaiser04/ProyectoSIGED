@@ -179,7 +179,11 @@ const ConfirmModal: React.FC<{
 };
 
 // --- Dashboard ---
-export const GobernanzaDashboard: React.FC = () => {
+interface DashboardProps {
+  readOnly?: boolean;
+}
+
+export const GobernanzaDashboard: React.FC<DashboardProps> = ({ readOnly = false }) => {
   const { gobernanzas, loading, refrescarTablas } = useGobernanzas();
   const [showForm, setShowForm] = useState(false);
   const [gobernanzaEdit, setGobernanzaEdit] = useState<Gobernanza | null>(null);
@@ -265,21 +269,23 @@ export const GobernanzaDashboard: React.FC = () => {
 
       <PanelFiltrosGobernanza filtroTipo={filtroTipo} setFiltroTipo={setFiltroTipo} onLimpiar={limpiarFiltros} />
 
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <button
-          onClick={abrirFormularioNuevo}
-          style={{
-            background: "var(--secondary)",
-            color: "white",
-            border: "none",
-            padding: "10px 20px",
-            borderRadius: "8px",
-            fontWeight: "600",
-          }}
-        >
-          + Nuevo Documento
-        </button>
-      </div>
+      {!readOnly && (
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button
+            onClick={abrirFormularioNuevo}
+            style={{
+              background: "var(--secondary)",
+              color: "white",
+              border: "none",
+              padding: "10px 20px",
+              borderRadius: "8px",
+              fontWeight: "600",
+            }}
+          >
+            + Nuevo Documento
+          </button>
+        </div>
+      )}
 
       <div
         className="responsive-table-wrapper"
@@ -349,38 +355,40 @@ export const GobernanzaDashboard: React.FC = () => {
                     </a>
                   </td>
                   <td style={{ padding: "clamp(8px, 1.5vw, 12px)" }}>
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                      <button
-                        onClick={() => abrirFormularioEditar(g)}
-                        title="Editar documento"
-                        style={{
-                          background: "transparent",
-                          border: "1px solid var(--primary)",
-                          color: "var(--primary)",
-                          padding: "4px 12px",
-                          borderRadius: "6px",
-                          cursor: "pointer",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => setEliminarId(g.id)}
-                        title="Eliminar documento"
-                        style={{
-                          background: "transparent",
-                          border: "1px solid var(--error)",
-                          color: "var(--error)",
-                          padding: "4px 12px",
-                          borderRadius: "6px",
-                          cursor: "pointer",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        Eliminar
-                      </button>
-                    </div>
+                    {!readOnly ? (
+                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                        <button
+                          onClick={() => abrirFormularioEditar(g)}
+                          title="Editar documento"
+                          style={{
+                            background: "transparent",
+                            border: "1px solid var(--primary)",
+                            color: "var(--primary)",
+                            padding: "4px 12px",
+                            borderRadius: "6px",
+                            cursor: "pointer",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => setEliminarId(g.id)}
+                          title="Eliminar documento"
+                          style={{
+                            background: "transparent",
+                            border: "1px solid var(--error)",
+                            color: "var(--error)",
+                            padding: "4px 12px",
+                            borderRadius: "6px",
+                            cursor: "pointer",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    ) : null}
                   </td>
                 </tr>
               ))
@@ -400,7 +408,7 @@ export const GobernanzaDashboard: React.FC = () => {
         loading={eliminando}
       />
 
-      {showForm && (
+      {!readOnly && showForm && (
         <div
           style={{
             position: "fixed",

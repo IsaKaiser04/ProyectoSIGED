@@ -1,12 +1,7 @@
 // src/app/DocenteApp.tsx
 import { useState } from "react";
 import { DocenteLayout } from "../layouts/DocenteLayout";
-
-// ──────────────────────────────────────────────────────────────────────────
-// Importa tus futuros dashboards e interfaces del EVA conforme los desarrolles:
-// import { EvaDashboard } from '../features/eva/components/EvaDashboard';
-// import { NotasRegistroPanel } from '../features/evaluacion/components/NotasRegistroPanel';
-// ──────────────────────────────────────────────────────────────────────────
+import { GobernanzaDashboard } from "../features/gobernanza/GobernanzaDashboard";
 
 const InicioDocente = () => (
   <div className="content-heading" style={{ padding: "24px" }}>
@@ -56,6 +51,10 @@ export function DocenteApp() {
       // Planificación (Lectura)
       case "pca-horarios":
         return <EnDesarrollo titulo="Consulta de Planificación Curricular Anual (PCA) y Carga Horaria" />;
+
+      // Gobernanza (Solo lectura)
+      case "documentacion-gobernanza":
+        return <GobernanzaDashboard readOnly />;
 
       // Comunicación
       case "buzon-notificaciones":
