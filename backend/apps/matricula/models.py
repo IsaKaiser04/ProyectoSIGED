@@ -29,8 +29,9 @@ class RequisitoEstado(models.TextChoices):
 
 class MatriculaRequisito(models.Model):
     nombre = models.CharField(max_length=100)
-    descripcion = models.CharField(max_length=500)
+    descripcion = models.CharField(max_length=500, blank=True, default='')
     tipo = models.CharField(max_length=20, choices=MatriculaRequisitoTipo.choices, default=MatriculaRequisitoTipo.INFORMATIVO)
+    es_obligatorio = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'matricula_requisito'
@@ -42,6 +43,7 @@ class MatriculaRequisito(models.Model):
 
 
 class MatriculaPeriodo(models.Model):
+    nombre = models.CharField(max_length=100, blank=True, default='')
     fecha_inicio = models.DateTimeField()
     fecha_fin = models.DateTimeField()
     tipo = models.CharField(max_length=20, choices=MatriculaPeriodoTipo.choices, default=MatriculaPeriodoTipo.ORDINARIA)
@@ -56,30 +58,30 @@ class MatriculaPeriodo(models.Model):
         verbose_name_plural = 'Periodos de Matricula'
 
     def __str__(self):
-        return f"{self.tipo} | {self.fecha_inicio.date()} - {self.fecha_fin.date()}"
+        return f"{self.nombre or self.tipo} | {self.fecha_inicio.date()} - {self.fecha_fin.date()}"
 
 
 class Matricula(models.Model):
     codigo_unico = models.CharField(max_length=20, unique=True, null=True, blank=True, editable=False)
     fecha_registro = models.DateField(auto_now_add=True)
-    promedio_anual = models.IntegerField(null=True, blank=True)
+    promedio_anual = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True)
     estado = models.CharField(max_length=20, choices=MatriculaEstado.choices, default=MatriculaEstado.PREMATRICULA)
-    
+    observaciones = models.TextField(blank=True, default='')
+
     representante_id = models.IntegerField(null=True, blank=True)
     secretaria_id = models.IntegerField(null=True, blank=True)
     estudiante_id = models.IntegerField(null=True, blank=True)
     paralelo_id = models.IntegerField(null=True, blank=True)
+    anio_lectivo_id = models.IntegerField(null=True, blank=True)
+    institucion_id = models.IntegerField(null=True, blank=True)
     matricula_periodo = models.ForeignKey(MatriculaPeriodo, on_delete=models.PROTECT, related_name='matriculas', null=True, blank=True)
-    
-    # Excepción de Cupos
+
     exceder_cupo_autorizado = models.BooleanField(default=False)
-    
-    # Vinculacion con DECE
+
     tiene_discapacidad = models.BooleanField(default=False)
     tipo_discapacidad = models.CharField(max_length=100, blank=True, null=True)
     grado_discapacidad = models.CharField(max_length=100, blank=True, null=True)
-    
-    # Trazabilidad y Auditoria
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='matriculas_creadas', on_delete=models.SET_NULL, null=True, blank=True)
@@ -89,6 +91,14 @@ class Matricula(models.Model):
         db_table = 'matricula'
         verbose_name = 'Matricula'
         verbose_name_plural = 'Matriculas'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['estudiante_id', 'anio_lectivo_id'],
+                condition=models.Q(estado='Legalizada'),
+                name='uniq_estudiante_anio_lectivo_legalizado',
+                violation_error_message='El estudiante ya tiene una matricula legalizada en este ano lectivo.'
+            ),
+        ]
 
     def __str__(self):
         return f"Matricula #{self.id} - {self.estado}"
@@ -96,12 +106,11 @@ class Matricula(models.Model):
 
 class Requisito(models.Model):
     archivo = models.FileField(upload_to='matricula/requisitos/', null=True, blank=True)
-    observacion = models.TextField(blank=True)
+    observacion = models.TextField(blank=True, default='')
     estado = models.CharField(max_length=20, choices=RequisitoEstado.choices, default=RequisitoEstado.PENDIENTE)
     matricula = models.ForeignKey(Matricula, on_delete=models.CASCADE, related_name='requisitos')
     matricula_requisito = models.ForeignKey(MatriculaRequisito, on_delete=models.PROTECT, related_name='requisitos_entregados')
-    
-    # Trazabilidad de revision
+
     revisado_por = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='requisitos_revisados', on_delete=models.SET_NULL, null=True, blank=True)
     fecha_revision = models.DateTimeField(null=True, blank=True)
 

@@ -1,47 +1,44 @@
 ﻿from django.utils import timezone
 from django.db import transaction
 from apps.matricula.repositories.matricula_repository import MatriculaRepository
-from apps.matricula.serializers.matricula_serializer import MatriculaSerializer
-from apps.matricula.models import Matricula, Requisito
-from apps.planificacion.models import Paralelo
+from apps.matricula.serializers.matricula_serializer import (
+    MatriculaListSerializer,
+    MatriculaDetailSerializer,
+    MatriculaCreateSerializer
+)
+from apps.matricula.models import Matricula, Requisito, MatriculaEstado
 import uuid
-
-# Importamos los modelos de actores académicos para crear la cuenta
-from apps.actoresAcademicos.models import Estudiante, Cuenta
-from django.contrib.auth import get_user_model
-User = get_user_model()
 
 
 class MatriculaService:
     @staticmethod
     def list_all():
-        return MatriculaSerializer(MatriculaRepository.get_all(), many=True).data
+        instances = MatriculaRepository.get_all()
+        return MatriculaListSerializer(instances, many=True).data
 
     @staticmethod
     def retrieve(pk):
-        matricula = MatriculaRepository.get_by_id(pk)
-        return MatriculaSerializer(matricula).data if matricula else None
+        instance = MatriculaRepository.get_con_requisitos(pk)
+        if not instance:
+            return None
+        return MatriculaDetailSerializer(instance).data
 
     @staticmethod
     def create(data, user_id=None):
         estudiante_id = data.get('estudiante_id')
-        periodo_id = data.get('matricula_periodo')
-        if estudiante_id and periodo_id:
-            ya_matriculado = Matricula.objects.filter(
-                estudiante_id=estudiante_id,
-                matricula_periodo_id=periodo_id,
-                estado=Matricula.MatriculaEstado.LEGALIZADA
-            ).exists()
-            if ya_matriculado:
+        anio_lectivo_id = data.get('anio_lectivo_id')
+
+        if estudiante_id and anio_lectivo_id:
+            if MatriculaRepository.existe_legalizada(estudiante_id, anio_lectivo_id):
                 return None, {"error": "El estudiante ya tiene una matrícula legalizada en este año lectivo."}
 
-        serializer = MatriculaSerializer(data=data)
+        serializer = MatriculaCreateSerializer(data=data)
         if serializer.is_valid():
-            validated_data = serializer.validated_data
+            validated = serializer.validated_data
             if user_id:
-                validated_data['creado_por_id'] = user_id
-            instance = MatriculaRepository.create(validated_data)
-            return MatriculaSerializer(instance).data, None
+                validated['creado_por_id'] = user_id
+            instance = MatriculaRepository.create(validated)
+            return MatriculaDetailSerializer(instance).data, None
         return None, serializer.errors
 
     @staticmethod
@@ -49,11 +46,10 @@ class MatriculaService:
         matricula = MatriculaRepository.get_by_id(pk)
         if not matricula:
             return None, {"error": "Matrícula no encontrada"}
-        serializer = MatriculaSerializer(matricula, data=data, partial=True)
-        if serializer.is_valid():
-            instance = MatriculaRepository.update(matricula, serializer.validated_data)
-            return MatriculaSerializer(instance).data, None
-        return None, serializer.errors
+        allowed = ['estado', 'observaciones', 'tiene_discapacidad', 'tipo_discapacidad', 'grado_discapacidad', 'paralelo_id']
+        filtered = {k: v for k, v in data.items() if k in allowed}
+        instance = MatriculaRepository.update(matricula, filtered)
+        return MatriculaDetailSerializer(MatriculaRepository.get_con_requisitos(pk)).data, None
 
     @staticmethod
     @transaction.atomic
@@ -63,64 +59,56 @@ class MatriculaService:
         except Matricula.DoesNotExist:
             return None, {"error": "Matrícula no encontrada"}
 
-        if matricula.estado == Matricula.MatriculaEstado.LEGALIZADA:
+        if matricula.estado == MatriculaEstado.LEGALIZADA:
             return None, {"error": "La matrícula ya está legalizada"}
 
-        # 1. Validar Requisitos (No legalizar a ciegas)
-        requisitos_pendientes = matricula.requisitos.exclude(estado=Requisito.RequisitoEstado.VALIDADO).count()
-        if requisitos_pendientes > 0:
-            return None, {"error": f"No se puede legalizar, hay {requisitos_pendientes} requisito(s) pendiente(s) o rechazado(s)."}
+        # 1. Validar Requisitos
+        pendientes = matricula.requisitos.exclude(estado='Validado').count()
+        if pendientes > 0:
+            return None, {"error": f"No se puede legalizar. Hay {pendientes} requisito(s) pendiente(s) o rechazado(s)."}
 
-        # 2. Validar y actualizar Cupos
-        try:
-            paralelo = Paralelo.objects.select_for_update().get(pk=matricula.paralelo_id)
-            if hasattr(paralelo, 'cupos_ocupados') and hasattr(paralelo, 'cupos_maximo'):
-                if not matricula.exceder_cupo_autorizado:
+        # 2. Validar Cupos
+        if matricula.paralelo_id and not matricula.exceder_cupo_autorizado:
+            try:
+                from apps.planificacion.models import Paralelo
+                paralelo = Paralelo.objects.select_for_update().get(pk=matricula.paralelo_id)
+                if hasattr(paralelo, 'cupos_ocupados') and hasattr(paralelo, 'cupos_maximo'):
                     if paralelo.cupos_ocupados >= paralelo.cupos_maximo:
-                        return None, {"error": "El paralelo seleccionado no tiene cupos disponibles."}
-                paralelo.cupos_ocupados += 1
-                paralelo.save()
-        except Paralelo.DoesNotExist:
-            return None, {"error": "El paralelo asignado no existe en la base de datos."}
+                        return None, {"error": "El paralelo no tiene cupos disponibles."}
+                    paralelo.cupos_ocupados += 1
+                    paralelo.save()
+            except Exception:
+                pass
 
-        # 3. Generar Código y Legalizar
+        # 3. Generar Codigo y Legalizar
         if not matricula.codigo_unico:
-            anio_actual = timezone.now().year
-            matricula.codigo_unico = f"MAT-{anio_actual}-{uuid.uuid4().hex[:6].upper()}"
-            
-        matricula.estado = Matricula.MatriculaEstado.LEGALIZADA
+            anio = timezone.now().year
+            matricula.codigo_unico = f"MAT-{anio}-{uuid.uuid4().hex[:6].upper()}"
+
+        matricula.estado = MatriculaEstado.LEGALIZADA
         matricula.legalizada_por_id = user_id
         matricula.save()
 
-        # 4. CREACIÓN DE CUENTA DE USUARIO (RF-03, RF-04)
-        # Solo se crea si el estudiante existe y no tiene cuenta asignada
+        # 4. Crear cuenta de usuario
         try:
+            from apps.actoresAcademicos.models import Estudiante, Cuenta
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
             estudiante = Estudiante.objects.get(id=matricula.estudiante_id)
             if not hasattr(estudiante, 'cuenta') or not estudiante.cuenta:
-                # Crear User base (Django auth)
                 username = estudiante.identificacion
-                password_temp = f"Siged{estudiante.identificacion[-4:]}" # Contraseña inicial sugerida
+                password_temp = f"Siged{estudiante.identificacion[-4:]}"
                 user = User.objects.create_user(username=username, password=password_temp)
-                
-                # Crear Cuenta SIGED
                 cuenta = Cuenta.objects.create(
-                    usuario=user,
-                    rol='ESTUDIANTE',
-                    es_activo=True,
+                    usuario=user, rol='ESTUDIANTE', es_activo=True,
                     correo_institucional=f"{username}@institucion.edu.ec"
                 )
                 estudiante.cuenta = cuenta
                 estudiante.save()
-                
-                # Aquí se dispararía el envío de correo con credenciales (RF-15)
-                # send_mail(...)
-        except Estudiante.DoesNotExist:
-            pass # Si el estudiante no existe, se legaliza la matrícula pero no se crea cuenta
-        except Exception as e:
-            # Si hay error creando la cuenta, no revertimos la matrícula, pero lo registramos
-            print(f"Error creando cuenta para matrícula {matricula.id}: {str(e)}")
+        except Exception:
+            pass
 
-        return MatriculaSerializer(matricula).data, None
+        return MatriculaDetailSerializer(Matricula.objects.select_related('matricula_periodo').get(pk=pk)).data, None
 
     @staticmethod
     @transaction.atomic
@@ -130,20 +118,46 @@ class MatriculaService:
         except Matricula.DoesNotExist:
             return False, {"error": "Matrícula no encontrada"}
 
-        if matricula.estado == Matricula.MatriculaEstado.LEGALIZADA:
+        if matricula.estado == MatriculaEstado.LEGALIZADA and matricula.paralelo_id:
             try:
+                from apps.planificacion.models import Paralelo
                 paralelo = Paralelo.objects.select_for_update().get(pk=matricula.paralelo_id)
                 if hasattr(paralelo, 'cupos_ocupados') and paralelo.cupos_ocupados > 0:
                     paralelo.cupos_ocupados -= 1
                     paralelo.save()
-            except Paralelo.DoesNotExist:
+            except Exception:
                 pass
 
-        matricula.estado = Matricula.MatriculaEstado.ANULADA
+        matricula.estado = MatriculaEstado.ANULADA
+        matricula.observaciones = f"ANULADA: {motivo}"
         matricula.save()
         return True, None
 
     @staticmethod
-    def delete(pk):
-        success, errors = MatriculaService.anular(pk)
-        return success
+    def por_paralelo(paralelo_id):
+        instances = MatriculaRepository.get_by_paralelo(paralelo_id)
+        return MatriculaListSerializer(instances, many=True).data
+
+    @staticmethod
+    def por_estudiante(estudiante_id):
+        instances = MatriculaRepository.get_by_estudiante(estudiante_id)
+        return MatriculaListSerializer(instances, many=True).data
+
+    @staticmethod
+    def por_estado(estado):
+        instances = MatriculaRepository.get_por_estado(estado)
+        return MatriculaListSerializer(instances, many=True).data
+
+    @staticmethod
+    def por_periodo(periodo_id):
+        instances = MatriculaRepository.get_por_periodo(periodo_id)
+        return MatriculaListSerializer(instances, many=True).data
+
+    @staticmethod
+    def estadisticas():
+        stats = MatriculaRepository.get_estadisticas_por_estado()
+        resultado = {}
+        for s in stats:
+            resultado[s['estado']] = s['total']
+        resultado['total'] = sum(resultado.values())
+        return resultado

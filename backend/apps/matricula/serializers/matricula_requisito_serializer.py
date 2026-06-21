@@ -1,4 +1,4 @@
-from rest_framework import serializers
+﻿from rest_framework import serializers
 from apps.matricula.models import MatriculaRequisito
 
 
@@ -7,4 +7,4 @@ class MatriculaRequisitoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MatriculaRequisito
-        fields = '__all__'
+        fields = ['id', 'nombre', 'descripcion', 'tipo', 'tipo_display', 'es_obligatorio']

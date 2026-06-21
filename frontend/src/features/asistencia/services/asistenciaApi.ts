@@ -1,7 +1,4 @@
-﻿import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
-const BASE = `${API_BASE_URL}/asistencia`;
+﻿import { apiGet, apiPost, apiPatch, apiDelete } from "../../../services/apiClient";
 
 // ==========================================
 // TIPOS
@@ -146,21 +143,24 @@ export interface EstadisticasClase {
 }
 
 // ==========================================
-// HELPERS
+// HELPER PARA FORMDATA (archivos)
 // ==========================================
 
-const api = axios.create({
-  baseURL: BASE,
-  withCredentials: true,
-});
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api";
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+async function apiPostFormData<TResponse>(path: string, formData: FormData): Promise<TResponse> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    body: formData,
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const error = new Error(`Error ${response.status} en ${path}`) as any;
+    error.data = errorData;
+    throw error;
   }
-  return config;
-});
+  return response.json() as Promise<TResponse>;
+}
 
 // ==========================================
 // CLASES
@@ -168,35 +168,31 @@ api.interceptors.request.use((config) => {
 
 export const claseApi = {
   listar: (distributivoId?: number, estado?: string) =>
-    api.get<Clase[]>('/clases/', {
-      params: { distributivo_id: distributivoId, estado },
-    }),
+    apiGet<Clase[]>(`/asistencia/clases/?distributivo_id=${distributivoId || ''}&estado=${estado || ''}`),
 
   obtener: (id: number) =>
-    api.get<ClaseDetail>(`/clases/${id}/`),
+    apiGet<ClaseDetail>(`/asistencia/clases/${id}/`),
 
   crear: (data: Partial<Clase>) =>
-    api.post<Clase>('/clases/', data),
+    apiPost<Clase>('/asistencia/clases/', data),
 
   actualizar: (id: number, data: Partial<Clase>) =>
-    api.patch<Clase>(`/clases/${id}/`, data),
+    apiPatch<Clase>(`/asistencia/clases/${id}/`, data),
 
   iniciar: (id: number) =>
-    api.post<Clase>(`/clases/${id}/iniciar/`),
+    apiPost<Clase>(`/asistencia/clases/${id}/iniciar/`, {}),
 
   finalizar: (id: number) =>
-    api.post<Clase>(`/clases/${id}/finalizar/`),
+    apiPost<Clase>(`/asistencia/clases/${id}/finalizar/`, {}),
 
   cancelar: (id: number) =>
-    api.post<Clase>(`/clases/${id}/cancelar/`),
+    apiPost<Clase>(`/asistencia/clases/${id}/cancelar/`, {}),
 
   obtenerSemana: (distributivoId: number, fecha?: string) =>
-    api.get<Clase[]>('/clases/semana/', {
-      params: { distributivo_id: distributivoId, fecha },
-    }),
+    apiGet<Clase[]>(`/asistencia/clases/semana/?distributivo_id=${distributivoId}&fecha=${fecha || ''}`),
 
   obtenerAsistencias: (id: number) =>
-    api.get<ClaseDetail>(`/clases/${id}/asistencias/`),
+    apiGet<ClaseDetail>(`/asistencia/clases/${id}/asistencias/`),
 };
 
 // ==========================================
@@ -205,45 +201,28 @@ export const claseApi = {
 
 export const asistenciaApi = {
   porClase: (claseId: number) =>
-    api.get<Asistencia[]>('/asistencias/por_clase/', {
-      params: { clase_id: claseId },
-    }),
+    apiGet<Asistencia[]>(`/asistencia/asistencias/por_clase/?clase_id=${claseId}`),
 
   porMatricula: (matriculaId: number) =>
-    api.get<Asistencia[]>('/asistencias/por_matricula/', {
-      params: { matricula_id: matriculaId },
-    }),
+    apiGet<Asistencia[]>(`/asistencia/asistencias/por_matricula/?matricula_id=${matriculaId}`),
 
   porPeriodo: (matriculaId: number, fechaInicio: string, fechaFin: string) =>
-    api.get<Asistencia[]>('/asistencias/por_periodo/', {
-      params: {
-        matricula_id: matriculaId,
-        fecha_inicio: fechaInicio,
-        fecha_fin: fechaFin,
-      },
-    }),
+    apiGet<Asistencia[]>(`/asistencia/asistencias/por_periodo/?matricula_id=${matriculaId}&fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`),
 
   registrarMasiva: (data: AsistenciaMasivaPayload) =>
-    api.post<{ mensaje: string; total: number; asistencias: Asistencia[] }>(
-      '/asistencias/masiva/',
-      data
-    ),
+    apiPost<{ mensaje: string; total: number; asistencias: Asistencia[] }>('/asistencia/asistencias/masiva/', data),
 
   actualizarTipo: (id: number, data: { tipo: AsistenciaTipo; observacion?: string; notificar?: boolean }) =>
-    api.patch<Asistencia>(`/asistencias/${id}/`, data),
+    apiPatch<Asistencia>(`/asistencia/asistencias/${id}/`, data),
 
   estadisticasClase: (claseId: number) =>
-    api.get<EstadisticasClase>('/asistencias/estadisticas_clase/', {
-      params: { clase_id: claseId },
-    }),
+    apiGet<EstadisticasClase>(`/asistencia/asistencias/estadisticas_clase/?clase_id=${claseId}`),
 
   pendientes: (distributivoId: number, fecha: string) =>
-    api.get<Clase[]>('/asistencias/pendientes/', {
-      params: { distributivo_id: distributivoId, fecha },
-    }),
+    apiGet<Clase[]>(`/asistencia/asistencias/pendientes/?distributivo_id=${distributivoId}&fecha=${fecha}`),
 
   incidencias: (asistenciaId: number) =>
-    api.get<Incidencia[]>(`/asistencias/${asistenciaId}/incidencias/`),
+    apiGet<Incidencia[]>(`/asistencia/asistencias/${asistenciaId}/incidencias/`),
 };
 
 // ==========================================
@@ -252,37 +231,25 @@ export const asistenciaApi = {
 
 export const incidenciaApi = {
   listar: (matriculaId?: number, tipo?: string) =>
-    api.get<Incidencia[]>('/incidencias/', {
-      params: { matricula_id: matriculaId, tipo },
-    }),
+    apiGet<Incidencia[]>(`/asistencia/incidencias/?matricula_id=${matriculaId || ''}&tipo=${tipo || ''}`),
 
   obtener: (id: number) =>
-    api.get<Incidencia>(`/incidencias/${id}/`),
+    apiGet<Incidencia>(`/asistencia/incidencias/${id}/`),
 
   crear: (data: FormData) =>
-    api.post<Incidencia>('/incidencias/', data, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+    apiPostFormData<Incidencia>('/asistencia/incidencias/', data),
 
   actualizar: (id: number, data: Partial<Incidencia>) =>
-    api.patch<Incidencia>(`/incidencias/${id}/`, data),
+    apiPatch<Incidencia>(`/asistencia/incidencias/${id}/`, data),
 
   pendientes: () =>
-    api.get<Incidencia[]>('/incidencias/pendientes/'),
+    apiGet<Incidencia[]>('/asistencia/incidencias/pendientes/'),
 
   porAsistencia: (asistenciaId: number) =>
-    api.get<Incidencia[]>('/incidencias/por_asistencia/', {
-      params: { asistencia_id: asistenciaId },
-    }),
+    apiGet<Incidencia[]>(`/asistencia/incidencias/por_asistencia/?asistencia_id=${asistenciaId}`),
 
   porPeriodo: (matriculaId: number, fechaInicio: string, fechaFin: string) =>
-    api.get<Incidencia[]>('/incidencias/por_periodo/', {
-      params: {
-        matricula_id: matriculaId,
-        fecha_inicio: fechaInicio,
-        fecha_fin: fechaFin,
-      },
-    }),
+    apiGet<Incidencia[]>(`/asistencia/incidencias/por_periodo/?matricula_id=${matriculaId}&fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`),
 };
 
 // ==========================================
@@ -291,30 +258,22 @@ export const incidenciaApi = {
 
 export const justificacionApi = {
   listar: (matriculaId?: number) =>
-    api.get<Justificacion[]>('/justificaciones/', {
-      params: { matricula_id: matriculaId },
-    }),
+    apiGet<Justificacion[]>(`/asistencia/justificaciones/?matricula_id=${matriculaId || ''}`),
 
   obtener: (id: number) =>
-    api.get<Justificacion>(`/justificaciones/${id}/`),
+    apiGet<Justificacion>(`/asistencia/justificaciones/${id}/`),
 
   crear: (data: FormData) =>
-    api.post<Justificacion>('/justificaciones/', data, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+    apiPostFormData<Justificacion>('/asistencia/justificaciones/', data),
 
   pendientes: () =>
-    api.get<Justificacion[]>('/justificaciones/pendientes/'),
+    apiGet<Justificacion[]>('/asistencia/justificaciones/pendientes/'),
 
   aprobar: (id: number, observacion?: string) =>
-    api.post<Justificacion>(`/justificaciones/${id}/aprobar/`, {
-      observacion_secretaria: observacion || '',
-    }),
+    apiPost<Justificacion>(`/asistencia/justificaciones/${id}/aprobar/`, { observacion_secretaria: observacion || '' }),
 
   rechazar: (id: number, observacion: string) =>
-    api.post<Justificacion>(`/justificaciones/${id}/rechazar/`, {
-      observacion_secretaria: observacion,
-    }),
+    apiPost<Justificacion>(`/asistencia/justificaciones/${id}/rechazar/`, { observacion_secretaria: observacion }),
 };
 
 // ==========================================
@@ -323,28 +282,16 @@ export const justificacionApi = {
 
 export const estadisticaApi = {
   kpiParalelo: (distributivoId: number, fechaInicio?: string, fechaFin?: string) =>
-    api.get<KPIParalelo>('/estadisticas/kpi_paralelo/', {
-      params: {
-        distributivo_id: distributivoId,
-        fecha_inicio: fechaInicio,
-        fecha_fin: fechaFin,
-      },
-    }),
+    apiGet<KPIParalelo>(`/asistencia/estadisticas/kpi_paralelo/?distributivo_id=${distributivoId}&fecha_inicio=${fechaInicio || ''}&fecha_fin=${fechaFin || ''}`),
 
   tendenciaSemanal: (distributivoId: number, semanas?: number) =>
-    api.get<TendenciaSemanal[]>('/estadisticas/tendencia_semanal/', {
-      params: { distributivo_id: distributivoId, semanas },
-    }),
+    apiGet<TendenciaSemanal[]>(`/asistencia/estadisticas/tendencia_semanal/?distributivo_id=${distributivoId}&semanas=${semanas || 4}`),
 
   alumnosRiesgo: (distributivoId: number, umbral?: number) =>
-    api.get<AlumnoRiesgo[]>('/estadisticas/alumnos_riesgo/', {
-      params: { distributivo_id: distributivoId, umbral },
-    }),
+    apiGet<AlumnoRiesgo[]>(`/asistencia/estadisticas/alumnos_riesgo/?distributivo_id=${distributivoId}&umbral=${umbral || 10}`),
 
   resumenSemanal: (distributivoId: number, fecha?: string) =>
-    api.get<ResumenSemana>('/estadisticas/resumen_semanal/', {
-      params: { distributivo_id: distributivoId, fecha },
-    }),
+    apiGet<ResumenSemana>(`/asistencia/estadisticas/resumen_semanal/?distributivo_id=${distributivoId}&fecha=${fecha || ''}`),
 };
 
 export default {

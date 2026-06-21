@@ -1,6 +1,5 @@
-from django.urls import path, include
+﻿from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-
 from apps.matricula.views.matricula_periodo_view import MatriculaPeriodoViewSet
 from apps.matricula.views.matricula_requisito_view import MatriculaRequisitoViewSet
 from apps.matricula.views.matricula_view import MatriculaViewSet

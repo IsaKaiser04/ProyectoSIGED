@@ -1,12 +1,12 @@
-from rest_framework import viewsets
-from rest_framework import status
+﻿from rest_framework import viewsets, status
 from rest_framework.response import Response
-from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from apps.matricula.services.retiro_service import RetiroService
-from apps.matricula.models import Retiro
 
 
 class RetiroViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
     def list(self, request):
         return Response(RetiroService.list_all())
 
@@ -37,12 +37,3 @@ class RetiroViewSet(viewsets.ViewSet):
         if not RetiroService.delete(pk):
             return Response({'error': 'Retiro no encontrado'}, status=status.HTTP_404_NOT_FOUND)
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-    @action(detail=False, methods=['get'])
-    def por_matricula(self, request):
-        matricula_id = request.query_params.get('matricula_id')
-        if not matricula_id:
-            return Response({'error': 'Debe proporcionar matricula_id'}, status=status.HTTP_400_BAD_REQUEST)
-        retiros = Retiro.objects.filter(matricula_id=matricula_id)
-        from apps.matricula.serializers.retiro_serializer import RetiroSerializer
-        return Response(RetiroSerializer(retiros, many=True).data)

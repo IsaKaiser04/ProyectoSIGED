@@ -5,7 +5,7 @@ import RevisarRequisitos from "./components/RevisarRequisitos";
 import { useMatriculas } from "./hooks/useMatricula";
 import { apiGet } from "../../services/apiClient";
 
-export default function MatriculaDashboard() {
+function MatriculaDashboard() {
   const [showWizard, setShowWizard] = useState(false);
   const [showRevisar, setShowRevisar] = useState(false);
   const [matriculaToRevisar, setMatriculaToRevisar] = useState<number | null>(null);
@@ -100,4 +100,4 @@ export default function MatriculaDashboard() {
       )}
     </div>
   );
-}
+} export { MatriculaDashboard };

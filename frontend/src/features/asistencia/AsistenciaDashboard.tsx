@@ -352,7 +352,7 @@ const AsistenciaDashboard: React.FC = () => {
                 {/* Alumnos en riesgo */}
                 {alumnosRiesgo.length > 0 && (
                   <div className="bg-red-50 rounded-lg border border-red-200 p-4">
-                    <h3 className="text-sm font-semibold text-red-700 mb-3">⚠ Alumnos en Riesgo (>{10}% inasistencias)</h3>
+                    <h3 className="text-sm font-semibold text-red-700 mb-3">⚠ Alumnos en Riesgo (&gt;10% inasistencias)</h3>
                     <div className="space-y-2">
                       {alumnosRiesgo.map((a) => (
                         <div key={a.matricula_id} className="flex items-center justify-between bg-white rounded-lg px-4 py-2 border border-red-100">
@@ -405,4 +405,4 @@ const AsistenciaDashboard: React.FC = () => {
   );
 };
 
-export default AsistenciaDashboard;
+export { AsistenciaDashboard };;

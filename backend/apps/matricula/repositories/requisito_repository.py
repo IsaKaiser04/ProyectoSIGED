@@ -1,14 +1,25 @@
-from apps.matricula.models import Requisito
+﻿from apps.matricula.models import Requisito
 
 
 class RequisitoRepository:
     @staticmethod
     def get_all():
-        return Requisito.objects.all()
+        return Requisito.objects.select_related('matricula_requisito', 'revisado_por').all()
 
     @staticmethod
     def get_by_id(pk):
-        return Requisito.objects.filter(pk=pk).first()
+        return Requisito.objects.select_related('matricula_requisito', 'revisado_por').filter(pk=pk).first()
+
+    @staticmethod
+    def get_por_matricula(matricula_id):
+        return Requisito.objects.filter(matricula_id=matricula_id).select_related('matricula_requisito', 'revisado_por')
+
+    @staticmethod
+    def get_pendientes_por_matricula(matricula_id):
+        from apps.matricula.models import RequisitoEstado
+        return Requisito.objects.filter(
+            matricula_id=matricula_id
+        ).exclude(estado=RequisitoEstado.VALIDADO).select_related('matricula_requisito')
 
     @staticmethod
     def create(data):

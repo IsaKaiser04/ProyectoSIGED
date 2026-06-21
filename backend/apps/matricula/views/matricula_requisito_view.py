@@ -1,11 +1,12 @@
-from rest_framework import viewsets, status
+﻿from rest_framework import viewsets, status
 from rest_framework.response import Response
-from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from apps.matricula.services.matricula_requisito_service import MatriculaRequisitoService
-from apps.matricula.models import MatriculaRequisito
 
 
 class MatriculaRequisitoViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
     def list(self, request):
         return Response(MatriculaRequisitoService.list_all())
 
@@ -36,12 +37,3 @@ class MatriculaRequisitoViewSet(viewsets.ViewSet):
         if not MatriculaRequisitoService.delete(pk):
             return Response({'error': 'Requisito no encontrado'}, status=status.HTTP_404_NOT_FOUND)
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-    @action(detail=False, methods=['get'])
-    def por_tipo(self, request):
-        tipo = request.query_params.get('tipo')
-        if not tipo:
-            return Response({'error': 'Debe proporcionar tipo'}, status=status.HTTP_400_BAD_REQUEST)
-        requisitos = MatriculaRequisito.objects.filter(tipo=tipo)
-        from apps.matricula.serializers.matricula_requisito_serializer import MatriculaRequisitoSerializer
-        return Response(MatriculaRequisitoSerializer(requisitos, many=True).data)

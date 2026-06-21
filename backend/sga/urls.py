@@ -30,6 +30,7 @@ from django.urls import include, path
 from django.views.generic import RedirectView
 
 urlpatterns = [
+    path('api/matricula/', include('apps.matricula.urls')),
     path('api/asistencia/', include('apps.asistencia.urls')),
     path('', RedirectView.as_view(url='/api/', permanent=False)),
     path('admin/', admin.site.urls),

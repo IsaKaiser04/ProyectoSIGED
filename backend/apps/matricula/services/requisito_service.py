@@ -1,61 +1,65 @@
-from django.utils import timezone
+﻿from django.utils import timezone
 from apps.matricula.repositories.requisito_repository import RequisitoRepository
-from apps.matricula.serializers.requisito_serializer import RequisitoSerializer
-from apps.matricula.models import Requisito
+from apps.matricula.serializers.requisito_serializer import RequisitoListSerializer
 
 
 class RequisitoService:
     @staticmethod
     def list_all():
-        return RequisitoSerializer(RequisitoRepository.get_all(), many=True).data
+        return RequisitoListSerializer(RequisitoRepository.get_all(), many=True).data
 
     @staticmethod
     def retrieve(pk):
         requisito = RequisitoRepository.get_by_id(pk)
-        return RequisitoSerializer(requisito).data if requisito else None
+        if not requisito:
+            return None
+        return RequisitoListSerializer(requisito).data
+
+    @staticmethod
+    def por_matricula(matricula_id):
+        instances = RequisitoRepository.get_por_matricula(matricula_id)
+        return RequisitoListSerializer(instances, many=True).data
+
+    @staticmethod
+    def pendientes_por_matricula(matricula_id):
+        instances = RequisitoRepository.get_pendientes_por_matricula(matricula_id)
+        return RequisitoListSerializer(instances, many=True).data
 
     @staticmethod
     def create(data):
-        serializer = RequisitoSerializer(data=data)
+        from apps.matricula.serializers.requisito_serializer import RequisitoCreateSerializer
+        serializer = RequisitoCreateSerializer(data=data)
         if serializer.is_valid():
             instance = RequisitoRepository.create(serializer.validated_data)
-            return RequisitoSerializer(instance).data, None
-        return None, serializer.errors
-
-    @staticmethod
-    def update(pk, data):
-        requisito = RequisitoRepository.get_by_id(pk)
-        if not requisito:
-            return None
-        serializer = RequisitoSerializer(requisito, data=data, partial=True)
-        if serializer.is_valid():
-            instance = RequisitoRepository.update(requisito, serializer.validated_data)
-            return RequisitoSerializer(instance).data, None
+            return RequisitoListSerializer(instance).data, None
         return None, serializer.errors
 
     @staticmethod
     def validar(pk, user_id):
         requisito = RequisitoRepository.get_by_id(pk)
         if not requisito:
-            return None
-        requisito.estado = Requisito.RequisitoEstado.VALIDADO
-        requisito.revisado_por_id = user_id
-        requisito.fecha_revision = timezone.now()
-        requisito.save()
-        return RequisitoSerializer(requisito).data, None
+            return None, {"error": "Requisito no encontrado"}
+        RequisitoRepository.update(requisito, {
+            'estado': 'Validado',
+            'revisado_por_id': user_id,
+            'fecha_revision': timezone.now()
+        })
+        return RequisitoListSerializer(RequisitoRepository.get_by_id(pk)).data, None
 
     @staticmethod
     def rechazar(pk, user_id, observacion=""):
         requisito = RequisitoRepository.get_by_id(pk)
         if not requisito:
-            return None
-        requisito.estado = Requisito.RequisitoEstado.NO_VALIDADO
-        requisito.revisado_por_id = user_id
-        requisito.fecha_revision = timezone.now()
-        if observacion:
-            requisito.observacion = observacion
-        requisito.save()
-        return RequisitoSerializer(requisito).data, None
+            return None, {"error": "Requisito no encontrado"}
+        if not observacion:
+            return None, {"error": "La observacion es obligatoria para rechazar"}
+        RequisitoRepository.update(requisito, {
+            'estado': 'No validado',
+            'revisado_por_id': user_id,
+            'fecha_revision': timezone.now(),
+            'observacion': observacion
+        })
+        return RequisitoListSerializer(RequisitoRepository.get_by_id(pk)).data, None
 
     @staticmethod
     def delete(pk):

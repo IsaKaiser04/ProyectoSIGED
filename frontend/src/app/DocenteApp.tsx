@@ -1,12 +1,13 @@
-// src/app/DocenteApp.tsx
+﻿// src/app/DocenteApp.tsx
 import { useState } from "react";
 import { DocenteLayout } from "../layouts/DocenteLayout";
 
-// ──────────────────────────────────────────────────────────────────────────
+// 
+import { AsistenciaDashboard } from '../features/asistencia/AsistenciaDashboard';
 // Importa tus futuros dashboards e interfaces del EVA conforme los desarrolles:
 // import { EvaDashboard } from '../features/eva/components/EvaDashboard';
 // import { NotasRegistroPanel } from '../features/evaluacion/components/NotasRegistroPanel';
-// ──────────────────────────────────────────────────────────────────────────
+// 
 
 const InicioDocente = () => (
   <div className="content-heading" style={{ padding: "24px" }}>
@@ -51,7 +52,7 @@ export function DocenteApp() {
       case "registro-notas":
         return <EnDesarrollo titulo="Cuadro de Calificaciones y Promedios Parciales/Finales" />;
       case "control-asistencia":
-        return <EnDesarrollo titulo="Control de Asistencia Semanal y Reporte de Incidencias" />;
+        return <AsistenciaDashboard />;
 
       // Planificación (Lectura)
       case "pca-horarios":
