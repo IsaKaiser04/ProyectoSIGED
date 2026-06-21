@@ -1,103 +1,78 @@
-// frontend/src/features/planificacion/dashboards/GradosAsignaturasDashboard.tsx
-//
-// Vista correspondiente al item "Grados y Asignaturas" del sidebar de Autoridad
-// (grupo "Currículo e Infraestructura", view: "grados-asignaturas").
-//
-// Incluye también el formulario de Catálogos Base (EducacionNivel /
-// EducacionSubNivel) porque son los selects que alimenta el formulario de
-// Grado — no tienen view propio en el sidebar, así que viven aquí como
-// soporte directo de esta pantalla.
-
-import React, { useEffect } from 'react';
-import { useCatalogos } from '../hooks/useCatalogos';
+import React, { useEffect, useState } from 'react';
 import { usePlanEstudio } from '../hooks/usePlanEstudio';
-import { TabCatalogos } from '../componentes/TabCatalogos';
-import { TabGradosAsignaturas } from '../componentes/TabGradosAsignaturas';
+import { FormGrado } from '../componentes/gradosAsignaturas/FormGrado';
+import { TablaGrados } from '../componentes/gradosAsignaturas/TablaGrados';
+import { FormAsignatura } from '../componentes/gradosAsignaturas/FormAsignatura';
+import { TablaAsignaturas } from '../componentes/gradosAsignaturas/TablaAsignatura';
 
 export const GradosAsignaturasDashboard: React.FC = () => {
-  const catalogos = useCatalogos();
-  const planEstudio = usePlanEstudio();
+  const core = usePlanEstudio();
+  const [subTab, setSubTab] = useState<'grados' | 'asignaturas'>('grados');
 
   useEffect(() => {
-    catalogos.cargarNiveles();
-    catalogos.cargarSubNiveles();
-    planEstudio.cargarPlanes();
-    planEstudio.cargarGrados();
-    planEstudio.cargarAsignaturas();
+    // Cargamos todo desde el hook central de planificación
+    core.cargarPlanes();
+    core.cargarNiveles();
+    core.cargarSubNiveles();
+    core.cargarGrados();
+    core.cargarAsignaturas();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const planForm = {
-    nuevoGrado: planEstudio.nuevoGrado,
-    setNuevoGrado: planEstudio.setNuevoGrado,
-    planEstudioGrado: planEstudio.planEstudioGrado,
-    setPlanEstudioGrado: planEstudio.setPlanEstudioGrado,
-    nivelGrado: planEstudio.nivelGrado,
-    setNivelGrado: planEstudio.setNivelGrado,
-    subNivelGrado: planEstudio.subNivelGrado,
-    setSubNivelGrado: planEstudio.setSubNivelGrado,
-    nuevaAsignatura: planEstudio.nuevaAsignatura,
-    setNuevaAsignatura: planEstudio.setNuevaAsignatura,
-    periodoMinimoAsignatura: planEstudio.periodoMinimoAsignatura,
-    setPeriodoMinimoAsignatura: planEstudio.setPeriodoMinimoAsignatura,
-    gradoAsignatura: planEstudio.gradoAsignatura,
-    setGradoAsignatura: planEstudio.setGradoAsignatura,
-    handleAgregarGrado: planEstudio.handleAgregarGrado,
-    handleAgregarAsignatura: planEstudio.handleAgregarAsignatura,
-  };
-
-  const catalogoForm = {
-    nuevoNivel: catalogos.nuevoNivel,
-    setNuevoNivel: catalogos.setNuevoNivel,
-    codigoNivel: catalogos.codigoNivel,
-    setCodigoNivel: catalogos.setCodigoNivel,
-    nuevoSubNivel: catalogos.nuevoSubNivel,
-    setNuevoSubNivel: catalogos.setNuevoSubNivel,
-    codigoSubNivel: catalogos.codigoSubNivel,
-    setCodigoSubNivel: catalogos.setCodigoSubNivel,
-    handleAgregarNivel: catalogos.handleAgregarNivel,
-    handleEliminarNivel: catalogos.handleEliminarNivel,
-    handleAgregarSubNivel: catalogos.handleAgregarSubNivel,
-    handleEliminarSubNivel: catalogos.handleEliminarSubNivel,
-  };
-
   return (
-    <div className="dashboard-content" style={{ padding: '0 24px 24px 24px', width: '100%', boxSizing: 'border-box' }}>
-
-      <div className="content-heading" style={{ padding: '8px 0', marginBottom: '20px' }}>
-        <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: 'var(--primary)', letterSpacing: '-0.3px' }}>
-          📚 Grados y Asignaturas
-        </h2>
-        <p style={{ marginTop: '4px', color: 'var(--on-surface-variant)', fontSize: 'var(--font-body-sm)' }}>
-          Defina los Grados (niveles y subniveles) y las Asignaturas vinculadas a cada uno, estableciendo las cargas horarias mínimas.
-        </p>
+    <div style={{ padding: '0 24px 24px 24px', width: '100%', boxSizing: 'border-box' }}>
+      
+      {/* Navegación interna entre Grados y Asignaturas */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--outline-variant)', marginBottom: '24px', gap: '8px' }}>
+        <button 
+          style={{ padding: '12px 24px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: subTab === 'grados' ? 'var(--primary)' : 'var(--on-surface-variant)', border: 'none', borderBottom: subTab === 'grados' ? '3px solid var(--primary)' : '3px solid transparent', background: 'transparent' }} 
+          onClick={() => setSubTab('grados')}
+        >
+          🏫 Gestión de Grados
+        </button>
+        <button 
+          style={{ padding: '12px 24px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: subTab === 'asignaturas' ? 'var(--primary)' : 'var(--on-surface-variant)', border: 'none', borderBottom: subTab === 'asignaturas' ? '3px solid var(--primary)' : '3px solid transparent', background: 'transparent' }} 
+          onClick={() => setSubTab('asignaturas')}
+        >
+          📖 Gestión de Asignaturas
+        </button>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
-
-        {/* Catálogos base — soporte para los selects de Grado */}
-        <details style={{ background: 'var(--surface-container-lowest)', borderRadius: '8px', border: '1px solid var(--outline-variant)' }}>
-          <summary style={{ padding: '14px 20px', cursor: 'pointer', fontWeight: 700, color: 'var(--primary)', fontSize: 'var(--font-body-sm)' }}>
-            ⚙️ Catálogos Base (Niveles y Subniveles educativos)
-          </summary>
-          <div style={{ padding: '0 20px 20px 20px' }}>
-            <TabCatalogos
-              niveles={catalogos.niveles}
-              subNiveles={catalogos.subNiveles}
-              catalogoForm={catalogoForm}
+      <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+        {subTab === 'grados' && (
+          <>
+            <FormGrado 
+              planes={core.planes} 
+              niveles={core.niveles} 
+              subNiveles={core.subNiveles} 
+              planForm={core} 
             />
-          </div>
-        </details>
+            <TablaGrados 
+              grados={core.grados} 
+              planes={core.planes} 
+              niveles={core.niveles} 
+              subNiveles={core.subNiveles} 
+              planForm={core} 
+            />
+          </>
+        )}
 
-        {/* Grados y Asignaturas */}
-        <TabGradosAsignaturas
-          grados={planEstudio.grados}
-          asignaturas={planEstudio.asignaturas}
-          planes={planEstudio.planes}
-          niveles={catalogos.niveles}
-          subNiveles={catalogos.subNiveles}
-          planForm={planForm}
-        />
+        {subTab === 'asignaturas' && (
+          <>
+            <FormAsignatura 
+              grados={core.grados} 
+              planForm={core} 
+            />
+            <TablaAsignaturas 
+              asignaturas={core.asignaturas} 
+              grados={core.grados} 
+              planes={core.planes} 
+              niveles={core.niveles} 
+              subNiveles={core.subNiveles} 
+              planForm={core} 
+            />
+          </>
+        )}
       </div>
     </div>
   );

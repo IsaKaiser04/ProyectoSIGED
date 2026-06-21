@@ -7,7 +7,8 @@ import type {
   Autoridad,
   Secretaria,
   Dece,
-  Administrador
+  Administrador,
+  Docente
 } from "../../../types/entities/actoresAcademicos";
 
 /* ===========================
@@ -35,6 +36,12 @@ export async function obtenerDece() {
 export async function obtenerAdministradores() {
   return apiGet<Administrador[]>(
     "/actoresAcademicos/administradores/"
+  );
+}
+
+export async function obtenerDocentes() {
+  return apiGet<Docente[]>(
+    "/actoresAcademicos/docentes/"
   );
 }
 
@@ -69,6 +76,12 @@ export async function crearUsuario(
     case "ADMINISTRADOR":
       return apiPost(
         "/actoresAcademicos/administradores/",
+        data
+      );
+
+    case "DOCENTE":
+      return apiPost(
+        "/actoresAcademicos/docentes/",
         data
       );
 

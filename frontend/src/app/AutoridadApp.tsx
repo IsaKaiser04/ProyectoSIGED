@@ -6,6 +6,7 @@ import { GradosAsignaturasDashboard } from "../features/planificacion/dashboards
 import { OfertaParalelosDashboard } from "../features/planificacion/dashboards/OfertaParalelosDashboard";
 import { AniosLectivosDashboard } from "../features/planificacion/dashboards/AniosLectivosDashboard";
 import { PeriodosAcademicosDashboard } from "../features/planificacion/dashboards/PeriodosAcademicosDashboard";
+import { DashboardAniosLectivosOfertaAcademica } from "../features/planificacion/dashboards/DashboardAniosLectivosOfertaAcademica";
 
 // ──────────────────────────────────────────────────────────────────────────
 // Importa aquí los dashboards reales conforme los vayas construyendo,
@@ -49,8 +50,8 @@ export function AutoridadApp() {
         return <PlanesEstudioDashboard />;
       case "grados-asignaturas":
         return <GradosAsignaturasDashboard />;
-      case "oferta-paralelos":
-        return <OfertaParalelosDashboard />;
+      case "Año Lectivo y Oferta":
+        return <DashboardAniosLectivosOfertaAcademica />;
 
       // Planificación Temporal
       case "anios-lectivos":

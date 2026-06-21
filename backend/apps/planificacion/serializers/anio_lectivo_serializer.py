@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from django.db import transaction
 from ..models.anio_lectivo import AnioLectivo, PeriodoAcademico
-from ..models.enums import PeriodoTipo
+from ..models.oferta import OfertaAcademica  # ◄ Importamos tu modelo de oferta aquí mismo
+from apps.institucion.models.institucion import Institucion
 
 
 class PeriodoAcademicoSerializer(serializers.ModelSerializer):
@@ -30,10 +31,11 @@ class PeriodoAcademicoSerializer(serializers.ModelSerializer):
 
 class AnioLectivoSerializer(serializers.ModelSerializer):
     periodosAcademicos = PeriodoAcademicoSerializer(many=True, read_only=True)
+    institucion = serializers.PrimaryKeyRelatedField(queryset=Institucion.objects.all())
 
     class Meta:
         model = AnioLectivo
-        fields = ['id', 'nombre', 'fechaInicio', 'fechaFin', 'esActivo', 'periodosAcademicos']
+        fields = ['id', 'nombre', 'fechaInicio', 'fechaFin', 'esActivo', 'institucion', 'periodosAcademicos']
         extra_kwargs = {
             'nombre': {'required': True, 'max_length': 50},
             'fechaInicio': {'required': True},
@@ -50,6 +52,15 @@ class AnioLectivoSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
+        # 💡 Todo se ejecuta dentro de un bloque atómico. Si algo falla, no se guarda nada.
         with transaction.atomic():
+            # 1. Creamos el Año Lectivo como lo hacías normalmente
             anio = AnioLectivo.objects.create(**validated_data)
+            
+            # 2. Creamos la Oferta Académica usando la instancia del año recién creado
+            OfertaAcademica.objects.create(
+                nombre=f"Oferta Académica - {anio.nombre}",
+                anioLectivo=anio
+            )
+            
         return anio

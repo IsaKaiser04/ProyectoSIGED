@@ -32,7 +32,7 @@ export const NAVIGATION_AUTORIDAD: NavGroup[] = [
     items: [
       { view: "planes-estudio", label: "Planes de Estudio", icon: "📘" },
       { view: "grados-asignaturas", label: "Grados y Asignaturas", icon: "📚" },
-      { view: "oferta-paralelos", label: "Oferta y Paralelos", icon: "🏫" },
+      { view: "Año Lectivo y Oferta", label: "Año Lectivo y Oferta", icon: "🏫" },
     ],
   },
   {

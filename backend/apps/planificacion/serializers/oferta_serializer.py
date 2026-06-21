@@ -15,7 +15,8 @@ class AsignaturaOfertadaSerializer(serializers.ModelSerializer):
 
 
 class GradoOfertadoSerializer(serializers.ModelSerializer):
-    asignaturasOfertadas = AsignaturaOfertadaSerializer(many=True, read_only=True)
+    # 💡 Conectamos con el related_name='asignaturas_ofertadas' de tu modelo
+    asignaturasOfertadas = AsignaturaOfertadaSerializer(source='asignaturas_ofertadas', many=True, read_only=True)
 
     class Meta:
         model = GradoOfertado
@@ -28,7 +29,8 @@ class GradoOfertadoSerializer(serializers.ModelSerializer):
 
 
 class OfertaAcademicaSerializer(serializers.ModelSerializer):
-    gradosOfertados = GradoOfertadoSerializer(many=True, read_only=True)
+    # 💡 Conectamos con el related_name='grados_ofertados' de tu modelo
+    gradosOfertados = GradoOfertadoSerializer(source='grados_ofertados', many=True, read_only=True)
 
     class Meta:
         model = OfertaAcademica
@@ -37,6 +39,14 @@ class OfertaAcademicaSerializer(serializers.ModelSerializer):
             'nombre': {'required': True, 'max_length': 200},
             'anioLectivo': {'required': True},
         }
+
+    def validate_anioLectivo(self, value):
+        # 💡 Regla estricta 1 a 1: Si el año lectivo ya tiene oferta, frena el POST con un error 400 limpio
+        if OfertaAcademica.objects.filter(anioLectivo=value).exists():
+            raise serializers.ValidationError(
+                "Este año lectivo ya cuenta con una oferta académica registrada."
+            )
+        return value
 
     def create(self, validated_data):
         with transaction.atomic():
