@@ -144,3 +144,51 @@ export async function apiDelete<TResponse = void>(
 
   return response.json() as Promise<TResponse>;
 }
+
+// --- FUNCIÓN POST con FormData (para archivos) ---
+export async function apiPostFormData<TResponse>(
+  path: string,
+  formData: FormData,
+  options: RequestOptions = {}
+): Promise<TResponse> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    body: formData,
+    signal: options.signal,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    console.error(`[apiPostFormData] Error ${response.status} en ${path}:`, JSON.stringify(errorData, null, 2));
+    const error = new Error(`Error ${response.status} subiendo archivo en ${path}`) as any;
+    error.status = response.status;
+    error.data = errorData;
+    throw error;
+  }
+
+  return response.json() as Promise<TResponse>;
+}
+
+// --- FUNCIÓN PATCH con FormData (para actualizar archivos) ---
+export async function apiPatchFormData<TResponse>(
+  path: string,
+  formData: FormData,
+  options: RequestOptions = {}
+): Promise<TResponse> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "PATCH",
+    body: formData,
+    signal: options.signal,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    console.error(`[apiPatchFormData] Error ${response.status} en ${path}:`, JSON.stringify(errorData, null, 2));
+    const error = new Error(`Error ${response.status} actualizando archivo en ${path}`) as any;
+    error.status = response.status;
+    error.data = errorData;
+    throw error;
+  }
+
+  return response.json() as Promise<TResponse>;
+}

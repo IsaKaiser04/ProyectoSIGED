@@ -1,15 +1,7 @@
 // src/app/AutoridadApp.tsx
 import { useState } from "react";
 import { AutoridadLayout } from "../layouts/AutoridadLayout";
-
-// ──────────────────────────────────────────────────────────────────────────
-// Importa aquí los dashboards reales conforme los vayas construyendo,
-// siguiendo el mismo patrón que ya usaste en features/ubicacion:
-//
-// import { PlanesEstudioDashboard } from '../features/planificacion/PlanesEstudioDashboard';
-// import { DistributivoDashboard } from '../features/distributivos/DistributivoDashboard';
-// import { GobernanzaDashboard } from '../features/gobernanza/GobernanzaDashboard';
-// ──────────────────────────────────────────────────────────────────────────
+import { GobernanzaDashboard } from '../features/gobernanza/GobernanzaDashboard';
 
 const InicioAutoridad = () => (
   <div className="content-heading" style={{ padding: "24px" }}>
@@ -67,7 +59,7 @@ export function AutoridadApp() {
       case "seguimiento-eva":
         return <EnDesarrollo titulo="Seguimiento del EVA" />;
       case "documentacion-gobernanza":
-        return <EnDesarrollo titulo="Documentación de Gobernanza (PEI / CC / PGR)" />;
+        return <GobernanzaDashboard />;
 
       default:
         return <InicioAutoridad />;

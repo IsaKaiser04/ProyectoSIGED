@@ -17,6 +17,9 @@ env/
 # PyCharm
 .idea/
 
+# Continue (AI assistant)
+.continue/
+
 # Node
 node_modules/
 dist/
