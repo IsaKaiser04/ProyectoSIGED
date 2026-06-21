@@ -2,7 +2,8 @@
 from django.db import models
 from .usuario import Usuario
 from .cuenta import Cuenta
-
+from apps.ubicacion.models.direccion import Direccion
+from apps.institucion.models.institucion import Institucion
 """Modelo que representa a un estudiante, hereda de
    Usuario y agrega un campo para la foto del 
    estudiante."""
@@ -21,6 +22,11 @@ class Estudiante(Usuario):
         blank=True,
         null=True
     )
+
+    institucion = models.ForeignKey(Institucion,on_delete=models.PROTECT,related_name='estudiantes')
+
+    correo_institucional = models.EmailField(unique=True,blank=True,null=True)
+
     #Método para representar el objeto como una cadena
     def __str__(self):
         return f"{self.nombres} {self.apellidos}"
