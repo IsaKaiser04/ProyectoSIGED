@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { DashboardLayout } from "../components/layout/DashboardLayout";
 import { navigationItems } from "../config/navigation";
-import { DashboardHome } from "../routes/DashboardHome";
+import { EvaluacionCategoriaPage } from "../features/calificaciones";
 
 export function App() {
   const [currentHash, setCurrentHash] = useState(window.location.hash);
@@ -21,8 +21,8 @@ export function App() {
   }, [currentHash]);
 
   return (
-    <DashboardLayout activeModule={selectedModule.module}>
-      <DashboardHome selectedModule={selectedModule} />
+    <DashboardLayout>
+      <EvaluacionCategoriaPage />
     </DashboardLayout>
   );
 }

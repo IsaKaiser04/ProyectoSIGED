@@ -42,9 +42,17 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'rest_framework',
+    'apps.institucion.apps.InstitucionConfig',
+    'apps.ubicacion.apps.UbicacionConfig',
     'apps.actoresAcademicos.apps.ActoresacademicosConfig',
+    'apps.planificacion.apps.PlanificacionConfig',
     'apps.calificaciones.apps.CalificacionesConfig',
+    'apps.distributivos.apps.DistributivosConfig',
+    'apps.comunicacion.apps.ComunicacionConfig',
+    'apps.dece.apps.DeceConfig',
+    'apps.gobernanza.apps.GobernanzaConfig',
 
 ]
 
