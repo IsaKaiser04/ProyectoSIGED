@@ -34,8 +34,6 @@ import {
   updateCalificacionActividad
 } from "../services/calificacionesDocenteService";
 import { LoadingSpinner } from "../../../components/common/AlertComponents";
-import { PromediosTable } from "../components/PromediosTable";
-import { AulaVirtualPanel } from "../components/AulaVirtualPanel";
 import { ErrorAlert } from "../../../components/common/AlertComponents";
 
 // Vistas disponibles
@@ -77,7 +75,10 @@ export function CalificacionesDocentePage() {
     null
   );
 
-  // ===========================================
+  // Buscador de estudiantes
+  const [busquedaEstudiante, setBusquedaEstudiante] = useState("");
+
+  //===========================================
   // CARGA INICIAL DE DATOS
   // ===========================================
   useEffect(() => {
@@ -333,6 +334,18 @@ export function CalificacionesDocentePage() {
     (a) => a.id === filtros.asignaturaId
   );
 
+  // Filtrar estudiantes por búsqueda
+  const estudiantesFiltrados = useMemo(() => {
+    if (!busquedaEstudiante.trim()) return estudiantes;
+    const search = busquedaEstudiante.toLowerCase();
+    return estudiantes.filter(
+      (est) =>
+        est.nombres.toLowerCase().includes(search) ||
+        est.apellidos.toLowerCase().includes(search) ||
+        `${est.apellidos} ${est.nombres}`.toLowerCase().includes(search)
+    );
+  }, [estudiantes, busquedaEstudiante]);
+
   // Mensaje de error global
   if (loadError && !isLoading) {
     return (
@@ -354,7 +367,7 @@ export function CalificacionesDocentePage() {
         <p className="eyebrow">Docente • Calificaciones</p>
         <h2 id="calificaciones-title">
           {vistaActual === "promedios"
-            ? "Registro de Calificaciones"
+            ? "Registro de calificaciones"
             : "Aula Virtual"}
         </h2>
         <p>
@@ -363,6 +376,30 @@ export function CalificacionesDocentePage() {
             : "Gestione actividades, entregas y retroalimentación de tareas."}
         </p>
       </div>
+
+      {/* Buscador de estudiantes (solo en vista promedios) */}
+      {vistaActual === "promedios" && (
+        <div className="table-header">
+          <div className="search-box">
+            <span className="search-icon">🔍</span>
+            <input
+              type="text"
+              placeholder="Buscar estudiante..."
+              value={busquedaEstudiante}
+              onChange={(e) => setBusquedaEstudiante(e.target.value)}
+              className="search-input"
+            />
+            {busquedaEstudiante && (
+              <button
+                className="search-clear"
+                onClick={() => setBusquedaEstudiante("")}
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Mensaje de guardado */}
       {saveMessage && (
@@ -382,15 +419,13 @@ export function CalificacionesDocentePage() {
           className={`view-tab ${vistaActual === "promedios" ? "active" : ""}`}
           onClick={() => setVistaActual("promedios")}
         >
-          <span className="view-tab-icon">📊</span>
-          <span>Panel de Promedios</span>
+          <span>Promedios</span>
         </button>
         <button
           className={`view-tab ${vistaActual === "aula-virtual" ? "active" : ""}`}
           onClick={() => setVistaActual("aula-virtual")}
         >
-          <span className="view-tab-icon">💻</span>
-          <span>Aula Virtual</span>
+          <span>Aula virtual</span>
         </button>
       </div>
 
@@ -466,7 +501,7 @@ export function CalificacionesDocentePage() {
           anoLectivo={anoLectivoActual}
           curso={cursoActual}
           asignatura={asignaturaActual}
-          estudiantes={estudiantes}
+          estudiantes={estudiantesFiltrados}
           calificaciones={calificaciones}
           onSave={handleGuardarCalificacion}
           isSaving={isSaving}
@@ -486,5 +521,330 @@ export function CalificacionesDocentePage() {
         />
       )}
     </section>
+  );
+}
+
+
+// ===========================================
+// COMPONENTES DE LA PÁGINA
+// ===========================================
+
+interface PromediosTableProps {
+  anoLectivo?: AnoLectivo;
+  curso?: Curso;
+  asignatura?: Asignatura;
+  estudiantes: Estudiante[];
+  calificaciones: Calificacion[];
+  onSave: (calificacionId: number, campo: string, valor: number | null) => void;
+  isSaving: boolean;
+}
+
+function PromediosTable({
+  estudiantes,
+  calificaciones,
+  onSave,
+  isSaving,
+}: PromediosTableProps) {
+  const [editandoCell, setEditandoCell] = useState<{
+    tipo: string;
+    estudianteId: number;
+  } | null>(null);
+  const [editValue, setEditValue] = useState<string>("");
+
+  const getCalificacion = (estudianteId: number) =>
+    calificaciones.find((c) => c.estudiante_id === estudianteId);
+
+  const iniciarEdit = (
+    tipo: string,
+    estudianteId: number,
+    valorActual: number | null
+  ) => {
+    setEditandoCell({ tipo, estudianteId });
+    setEditValue(valorActual !== null ? String(valorActual) : "");
+  };
+
+  const guardarEdit = () => {
+    if (!editandoCell) return;
+
+    const valor = editValue === "" ? null : parseFloat(editValue);
+    const cal = getCalificacion(editandoCell.estudianteId);
+
+    if (cal) {
+      onSave(cal.id, editandoCell.tipo, valor);
+    }
+    setEditandoCell(null);
+  };
+
+  return (
+    <div className="promedios-panel">
+      <div className="table-scroll-wrapper">
+        <table className="data-table promedios-table">
+        <thead>
+                <tr>
+                  <th rowSpan={2} className="th-num">#</th>
+                  <th rowSpan={2} className="th-estudiante">Estudiante</th>
+                  <th colSpan={3} className="th-trimestre">1er Trimestre</th>
+                  <th colSpan={3} className="th-trimestre">2do Trimestre</th>
+                  <th colSpan={3} className="th-trimestre">3er Trimestre</th>
+                  <th rowSpan={2} className="th-promedio">Promedio</th>
+                  <th rowSpan={2} className="th-equivalencia">Equivalencia</th>
+                  <th rowSpan={2} className="th-supletorio">Supletorio</th>
+                  <th rowSpan={2} className="th-estado">Estado</th>
+                </tr>
+                <tr>
+                  <th className="th-sub">E.F.</th>
+                  <th className="th-sub">E.S.</th>
+                  <th className="th-sub">Total</th>
+                  <th className="th-sub">E.F.</th>
+                  <th className="th-sub">E.S.</th>
+                  <th className="th-sub">Total</th>
+                  <th className="th-sub">E.F.</th>
+                  <th className="th-sub">E.S.</th>
+                  <th className="th-sub">Total</th>
+                </tr>
+              </thead>
+          <tbody>
+            {estudiantes.map((est, idx) => {
+              const cal = getCalificacion(est.id);
+              if (!cal) return null; // O mostrar fila vacía
+
+              const t1 = calcularTotalTrimestre(cal.primer_trimestre);
+              const t2 = calcularTotalTrimestre(cal.segundo_trimestre);
+              const t3 = calcularTotalTrimestre(cal.tercer_trimestre);
+              const promedio = calcularPromedioFinal(cal);
+              const equivalencia = calcularEquivalenciaCualitativa(promedio);
+              const estado = calcularEstadoFinal(cal);
+
+              return (
+                <tr key={est.id}>
+                  <td>{idx + 1}</td>
+                  <td>{`${est.apellidos} ${est.nombres}`}</td>
+
+                  {/* Primer Trimestre */}
+                  <CeldaEditable valor={cal.primer_trimestre.ef} editando={editandoCell?.tipo === 'primer_trimestre.ef' && editandoCell?.estudianteId === est.id} editValue={editValue} onChange={setEditValue} onSave={guardarEdit} onCancel={() => setEditandoCell(null)} onEdit={() => iniciarEdit('primer_trimestre.ef', est.id, cal.primer_trimestre.ef)} deshabilitado={isSaving} />
+                  <CeldaEditable valor={cal.primer_trimestre.es} editando={editandoCell?.tipo === 'primer_trimestre.es' && editandoCell?.estudianteId === est.id} editValue={editValue} onChange={setEditValue} onSave={guardarEdit} onCancel={() => setEditandoCell(null)} onEdit={() => iniciarEdit('primer_trimestre.es', est.id, cal.primer_trimestre.es)} deshabilitado={isSaving} />
+                  <td>{t1?.toFixed(2)}</td>
+
+                  {/* Segundo Trimestre */}
+                  <CeldaEditable valor={cal.segundo_trimestre.ef} editando={editandoCell?.tipo === 'segundo_trimestre.ef' && editandoCell?.estudianteId === est.id} editValue={editValue} onChange={setEditValue} onSave={guardarEdit} onCancel={() => setEditandoCell(null)} onEdit={() => iniciarEdit('segundo_trimestre.ef', est.id, cal.segundo_trimestre.ef)} deshabilitado={isSaving} />
+                  <CeldaEditable valor={cal.segundo_trimestre.es} editando={editandoCell?.tipo === 'segundo_trimestre.es' && editandoCell?.estudianteId === est.id} editValue={editValue} onChange={setEditValue} onSave={guardarEdit} onCancel={() => setEditandoCell(null)} onEdit={() => iniciarEdit('segundo_trimestre.es', est.id, cal.segundo_trimestre.es)} deshabilitado={isSaving} />
+                  <td>{t2?.toFixed(2)}</td>
+
+                  {/* Tercer Trimestre */}
+                  <CeldaEditable valor={cal.tercer_trimestre.ef} editando={editandoCell?.tipo === 'tercer_trimestre.ef' && editandoCell?.estudianteId === est.id} editValue={editValue} onChange={setEditValue} onSave={guardarEdit} onCancel={() => setEditandoCell(null)} onEdit={() => iniciarEdit('tercer_trimestre.ef', est.id, cal.tercer_trimestre.ef)} deshabilitado={isSaving} />
+                  <CeldaEditable valor={cal.tercer_trimestre.es} editando={editandoCell?.tipo === 'tercer_trimestre.es' && editandoCell?.estudianteId === est.id} editValue={editValue} onChange={setEditValue} onSave={guardarEdit} onCancel={() => setEditandoCell(null)} onEdit={() => iniciarEdit('tercer_trimestre.es', est.id, cal.tercer_trimestre.es)} deshabilitado={isSaving} />
+                  <td>{t3?.toFixed(2)}</td>
+
+                  <td>{promedio?.toFixed(2)}</td>
+                  <td>{equivalencia}</td>
+                  <CeldaEditable valor={cal.supletorio} editando={editandoCell?.tipo === 'supletorio' && editandoCell?.estudianteId === est.id} editValue={editValue} onChange={setEditValue} onSave={guardarEdit} onCancel={() => setEditandoCell(null)} onEdit={() => iniciarEdit('supletorio', est.id, cal.supletorio)} deshabilitado={isSaving} />
+                  <td><span className={`badge estado-${estado.toLowerCase()}`}>{estado}</span></td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+interface AulaVirtualPanelProps {
+  anoLectivo?: AnoLectivo;
+  curso?: Curso;
+  asignatura?: Asignatura;
+  actividades: Actividad[];
+  actividadSeleccionada: Actividad | null;
+  onSelectActividad: (actividad: Actividad) => void;
+  entregas: Entrega[];
+  calificacionesMap: Map<number, CalificacionActividad>;
+  onSave: (entregaId: number, nota: number | null, retro: string | null) => void;
+  isSaving: boolean;
+}
+
+function AulaVirtualPanel({
+  actividades,
+  actividadSeleccionada,
+  onSelectActividad,
+  entregas,
+  calificacionesMap,
+  onSave,
+  isSaving
+}: AulaVirtualPanelProps) {
+
+  const renderBadgeEntrega = (estado: string) => {
+    const configs: Record<string, { label: string; className: string }> = {
+      ENTREGADO: { label: "Entregado", className: "badge-entregado" },
+      PENDIENTE: { label: "Pendiente", className: "badge-pendiente" },
+      ATRASADO: { label: "Atrasado", className: "badge-atrasado" }
+    };
+    const config = configs[estado] || { label: estado, className: "" };
+    return <span className={`badge ${config.className}`}>{config.label}</span>;
+  };
+
+  return (
+    <div className="aula-virtual-panel">
+    {/* Lista de actividades */}
+    <div className="actividades-panel">
+      <div className="panel-header">
+        <h3>Actividades del Período</h3>
+        <span className="badge-count">{actividades.length} actividades</span>
+      </div>
+
+      <div className="actividades-list">
+        {actividades.map((actividad) => (
+          <button
+            key={actividad.id}
+            className={`actividad-card ${actividadSeleccionada?.id === actividad.id ? "active" : ""}`}
+            onClick={() => onSelectActividad(actividad)}
+          >
+            <div className="actividad-card-header">
+              <span className={`actividad-tipo tipo-${actividad.tipo.toLowerCase()}`}>
+                {actividad.tipo}
+              </span>
+              <span className={`actividad-estado ${actividad.estado.toLowerCase()}`}>
+                {actividad.estado}
+              </span>
+            </div>
+            <h4>{actividad.nombre}</h4>
+            <p>{actividad.descripcion}</p>
+            <div className="actividad-meta">
+              <span>📅 {new Date(actividad.fecha_limite).toLocaleDateString()}</span>
+              <span>📝 {actividad.puntaje_maximo} pts</span>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+
+    {/* Panel de entregas */}
+    <div className="entregas-panel">
+      <div className="panel-header">
+        <h3>Entregas - {actividadSeleccionada?.nombre || "Seleccione actividad"}</h3>
+      </div>
+
+      <div className="table-scroll-wrapper">
+        <table className="data-table entregas-table">
+          <thead>
+            <tr>
+              <th>Estudiante</th>
+              <th>Estado</th>
+              <th>Evidencia</th>
+              <th>Nota</th>
+              <th>Retroalimentación</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entregas.map(entrega => {
+              const calActividad = calificacionesMap.get(entrega.id);
+
+              return (
+                <tr key={entrega.id}>
+                  <td>{`${entrega.estudiante.apellidos} ${entrega.estudiante.nombres}`}</td>
+                  <td>
+                    {renderBadgeEntrega(entrega.estado_entrega)}
+                  </td>
+                  <td>
+                    {entrega.archivo_url ? (
+                      <a
+                        href={entrega.archivo_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-button btn-small"
+                      >
+                        Ver archivo
+                      </a>
+                    ) : (
+                      <span className="text-muted">—</span>
+                    )}
+                  </td>
+                  <td className="td-nota">
+                    {calActividad?.nota !== null && calActividad?.nota !== undefined ? (
+                      <span className="nota-value">{calActividad.nota}/{actividadSeleccionada?.puntaje_maximo}</span>
+                    ) : (
+                      <span className="text-muted">—</span>
+                    )}
+                  </td>
+                  <td className="td-retro">
+                    {calActividad?.retroalimentacion || "—"}
+                  </td>
+                  <td>
+                    <button
+                      className="primary-button btn-small"
+                      onClick={() => onSave(
+                        entrega.id,
+                        calActividad?.nota || null,
+                        calActividad?.retroalimentacion || null
+                      )}
+                      disabled={isSaving}
+                    >
+                      Calificar
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  )
+}
+
+
+interface CeldaEditableProps {
+  valor: number | null;
+  editando: boolean;
+  editValue: string;
+  onChange: (valor: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  onEdit: () => void;
+  deshabilitado: boolean;
+}
+
+function CeldaEditable({
+  valor,
+  editando,
+  editValue,
+  onChange,
+  onSave,
+  onCancel,
+  onEdit,
+  deshabilitado
+}: CeldaEditableProps) {
+  if (editando) {
+    return (
+      <td className="td-editando">
+        <input
+          type="number"
+          min="0"
+          max="10"
+          step="0.1"
+          value={editValue}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={onSave}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") onSave();
+            if (e.key === "Escape") onCancel();
+          }}
+          className="input-edit"
+          autoFocus
+          disabled={deshabilitado}
+        />
+      </td>
+    );
+  }
+
+  return (
+    <td
+      className="td-editable"
+      onDoubleClick={onEdit}
+      title="Doble clic para editar"
+    >
+      {valor !== null ? valor.toFixed(1) : "—"}
+    </td>
   );
 }

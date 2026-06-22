@@ -25,6 +25,56 @@ function detail(module: BackendModule, resource: string, id: number) {
 export const apiEndpoints = {
   modules: moduleBasePaths,
   calificaciones: {
+    anosLectivos: {
+      collection: collection("calificaciones", "anos-lectivos"),
+      detail: (id: number) => detail("calificaciones", "anos-lectivos", id)
+    },
+    cursos: {
+      byAnoLectivo: (anoLectivoId: number) =>
+        `${collection("calificaciones", "cursos")}por-ano-lectivo/${anoLectivoId}/`,
+      detail: (id: number) => detail("calificaciones", "cursos", id)
+    },
+    asignaturas: {
+      byCurso: (cursoId: number) =>
+        `${collection("calificaciones", "asignaturas")}por-curso/${cursoId}/`,
+      byAnoLectivo: (anoLectivoId: number) =>
+        `${collection("calificaciones", "asignaturas")}por-ano-lectivo/${anoLectivoId}/`,
+      detail: (id: number) => detail("calificaciones", "asignaturas", id)
+    },
+    estudiantes: {
+      byAnoAndCurso: (anoLectivoId: number, cursoId: number) =>
+        `${collection("calificaciones", "estudiantes")}por-ano-curso/${anoLectivoId}/${cursoId}/`,
+      detail: (id: number) => detail("calificaciones", "estudiantes", id)
+    },
+    libroCalificaciones: {
+      collection: collection("calificaciones", "libro-calificaciones"),
+      byFilters: (anoLectivoId: number, cursoId: number, asignaturaId: number) =>
+        `${collection("calificaciones", "libro-calificaciones")}filtrar/${anoLectivoId}/${cursoId}/${asignaturaId}/`,
+      byEstudiante: (anoLectivoId: number, asignaturaId: number) =>
+        `${collection("calificaciones", "libro-calificaciones")}estudiante/${anoLectivoId}/${asignaturaId}/`,
+      detail: (id: number) => detail("calificaciones", "libro-calificaciones", id)
+    },
+    actividades: {
+      collection: collection("calificaciones", "actividades"),
+      byCursoAsignatura: (cursoId: number, asignaturaId: number) =>
+        `${collection("calificaciones", "actividades")}por-curso-asignatura/${cursoId}/${asignaturaId}/`,
+      byEstudiante: (anoLectivoId: number, asignaturaId: number) =>
+        `${collection("calificaciones", "actividades")}estudiante/${anoLectivoId}/${asignaturaId}/`,
+      detail: (id: number) => detail("calificaciones", "actividades", id)
+    },
+    entregas: {
+      byActividad: (actividadId: number) =>
+        `${collection("calificaciones", "entregas")}por-actividad/${actividadId}/`,
+      byEstudiante: (actividadId: number) =>
+        `${collection("calificaciones", "entregas")}estudiante/${actividadId}/`,
+      detail: (id: number) => detail("calificaciones", "entregas", id)
+    },
+    calificacionesActividad: {
+      collection: collection("calificaciones", "calificaciones-actividad"),
+      byEntrega: (entregaId: number) =>
+        `${collection("calificaciones", "calificaciones-actividad")}por-entrega/${entregaId}/`,
+      detail: (id: number) => detail("calificaciones", "calificaciones-actividad", id)
+    },
     evaluacionCategorias: {
       collection: collection("calificaciones", "evaluacion-categorias"),
       detail: (id: number) => detail("calificaciones", "evaluacion-categorias", id)
@@ -44,53 +94,6 @@ export const apiEndpoints = {
     evaluacionLibro: {
       collection: collection("calificaciones", "evaluacion-libro"),
       detail: (id: number) => detail("calificaciones", "evaluacion-libro", id)
-    },
-    // Nuevos endpoints para calificaciones docente
-    anosLectivos: {
-      collection: collection("calificaciones", "anos-lectivos"),
-      detail: (id: number) => detail("calificaciones", "anos-lectivos", id)
-    },
-    cursos: {
-      collection: collection("calificaciones", "cursos"),
-      detail: (id: number) => detail("calificaciones", "cursos", id),
-      byAnoLectivo: (anoId: number) =>
-        `${collection("calificaciones", "cursos")}?ano_lectivo_id=${anoId}`
-    },
-    asignaturas: {
-      collection: collection("calificaciones", "asignaturas"),
-      detail: (id: number) => detail("calificaciones", "asignaturas", id),
-      byCurso: (cursoId: number) =>
-        `${collection("calificaciones", "asignaturas")}?curso_id=${cursoId}`
-    },
-    estudiantes: {
-      collection: collection("calificaciones", "estudiantes"),
-      byAnoAndCurso: (anoId: number, cursoId: number) =>
-        `${collection("calificaciones", "estudiantes")}?ano_lectivo_id=${anoId}&curso_id=${cursoId}`
-    },
-    libroCalificaciones: {
-      collection: collection("calificaciones", "libro-calificaciones"),
-      detail: (id: number) => detail("calificaciones", "libro-calificaciones", id),
-      byFilters: (anoId: number, cursoId: number, asignaturaId: number) =>
-        `${collection("calificaciones", "libro-calificaciones")}?ano_lectivo_id=${anoId}&curso_id=${cursoId}&asignatura_id=${asignaturaId}`
-    },
-    actividades: {
-      collection: collection("calificaciones", "actividades"),
-      detail: (id: number) => detail("calificaciones", "actividades", id),
-      byCursoAsignatura: (cursoId: number, asignaturaId: number) =>
-        `${collection("calificaciones", "actividades")}?curso_id=${cursoId}&asignatura_id=${asignaturaId}`
-    },
-    entregas: {
-      collection: collection("calificaciones", "entregas"),
-      detail: (id: number) => detail("calificaciones", "entregas", id),
-      byActividad: (actividadId: number) =>
-        `${collection("calificaciones", "entregas")}?actividad_id=${actividadId}`
-    },
-    calificacionesActividad: {
-      collection: collection("calificaciones", "calificaciones-actividad"),
-      detail: (id: number) =>
-        detail("calificaciones", "calificaciones-actividad", id),
-      byEntrega: (entregaId: number) =>
-        `${collection("calificaciones", "calificaciones-actividad")}?entrega_id=${entregaId}`
     }
   }
 } as const;
