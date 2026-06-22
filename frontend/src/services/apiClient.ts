@@ -1,3 +1,7 @@
+// Este código define un cliente API genérico para interactuar con un backend RESTful en una aplicación frontend.
+// Proporciona funciones para realizar solicitudes GET, POST, PUT, PATCH y DELETE, y maneja la construcción de rutas y el manejo de errores.
+import { BackendModule } from "../types/module";
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api";
 
 type RequestOptions = {
@@ -5,10 +9,15 @@ type RequestOptions = {
   headers?: HeadersInit;
 };
 
-type JsonRequestOptions = RequestOptions & {
-  body?: unknown;
+/**
+ * Utilidad para construir la ruta base de un módulo con su barra inclinada correspondiente.
+ * Ej: buildModulePath("ubicacion", "paises") -> "/ubicacion/paises/"
+ */
+export const buildModulePath = (module: BackendModule, endpoint: string): string => {
+  return `/${module}/${endpoint}/`;
 };
 
+// --- FUNCIÓN GET ---
 export async function apiGet<TResponse>(
   path: string,
   options: RequestOptions = {}
@@ -29,49 +38,109 @@ export async function apiGet<TResponse>(
   return response.json() as Promise<TResponse>;
 }
 
-async function apiJson<TResponse>(
+// --- FUNCIÓN POST ---
+export async function apiPost<TBody, TResponse>(
   path: string,
-  method: "POST" | "PUT" | "PATCH" | "DELETE",
-  options: JsonRequestOptions = {}
+  body: TBody,
+  options: RequestOptions = {}
 ): Promise<TResponse> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
-    method,
+    method: "POST",
     headers: {
-      Accept: "application/json",
       "Content-Type": "application/json",
+      Accept: "application/json",
       ...options.headers
     },
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    body: JSON.stringify(body),
     signal: options.signal
   });
 
   if (!response.ok) {
-    throw new Error(`Error ${response.status} consultando ${path}`);
-  }
-
-  if (response.status === 204) {
-    return undefined as TResponse;
+    const errorData = await response.json().catch(() => ({}));
+    const error = new Error(`Error ${response.status} registrando en ${path}`) as any;
+    error.data = errorData;
+    throw error;
   }
 
   return response.json() as Promise<TResponse>;
 }
 
-export function apiPost<TResponse>(
+// --- NUEVA FUNCIÓN PUT (Actualización Completa) ---
+export async function apiPut<TBody, TResponse>(
   path: string,
-  body: unknown,
+  body: TBody,
   options: RequestOptions = {}
 ): Promise<TResponse> {
-  return apiJson<TResponse>(path, "POST", { ...options, body });
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...options.headers
+    },
+    body: JSON.stringify(body),
+    signal: options.signal
+  });
+
+  if (!response.ok) {
+    // Capturamos errores de validación (ej. Django REST Framework 400 Bad Request)
+    const errorData = await response.json().catch(() => ({}));
+    const error = new Error(`Error ${response.status} reemplazando en ${path}`) as any;
+    error.data = errorData;
+    throw error;
+  }
+
+  return response.json() as Promise<TResponse>;
 }
 
-export function apiPut<TResponse>(
+// --- NUEVA FUNCIÓN PATCH (Actualización Parcial) ---
+export async function apiPatch<TBody, TResponse>(
   path: string,
-  body: unknown,
+  body: Partial<TBody>, // Partial permite enviar solo las propiedades que cambian
   options: RequestOptions = {}
 ): Promise<TResponse> {
-  return apiJson<TResponse>(path, "PUT", { ...options, body });
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...options.headers
+    },
+    body: JSON.stringify(body),
+    signal: options.signal
+  });
+
+  if (!response.ok) {
+    // Capturamos errores de validación
+    const errorData = await response.json().catch(() => ({}));
+    const error = new Error(`Error ${response.status} modificando en ${path}`) as any;
+    error.data = errorData;
+    throw error;
+  }
+
+  return response.json() as Promise<TResponse>;
 }
 
-export function apiDelete(path: string, options: RequestOptions = {}): Promise<void> {
-  return apiJson<void>(path, "DELETE", options);
+// --- FUNCIÓN DELETE ---
+export async function apiDelete<TResponse = void>(
+  path: string,
+  options: RequestOptions = {}
+): Promise<TResponse> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "DELETE",
+    headers: {
+      ...options.headers
+    },
+    signal: options.signal
+  });
+
+  if (!response.ok) {
+    throw new Error(`Error ${response.status} eliminando en ${path}`);
+  }
+
+  if (response.status === 204) {
+    return {} as TResponse;
+  }
+
+  return response.json() as Promise<TResponse>;
 }

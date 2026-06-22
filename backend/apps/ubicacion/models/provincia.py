@@ -11,6 +11,10 @@ class Provincia(models.Model):
         related_name='provincias',
         verbose_name="País Asociado"
     )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Activo"
+    )
 
     class Meta:
         db_table = 'tbl_provincias'

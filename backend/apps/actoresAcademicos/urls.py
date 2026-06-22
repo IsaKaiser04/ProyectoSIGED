@@ -35,6 +35,6 @@ urlpatterns = [
     path('secretarias/<int:pk>/', SecretariaDetailView.as_view(), name='secretaria-detail'),
 
     # DECE
-    path('dece/', DeceListCreateView.as_view(), name='dece-list-create'),
-    path('dece/<int:pk>/', DeceDetailView.as_view(), name='dece-detail'),
+    path('deces/', DeceListCreateView.as_view(), name='dece-list-create'),
+    path('deces/<int:pk>/', DeceDetailView.as_view(), name='dece-detail'),
 ]

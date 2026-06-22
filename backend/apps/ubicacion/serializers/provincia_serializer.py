@@ -1,10 +1,15 @@
 from rest_framework import serializers
-from apps.ubicacion.models import Provincia, Pais
+from apps.ubicacion.models.provincia import Provincia
+from apps.ubicacion.serializers.pais_serializer import PaisSerializer
 
 class ProvinciaSerializer(serializers.ModelSerializer):
-    # Esto permite que al hacer un GET, si deseas, puedas ver el string del país
-    pais_nombre = serializers.CharField(source='pais.nombre', read_only=True)
+    # Esto te permite leer los datos del país completo en los listados (GET)
+    pais_detalle = PaisSerializer(source='pais', read_only=True)
 
     class Meta:
         model = Provincia
-        fields = ['id', 'nombre', 'pais', 'pais_nombre']
+        fields = ['id', 'nombre', 'pais', 'pais_detalle', 'is_active']
+        extra_kwargs = {
+            # 'pais' se usará para escribir (pasar el ID del país al guardar)
+            'pais': {'write_only': True}
+        }

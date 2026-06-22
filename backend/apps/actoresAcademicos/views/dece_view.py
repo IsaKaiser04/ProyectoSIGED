@@ -3,9 +3,9 @@ from apps.actoresAcademicos.models.administrativo import Dece
 from apps.actoresAcademicos.serializers.administrativos_serializer import DeceSerializer
 
 class DeceListCreateView(generics.ListCreateAPIView):
-    queryset = Dece.objects.all()
+    queryset = Dece.objects.select_related('cuenta', 'institucion', 'direccion_domicilio__parroquia__canton__provincia__pais').all()
     serializer_class = DeceSerializer
 
 class DeceDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Dece.objects.all()
+    queryset = Dece.objects.select_related('cuenta', 'institucion', 'direccion_domicilio__parroquia__canton__provincia__pais').all()
     serializer_class = DeceSerializer
