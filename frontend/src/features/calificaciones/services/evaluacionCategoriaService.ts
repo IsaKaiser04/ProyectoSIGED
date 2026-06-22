@@ -15,7 +15,7 @@ export function listEvaluacionCategorias(signal?: AbortSignal) {
 }
 
 export function createEvaluacionCategoria(payload: EvaluacionCategoriaPayload) {
-  return apiPost<EvaluacionCategoria>(
+  return apiPost<EvaluacionCategoriaPayload, EvaluacionCategoria>(
     evaluacionCategoriasEndpoint.collection,
     payload
   );
@@ -25,7 +25,7 @@ export function updateEvaluacionCategoria(
   id: number,
   payload: EvaluacionCategoriaPayload
 ) {
-  return apiPut<EvaluacionCategoria>(
+  return apiPut<EvaluacionCategoriaPayload, EvaluacionCategoria>(
     evaluacionCategoriasEndpoint.detail(id),
     payload
   );

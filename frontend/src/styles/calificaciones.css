@@ -457,3 +457,485 @@
   }
 }
 
+/* =========================================================================
+   ESTILOS PARA CALIFICACIONES DOCENTE - VISTAS DE PROMEDIOS Y AULA VIRTUAL
+   ========================================================================= */
+
+/* Tabs de navegación entre vistas */
+.view-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface-container);
+  border-radius: 12px;
+  width: fit-content;
+}
+
+.view-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--on-surface-variant);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.view-tab:hover {
+  color: var(--on-surface);
+  background: var(--surface-container-low);
+}
+
+.view-tab.active {
+  background: var(--surface);
+  color: var(--primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.view-tab-icon {
+  font-size: 16px;
+}
+
+/* Barra de filtros */
+.filters-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 180px;
+}
+
+.filter-group label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-select {
+  padding: 10px 12px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.filter-select:focus {
+  border-color: var(--secondary);
+  outline: 3px solid var(--secondary-container);
+}
+
+.filter-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Contenedor de tabla de calificaciones */
+.calificaciones-table-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.table-info-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  padding: 12px 16px;
+  background: var(--surface-container);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--on-surface);
+}
+
+.table-info-header strong {
+  color: var(--on-surface-variant);
+}
+
+/* Barra de acciones de tabla */
+.table-actions-bar {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* Scroll para tablas */
+.table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+}
+
+/* Tabla de calificaciones */
+.calificaciones-table {
+  min-width: 1200px;
+}
+
+.calificaciones-table th {
+  background: var(--primary);
+  color: var(--on-primary);
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.calificaciones-table th.col-num,
+.calificaciones-table th.col-estudiante {
+  text-align: left;
+}
+
+.calificaciones-table th.header-trimestre {
+  background: var(--primary);
+  color: var(--on-primary);
+  text-align: center;
+  padding: 8px;
+}
+
+.calificaciones-table th.sub-header {
+  background: var(--surface-container-high);
+  font-size: 11px;
+  padding: 6px 8px;
+}
+
+.calificaciones-table td {
+  padding: 8px 10px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.calificaciones-table td.col-num {
+  text-align: center;
+  font-weight: 600;
+  color: var(--on-surface-variant);
+}
+
+.calificaciones-table td.col-estudiante {
+  text-align: left;
+  font-weight: 500;
+}
+
+.calificaciones-table td.cell-value {
+  cursor: pointer;
+}
+
+.calificaciones-table td.cell-value:hover {
+  background: var(--surface-container-low);
+}
+
+.calificaciones-table td.cell-value:hover::after {
+  content: "✎";
+  margin-left: 6px;
+  opacity: 0.5;
+  font-size: 10px;
+}
+
+.calificaciones-table td.cell-editing {
+  padding: 4px;
+}
+
+.calificaciones-table td.cell-calculated {
+  background: var(--surface-container-low);
+  font-weight: 600;
+  color: var(--secondary);
+}
+
+.calificaciones-table td.cell-retro {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Input inline */
+.inline-input {
+  width: 60px;
+  padding: 4px 8px;
+  border: 1px solid var(--secondary);
+  border-radius: 4px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.inline-textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 8px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 4px;
+  font-size: 13px;
+  resize: vertical;
+}
+
+/* Badges de estado */
+.badge.activo {
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
+}
+
+.badge.inactivo,
+.badge.reprobado {
+  background: var(--error-container);
+  color: var(--error);
+}
+
+.badge.supletorio {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.badge.entregado {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.badge.pendiente {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.badge.atrasado {
+  background: var(--error-container);
+  color: var(--error);
+}
+
+/* Nota de ayuda */
+.table-hint {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+  text-align: right;
+}
+
+/* Layout de Aula Virtual */
+.aula-virtual-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+/* Lista de actividades */
+.actividades-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+}
+
+.actividades-list h3 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--primary);
+}
+
+.actividades-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.actividad-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+  background: var(--surface-container-lowest);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.actividad-item:hover {
+  border-color: var(--secondary);
+}
+
+.actividad-item.active {
+  border-color: var(--secondary);
+  background: var(--secondary-container);
+}
+
+.actividad-nombre {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.actividad-tipo {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.actividad-tipo.tipo-tarea {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.actividad-tipo.tipo-examen {
+  background: #fce4ec;
+  color: #c62828;
+}
+
+.actividad-tipo.tipo-trabajo {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.actividad-tipo.tipo-participacion {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+/* Panel de detalle de actividad */
+.entregas-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.actividad-detalle,
+.entregas-panel {
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+}
+
+.actividad-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--outline-variant);
+}
+
+.actividad-info h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--primary);
+}
+
+.actividad-info p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--on-surface-variant);
+}
+
+.actividad-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--on-surface-variant);
+}
+
+/* Tabla de entregas */
+.entregas-table {
+  min-width: 800px;
+}
+
+.entregas-table th {
+  font-size: 12px;
+  padding: 10px;
+}
+
+.entregas-table td {
+  padding: 10px;
+  font-size: 13px;
+}
+
+.cell-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.text-muted {
+  color: var(--on-surface-variant);
+  font-style: italic;
+}
+
+/* Mensajes de estado */
+.status-message--success {
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
+  border-color: var(--secondary-container);
+}
+
+.status-message--error {
+  background: var(--error-container);
+  color: var(--error);
+  border-color: var(--error-container);
+}
+
+/* Botones pequeños */
+.primary-button.small,
+.text-button.small {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+/* Responsive para tablas de calificaciones */
+@media (max-width: 1024px) {
+  .aula-virtual-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .calificaciones-table-container .table-info-header {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .filters-bar {
+    flex-direction: column;
+  }
+
+  .filter-group {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .view-tabs {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .view-tab {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .table-actions-bar {
+    flex-wrap: wrap;
+  }
+
+  .entregas-table {
+    min-width: 600px;
+  }
+}
+
