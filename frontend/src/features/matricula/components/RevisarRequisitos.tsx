@@ -1,5 +1,7 @@
 ﻿import React, { useState, useEffect } from "react";
 import { obtenerRequisitos, validarRequisito, rechazarRequisito } from "../services/matriculaApi";
+import { showError, showSuccess } from "../../../components/Toast";
+import { getErrorMessage } from "../utils/errorMapper";
 import FormularioLegalizar from "./FormularioLegalizar";
 
 interface Props {
@@ -11,7 +13,6 @@ interface Props {
 export default function RevisarRequisitos({ matriculaId, onClose, onLegalizado }: Props) {
   const [requisitos, setRequisitos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedUrl, setSelectedUrl] = useState<string>("");
   const [observacionModal, setObservacionModal] = useState<number | null>(null);
   const [observacionText, setObservacionText] = useState("");
   const [mostrarLegalizar, setMostrarLegalizar] = useState(false);
@@ -20,13 +21,8 @@ export default function RevisarRequisitos({ matriculaId, onClose, onLegalizado }
     try {
       const data = await obtenerRequisitos(matriculaId);
       setRequisitos(data);
-      if (data.length > 0 && data[0].archivo) {
-        // Aseguramos que la URL sea absoluta para el iframe
-        const baseUrl = "http://127.0.0.1:8000";
-        setSelectedUrl(data[0].archivo.startsWith("http") ? data[0].archivo : baseUrl + data[0].archivo);
-      }
     } catch (error) {
-      console.error("Error al cargar requisitos", error);
+      showError(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -39,9 +35,10 @@ export default function RevisarRequisitos({ matriculaId, onClose, onLegalizado }
   const handleValidar = async (id: number) => {
     try {
       await validarRequisito(id);
+      showSuccess("Requisito aprobado correctamente");
       await cargarRequisitos();
     } catch (error) {
-      alert("Error al validar requisito.");
+      showError(getErrorMessage(error));
     }
   };
 
@@ -51,9 +48,10 @@ export default function RevisarRequisitos({ matriculaId, onClose, onLegalizado }
       await rechazarRequisito(observacionModal, observacionText);
       setObservacionModal(null);
       setObservacionText("");
+      showSuccess("Requisito rechazado. Se notificará al representante.");
       await cargarRequisitos();
     } catch (error) {
-      alert("Error al rechazar requisito.");
+      showError(getErrorMessage(error));
     }
   };
 
@@ -83,7 +81,7 @@ export default function RevisarRequisitos({ matriculaId, onClose, onLegalizado }
                 </div>
                 
                 {req.archivo ? (
-                  <button onClick={() => setSelectedUrl(req.archivo.startsWith("http") ? req.archivo : baseUrl + req.archivo)} style={{ width: "100%", marginBottom: "8px", padding: "6px", border: "1px solid var(--outline)", borderRadius: "4px", cursor: "pointer", background: "white" }}>
+                  <button onClick={() => { const url = req.archivo.startsWith("http") ? req.archivo : baseUrl + req.archivo; window.open(url, '_blank'); }} style={{ width: "100%", marginBottom: "8px", padding: "6px", border: "1px solid var(--outline)", borderRadius: "4px", cursor: "pointer", background: "white" }}>
                     Ver Documento PDF
                   </button>
                 ) : (
@@ -102,13 +100,11 @@ export default function RevisarRequisitos({ matriculaId, onClose, onLegalizado }
           )}
         </div>
 
-        {/* Panel Derecho: Visor PDF */}
+        {/* Panel Derecho: Visor PDF (abre en pestaña nueva por X-Frame-Options del backend) */}
         <div style={{ flex: 1, background: "#f3f4f6", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {selectedUrl ? (
-            <iframe src={selectedUrl} style={{ width: "100%", height: "100%", border: "none" }} title="PDF Viewer"></iframe>
-          ) : (
-            <p style={{ color: "var(--on-surface-variant)" }}>Seleccione un documento para visualizarlo</p>
-          )}
+          <p style={{ color: "var(--on-surface-variant)", textAlign: "center", padding: "20px" }}>
+            Seleccione un documento y haga clic en <strong>"Ver Documento PDF"</strong> para abrirlo en una nueva pestaña.
+          </p>
         </div>
       </div>
 
@@ -134,7 +130,7 @@ export default function RevisarRequisitos({ matriculaId, onClose, onLegalizado }
       )}
 
       {observacionModal !== null && (
-        <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 10000 }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 10000 }}>
           <div style={{ background: "white", padding: "24px", borderRadius: "8px", width: "400px" }}>
             <h3 style={{ marginTop: 0 }}>Motivo de Rechazo</h3>
             <textarea value={observacionText} onChange={(e) => setObservacionText(e.target.value)} style={{ width: "100%", minHeight: "80px", marginBottom: "16px", padding: "8px", borderRadius: "4px", border: "1px solid var(--outline)" }} placeholder="Ej: Cédula borrosa, ilegible..."></textarea>

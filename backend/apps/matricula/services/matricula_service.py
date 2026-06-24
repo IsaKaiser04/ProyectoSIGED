@@ -1,6 +1,7 @@
 ﻿from django.utils import timezone
 from django.db import transaction
 from apps.matricula.repositories.matricula_repository import MatriculaRepository
+from apps.matricula.repositories.requisito_repository import RequisitoRepository
 from apps.matricula.serializers.matricula_serializer import (
     MatriculaListSerializer,
     MatriculaDetailSerializer,
@@ -38,6 +39,38 @@ class MatriculaService:
             instance = MatriculaRepository.create(validated)
             return MatriculaDetailSerializer(instance).data, None
         return None, serializer.errors
+
+    @staticmethod
+    @transaction.atomic
+    def crear_con_requisitos(data):
+        matricula_fields = {}
+        requisito_files = {}
+
+        for key, value in data.items():
+            if key.startswith('requisito_'):
+                req_id = key.replace('requisito_', '')
+                if hasattr(value, 'read'):
+                    requisito_files[req_id] = value
+            elif key not in ('archivosRequisitos',):
+                matricula_fields[key] = value
+
+        serializer = MatriculaCreateSerializer(data=matricula_fields)
+        if not serializer.is_valid():
+            return None, serializer.errors
+
+        instance = MatriculaRepository.create(serializer.validated_data)
+
+        for req_id_str, archivo in requisito_files.items():
+            RequisitoRepository.create({
+                'matricula': instance,
+                'matricula_requisito_id': int(req_id_str),
+                'archivo': archivo,
+                'estado': 'Pendiente',
+            })
+
+        return MatriculaDetailSerializer(
+            MatriculaRepository.get_con_requisitos(instance.pk)
+        ).data, None
 
     @staticmethod
     def update(pk, data):

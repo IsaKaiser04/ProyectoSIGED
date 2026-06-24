@@ -1,4 +1,4 @@
-﻿import { apiGet, apiPost, apiPatch } from "../../../services/apiClient";
+﻿import { apiGet, apiPost, apiPatch, apiUpload } from "../../../services/apiClient";
 import type { Matricula } from "../../../types/entities/matricula";
 
 export async function obtenerMatriculas() {
@@ -7,6 +7,10 @@ export async function obtenerMatriculas() {
 
 export async function crearMatricula(data: any) {
   return apiPost("/matricula/matriculas/", data);
+}
+
+export async function crearMatriculaConRequisitos(formData: FormData): Promise<any> {
+  return apiUpload("/matricula/matriculas/registro-completo/", formData);
 }
 
 export async function legalizarMatricula(id: number, data?: any): Promise<any> {

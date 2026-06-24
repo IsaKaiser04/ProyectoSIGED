@@ -24,6 +24,13 @@ class MatriculaViewSet(viewsets.ViewSet):
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
         return Response(data, status=status.HTTP_201_CREATED)
 
+    @action(detail=False, methods=['post'])
+    def registro_completo(self, request):
+        data, errors = MatriculaService.crear_con_requisitos(request.data)
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(data, status=status.HTTP_201_CREATED)
+
     def partial_update(self, request, pk=None):
         data, errors = MatriculaService.update(pk, request.data)
         if not data and not errors:

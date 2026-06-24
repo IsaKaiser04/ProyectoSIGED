@@ -8,7 +8,8 @@ interface MatriculaConEstudiante {
   asp_nombres: string;
   asp_apellidos: string;
   asp_correo_personal: string;
-  estudiante: number | null;
+  estudiante_id: number | null;
+  estudiante_nombre: string | null;
   institucion: number | null;
   paralelo: number | null;
   paralelo_nombre?: string;
@@ -39,6 +40,7 @@ export const EstudiantesListado: React.FC = () => {
   const [estudiantes, setEstudiantes] = useState<EstudianteData[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
+  const [refrescar, setRefrescar] = useState(0);
 
   useEffect(() => {
     const cargar = async () => {
@@ -56,28 +58,55 @@ export const EstudiantesListado: React.FC = () => {
 
         // 2. Obtener matrículas legalizadas para complementar
         const matriculas = await apiGet<MatriculaConEstudiante[]>("/matricula/matriculas/").catch(() => []);
-        const matriculasInst = institucionId
-          ? (matriculas || []).filter((m) => m.institucion === institucionId)
-          : (matriculas || []);
-
-        const legalizadas = matriculasInst.filter((m) => m.estado === "Legalizada");
-
-        // 3. Mezclar: estudiantes con perfil + aspirantes de legalizadas
-        const idsPerfil = new Set(estudiantesApi.map((e) => e.id));
-
-        for (const m of legalizadas) {
-          if (m.estudiante && !idsPerfil.has(m.estudiante)) {
-            const perfil = estudiantesApi.find((e) => e.id === m.estudiante);
-            if (perfil) idsPerfil.add(perfil.id);
-          }
+        let legalizadas = (matriculas || []).filter((m) => m.estado === "Legalizada");
+        if (institucionId) {
+          legalizadas = legalizadas.filter((m) => m.institucion === institucionId);
         }
 
-        setEstudiantes(estudiantesApi);
+        // 3. Mezclar: estudiantes con perfil + aspirantes de legalizadas sin perfil
+        const idsPerfil = new Set(estudiantesApi.map((e) => e.id));
+
+        const deMatriculas: EstudianteData[] = [];
+        for (const m of legalizadas) {
+          if (m.estudiante_id && idsPerfil.has(m.estudiante_id)) continue;
+          let datosExtra: Partial<EstudianteData> = {};
+          if (m.estudiante_id) {
+            try {
+              const est = await apiGet<any>(`/actoresAcademicos/estudiantes/${m.estudiante_id}/`);
+              datosExtra = {
+                nombres: est.nombres || est.nombre_completo || m.estudiante_nombre || "—",
+                apellidos: est.apellidos || "—",
+                identificacion: est.identificacion || "",
+                correo_personal: est.correo_personal || "",
+                celular: est.celular || "",
+              };
+            } catch {
+              datosExtra = {
+                nombres: m.estudiante_nombre || "—",
+                apellidos: "—",
+                identificacion: "",
+                correo_personal: "",
+                celular: "",
+              };
+            }
+          }
+          deMatriculas.push({
+            id: -(m.id),
+            nombres: datosExtra.nombres || "—",
+            apellidos: datosExtra.apellidos || "—",
+            identificacion: datosExtra.identificacion || "",
+            correo_personal: datosExtra.correo_personal || "",
+            celular: datosExtra.celular || "",
+            institucion: institucionId ?? null,
+          });
+        }
+
+        setEstudiantes([...estudiantesApi, ...deMatriculas]);
       } catch { setEstudiantes([]); }
       finally { setLoading(false); }
     };
     cargar();
-  }, [usuario?.institucion_id]);
+  }, [usuario?.institucion_id, refrescar]);
 
   const filtrados = estudiantes.filter(
     (e) =>
@@ -96,19 +125,27 @@ export const EstudiantesListado: React.FC = () => {
         </p>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
         <p style={{ margin: 0, fontSize: "var(--font-body-sm)", color: "var(--on-surface-variant)" }}>
           {filtrados.length} estudiante(s)
         </p>
-        <input
-          placeholder="Buscar por nombre, apellido o c&eacute;dula..."
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          style={{
-            width: 300, height: 38, padding: "0 12px", borderRadius: 8,
-            border: "1px solid var(--outline-variant)", fontSize: 14,
-          }}
-        />
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button onClick={() => setRefrescar(prev => prev + 1)} disabled={loading} style={{
+            padding: "6px 14px", borderRadius: 6, border: "1px solid var(--outline)",
+            background: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600,
+          }}>
+            {loading ? "Cargando..." : "Refrescar"}
+          </button>
+          <input
+            placeholder="Buscar por nombre, apellido o c&eacute;dula..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            style={{
+              width: 300, height: 38, padding: "0 12px", borderRadius: 8,
+              border: "1px solid var(--outline-variant)", fontSize: 14,
+            }}
+          />
+        </div>
       </div>
 
       {loading ? (

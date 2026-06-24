@@ -1,7 +1,9 @@
 ﻿import React, { useState, useEffect } from "react";
-import { apiGet, apiPost, apiUpload } from "../../../services/apiClient";
+import { apiGet } from "../../../services/apiClient";
 import { MatriculaRequisito } from "../../../types/entities/matricula";
-import { obtenerPeriodosMatricula } from "../services/matriculaApi";
+import { obtenerPeriodosMatricula, crearMatriculaConRequisitos } from "../services/matriculaApi";
+import { showSuccess, showError } from "../../../components/Toast";
+import { getErrorMessage } from "../utils/errorMapper";
 
 interface Props {
   onSaveSuccess: (nuevaMatricula?: any) => void;
@@ -14,6 +16,7 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
   const [currentStep, setCurrentStep] = useState(0);
   const [enviando, setEnviando] = useState(false);
   const [aceptaTerminos, setAceptaTerminos] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const [aniosLectivos, setAniosLectivos] = useState<any[]>([]);
   const [gradosOfertados, setGradosOfertados] = useState<any[]>([]);
@@ -119,43 +122,32 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
     try {
       setEnviando(true);
 
-      // 1. Buscar periodo activo de matrícula
+      // Buscar periodo activo de matrícula
       let periodoId = null;
       if (periodosMatricula.length > 0) {
         const activo = periodosMatricula.find((p: any) => p.activo) || periodosMatricula[0];
         periodoId = activo.id;
       }
 
-      // 2. Crear matrícula con datos del aspirante y representante incrustados
-      const payloadMatricula: any = {
-        anio_lectivo_id: Number(formData.anio_lectivo_id),
-        paralelo_id: Number(formData.paralelo_id),
-        tiene_discapacidad: formData.tiene_discapacidad,
-        tipo_discapacidad: formData.tipo_discapacidad,
-        rep_nombres: formData.representante_nombres,
-        rep_apellidos: formData.representante_apellidos,
-        rep_identificacion: formData.representante_identificacion,
-        rep_telefono: formData.representante_telefono,
-        rep_parentesco: formData.representante_parentesco
-      };
-      if (periodoId) payloadMatricula.matricula_periodo = periodoId;
+      // Construir FormData único (como PCA) con todos los campos + archivos
+      const payload = new FormData();
+      payload.append("anio_lectivo_id", String(formData.anio_lectivo_id));
+      payload.append("paralelo_id", String(formData.paralelo_id));
+      payload.append("tiene_discapacidad", String(formData.tiene_discapacidad));
+      payload.append("tipo_discapacidad", formData.tipo_discapacidad);
+      payload.append("rep_nombres", formData.representante_nombres);
+      payload.append("rep_apellidos", formData.representante_apellidos);
+      payload.append("rep_identificacion", formData.representante_identificacion);
+      payload.append("rep_telefono", formData.representante_telefono);
+      payload.append("rep_parentesco", formData.representante_parentesco);
+      if (periodoId) payload.append("matricula_periodo", String(periodoId));
 
-      const matriculaCreada: any = await apiPost("/matricula/matriculas/", payloadMatricula);
-
-      // 3. Subir PDFs de requisitos
-      if (!usarRequisitosMock && Object.keys(formData.archivosRequisitos).length > 0 && matriculaCreada?.id) {
-        for (const [reqIdStr, archivo] of Object.entries(formData.archivosRequisitos)) {
-          const formDataPdf = new FormData();
-          formDataPdf.append("matricula", matriculaCreada.id);
-          formDataPdf.append("matricula_requisito", reqIdStr);
-          formDataPdf.append("archivo", archivo as File);
-          try {
-            await apiUpload("/matricula/requisitos/", formDataPdf);
-          } catch (errorPdf) {
-            console.error("Error al subir PDF, continuando...", errorPdf);
-          }
-        }
+      // Adjuntar archivos PDF nombrados como requisito_<id>
+      for (const [reqId, archivo] of Object.entries(formData.archivosRequisitos)) {
+        payload.append(`requisito_${reqId}`, archivo as File);
       }
+
+      await crearMatriculaConRequisitos(payload);
 
       if (usarRequisitosMock) {
         setSuccessMessage("Solicitud creada. Los PDFs se guardarán correctamente cuando se configuren los requisitos en el sistema.");
@@ -164,8 +156,7 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
       }
       setShowSuccessModal(true);
     } catch (error: any) {
-      console.error("Error al crear matrícula:", error);
-      alert("Error al registrar la matrícula. Verifique la conexión con el servidor.");
+      showError(getErrorMessage(error));
     } finally {
       setEnviando(false);
     }
@@ -209,16 +200,29 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
               Datos del representante legal del estudiante. Esta información se guardará como parte de la matrícula.
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-              <div><label style={labelStyle}>Nombres</label><input style={fieldStyle} value={formData.representante_nombres} onChange={(e) => setFormData({...formData, representante_nombres: e.target.value})} /></div>
-              <div><label style={labelStyle}>Apellidos</label><input style={fieldStyle} value={formData.representante_apellidos} onChange={(e) => setFormData({...formData, representante_apellidos: e.target.value})} /></div>
-              <div><label style={labelStyle}>Cédula</label><input style={fieldStyle} value={formData.representante_identificacion} onChange={(e) => setFormData({...formData, representante_identificacion: e.target.value})} /></div>
+              <div>
+                <label style={labelStyle}>Nombres</label>
+                <input style={{ ...fieldStyle, borderColor: fieldErrors.representante_nombres ? "#dc2626" : "var(--outline-variant)", borderWidth: fieldErrors.representante_nombres ? "2px" : "1px" }} value={formData.representante_nombres} onChange={(e) => { setFormData({...formData, representante_nombres: e.target.value}); setFieldErrors(prev => { const n = {...prev}; delete n.representante_nombres; return n; }); }} />
+                {fieldErrors.representante_nombres && <span style={{ color: "#dc2626", fontSize: "12px" }}>{fieldErrors.representante_nombres}</span>}
+              </div>
+              <div>
+                <label style={labelStyle}>Apellidos</label>
+                <input style={{ ...fieldStyle, borderColor: fieldErrors.representante_apellidos ? "#dc2626" : "var(--outline-variant)", borderWidth: fieldErrors.representante_apellidos ? "2px" : "1px" }} value={formData.representante_apellidos} onChange={(e) => { setFormData({...formData, representante_apellidos: e.target.value}); setFieldErrors(prev => { const n = {...prev}; delete n.representante_apellidos; return n; }); }} />
+                {fieldErrors.representante_apellidos && <span style={{ color: "#dc2626", fontSize: "12px" }}>{fieldErrors.representante_apellidos}</span>}
+              </div>
+              <div>
+                <label style={labelStyle}>Cédula</label>
+                <input style={{ ...fieldStyle, borderColor: fieldErrors.representante_identificacion ? "#dc2626" : "var(--outline-variant)", borderWidth: fieldErrors.representante_identificacion ? "2px" : "1px" }} value={formData.representante_identificacion} onChange={(e) => { setFormData({...formData, representante_identificacion: e.target.value}); setFieldErrors(prev => { const n = {...prev}; delete n.representante_identificacion; return n; }); }} />
+                {fieldErrors.representante_identificacion && <span style={{ color: "#dc2626", fontSize: "12px" }}>{fieldErrors.representante_identificacion}</span>}
+              </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 <div>
                   <label style={labelStyle}>Parentesco</label>
-                  <select style={fieldStyle} value={formData.representante_parentesco} onChange={(e) => setFormData({...formData, representante_parentesco: e.target.value})}>
+                  <select style={{ ...fieldStyle, borderColor: fieldErrors.representante_parentesco ? "#dc2626" : "var(--outline-variant)", borderWidth: fieldErrors.representante_parentesco ? "2px" : "1px" }} value={formData.representante_parentesco} onChange={(e) => { setFormData({...formData, representante_parentesco: e.target.value}); setFieldErrors(prev => { const n = {...prev}; delete n.representante_parentesco; return n; }); }}>
                     <option value="">Seleccione...</option>
                     <option value="PADRE">Padre</option><option value="MADRE">Madre</option><option value="TUTOR">Tutor Legal</option>
                   </select>
+                  {fieldErrors.representante_parentesco && <span style={{ color: "#dc2626", fontSize: "12px" }}>{fieldErrors.representante_parentesco}</span>}
                 </div>
                 <div><label style={labelStyle}>Teléfono</label><input style={fieldStyle} value={formData.representante_telefono} onChange={(e) => setFormData({...formData, representante_telefono: e.target.value})} /></div>
               </div>
@@ -232,21 +236,23 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
               <div>
                 <label style={labelStyle}>Año Lectivo</label>
-                <select style={fieldStyle} value={formData.anio_lectivo_id} onChange={(e) => setFormData({...formData, anio_lectivo_id: e.target.value, grado_ofertado_id: "", paralelo_id: ""})}>
+                <select style={{ ...fieldStyle, borderColor: fieldErrors.anio_lectivo_id ? "#dc2626" : "var(--outline-variant)", borderWidth: fieldErrors.anio_lectivo_id ? "2px" : "1px" }} value={formData.anio_lectivo_id} onChange={(e) => { setFormData({...formData, anio_lectivo_id: e.target.value, grado_ofertado_id: "", paralelo_id: ""}); setFieldErrors(prev => { const n = {...prev}; delete n.anio_lectivo_id; return n; }); }}>
                   <option value="">Seleccione...</option>
                   {aniosLectivos.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
                 </select>
+                {fieldErrors.anio_lectivo_id && <span style={{ color: "#dc2626", fontSize: "12px" }}>{fieldErrors.anio_lectivo_id}</span>}
               </div>
               <div>
                 <label style={labelStyle}>Grado</label>
-                <select style={fieldStyle} value={formData.grado_ofertado_id} onChange={(e) => setFormData({...formData, grado_ofertado_id: e.target.value, paralelo_id: ""})} disabled={!formData.anio_lectivo_id}>
+                <select style={{ ...fieldStyle, borderColor: fieldErrors.grado_ofertado_id ? "#dc2626" : "var(--outline-variant)", borderWidth: fieldErrors.grado_ofertado_id ? "2px" : "1px" }} value={formData.grado_ofertado_id} onChange={(e) => { setFormData({...formData, grado_ofertado_id: e.target.value, paralelo_id: ""}); setFieldErrors(prev => { const n = {...prev}; delete n.grado_ofertado_id; return n; }); }} disabled={!formData.anio_lectivo_id}>
                   <option value="">Seleccione...</option>
                   {gradosOfertados.map(g => <option key={g.id} value={g.id}>{g.grado_nombre || g.nombre}</option>)}
                 </select>
+                {fieldErrors.grado_ofertado_id && <span style={{ color: "#dc2626", fontSize: "12px" }}>{fieldErrors.grado_ofertado_id}</span>}
               </div>
               <div>
                 <label style={labelStyle}>Paralelo</label>
-                <select style={fieldStyle} value={formData.paralelo_id} onChange={(e) => setFormData({...formData, paralelo_id: e.target.value})} disabled={!formData.grado_ofertado_id}>
+                <select style={{ ...fieldStyle, borderColor: fieldErrors.paralelo_id ? "#dc2626" : "var(--outline-variant)", borderWidth: fieldErrors.paralelo_id ? "2px" : "1px" }} value={formData.paralelo_id} onChange={(e) => { setFormData({...formData, paralelo_id: e.target.value}); setFieldErrors(prev => { const n = {...prev}; delete n.paralelo_id; return n; }); }} disabled={!formData.grado_ofertado_id}>
                   <option value="">Seleccione...</option>
                   {paralelosFiltrados.map(p => {
                     const disponibles = (p.cuposDisponibles ?? p.cuposMaximo - p.cuposOcupados);
@@ -255,6 +261,7 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
                   })}
                   {paralelosFiltrados.length === 0 && formData.grado_ofertado_id && <option value="" disabled>No hay paralelos disponibles</option>}
                 </select>
+                {fieldErrors.paralelo_id && <span style={{ color: "#dc2626", fontSize: "12px" }}>{fieldErrors.paralelo_id}</span>}
               </div>
             </div>
           </div>
@@ -316,9 +323,24 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
       <div style={{ display: "flex", justifyContent: "space-between", padding: "20px", borderTop: "1px solid var(--outline-variant)", background: "var(--surface-container-low)" }}>
         <button style={btnSecondary} onClick={onCancel}>Cancelar</button>
         <div style={{ display: "flex", gap: "12px" }}>
-          {currentStep > 0 && <button style={btnSecondary} onClick={() => setCurrentStep(prev => prev - 1)}>Atrás</button>}
+          {currentStep > 0 && <button style={btnSecondary} onClick={() => { setFieldErrors({}); setCurrentStep(prev => prev - 1); }}>Atrás</button>}
           {currentStep < steps.length - 1 ? (
-            <button style={btnPrimary} onClick={() => setCurrentStep(prev => prev + 1)}>Siguiente</button>
+            <button style={btnPrimary} onClick={() => {
+              const errs: Record<string, string> = {};
+              if (currentStep === 0) {
+                if (!formData.representante_nombres) errs.representante_nombres = "Campo obligatorio";
+                if (!formData.representante_apellidos) errs.representante_apellidos = "Campo obligatorio";
+                if (!formData.representante_identificacion) errs.representante_identificacion = "Campo obligatorio";
+                if (!formData.representante_parentesco) errs.representante_parentesco = "Seleccione un parentesco";
+              }
+              if (currentStep === 1) {
+                if (!formData.anio_lectivo_id) errs.anio_lectivo_id = "Seleccione un año lectivo";
+                if (!formData.grado_ofertado_id) errs.grado_ofertado_id = "Seleccione un grado";
+                if (!formData.paralelo_id) errs.paralelo_id = "Seleccione un paralelo";
+              }
+              setFieldErrors(errs);
+              if (Object.keys(errs).length === 0) setCurrentStep(prev => prev + 1);
+            }}>Siguiente</button>
           ) : (
             <button style={{ ...btnPrimary, opacity: aceptaTerminos ? 1 : 0.5 }} disabled={!aceptaTerminos || enviando} onClick={handleSubmit}>
               {enviando ? "Guardando..." : "Confirmar Solicitud"}

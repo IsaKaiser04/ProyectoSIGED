@@ -1,6 +1,8 @@
 ﻿import React, { useState } from "react";
 import type { Matricula } from "../../../types/entities/matricula";
 import { anularMatricula, rechazarMatricula } from "../services/matriculaApi";
+import { showSuccess, showError } from "../../../components/Toast";
+import { getErrorMessage } from "../utils/errorMapper";
 import FormularioLegalizar from "./FormularioLegalizar";
 
 interface Props {
@@ -30,12 +32,12 @@ export default function MatriculaTable({ matriculas, paraleloMap, onRevisar, onA
     if (!rechazarMatriculaId || !motivoRechazo.trim()) return;
     try {
       await rechazarMatricula(rechazarMatriculaId, motivoRechazo);
-      alert("Matrícula rechazada.");
+      showSuccess("Matrícula rechazada correctamente.");
       setRechazarMatriculaId(null);
       onAccionRealizada();
     } catch (error) {
+      showError(getErrorMessage(error));
       onAccionLocal(rechazarMatriculaId, "Rechazada");
-      alert("Matrícula rechazada (Modo Demo).");
       setRechazarMatriculaId(null);
     }
   };
@@ -45,11 +47,11 @@ export default function MatriculaTable({ matriculas, paraleloMap, onRevisar, onA
     if (motivo) {
       try {
         await anularMatricula(id, motivo);
-        alert("Cupo liberado correctamente.");
+        showSuccess("Cupo liberado correctamente.");
         onAccionRealizada();
       } catch (error) {
+        showError(getErrorMessage(error));
         onAccionLocal(id, "Anulada");
-        alert("Cupo liberado (Modo Demo).");
       }
     }
   };

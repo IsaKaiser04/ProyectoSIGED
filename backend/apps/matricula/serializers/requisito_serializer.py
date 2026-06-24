@@ -23,7 +23,7 @@ class RequisitoListSerializer(serializers.ModelSerializer):
 
     def get_revisado_por_nombre(self, obj):
         if obj.revisado_por:
-            return f"{obj.revisado_por.first_name} {obj.revisado_por.last_name}".strip()
+            return obj.revisado_por.nombre_usuario
         return None
 
 

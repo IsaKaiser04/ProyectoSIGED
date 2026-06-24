@@ -4,6 +4,7 @@ import MatriculaTable from "./components/MatriculaTable";
 import RevisarRequisitos from "./components/RevisarRequisitos";
 import { useMatriculas } from "./hooks/useMatricula";
 import { apiGet } from "../../services/apiClient";
+import { ToastContainer } from "../../components/Toast";
 
 function MatriculaDashboard() {
   const [showWizard, setShowWizard] = useState(false);
@@ -28,9 +29,9 @@ function MatriculaDashboard() {
   const cuposDisponibles = paralelos.reduce((acc, p) => acc + ((p.cuposMaximo || p.cupos_maximo || 0) - (p.cuposOcupados || p.cupos_ocupados || 0)), 0);
   const paraleloMap = Object.fromEntries(paralelos.map(p => [p.id, p]));
 
-  const matriculasFiltradas = matriculas.filter(m =>
-    !filtroEstado ? m.estado !== 'Legalizada' : m.estado === filtroEstado
-  );
+  const matriculasFiltradas = filtroEstado
+    ? matriculas.filter(m => m.estado === filtroEstado)
+    : matriculas;
 
   const handleRevisar = (id: number) => {
     setMatriculaToRevisar(id);
@@ -101,6 +102,7 @@ function MatriculaDashboard() {
           </div>
         </div>
       )}
+      <ToastContainer />
     </div>
   );
 } export { MatriculaDashboard };

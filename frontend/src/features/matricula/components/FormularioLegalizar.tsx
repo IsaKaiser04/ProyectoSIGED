@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { apiGet } from "../../../services/apiClient";
 import { legalizarMatricula } from "../services/matriculaApi";
+import { showSuccess, showError } from "../../../components/Toast";
+import { getErrorMessage } from "../utils/errorMapper";
 import CredencialesModal from "./CredencialesModal";
 
 interface Props {
@@ -23,6 +25,7 @@ export default function FormularioLegalizar({ matriculaId, onClose, onLegalizado
   const [step, setStep] = useState(0);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [credenciales, setCredenciales] = useState<any>(null);
 
   // Cargar matrícula existente para pre-fill
@@ -101,9 +104,30 @@ export default function FormularioLegalizar({ matriculaId, onClose, onLegalizado
     if (!form.correo_institucional && form.identificacion) actualizar("correo_institucional", `${form.identificacion}@institucion.edu.ec`);
   };
 
+  const setFieldError = (field: string, message: string) => {
+    setFieldErrors(prev => ({ ...prev, [field]: message }));
+  };
+
+  const clearFieldError = (field: string) => {
+    setFieldErrors(prev => {
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const hasErrors = (errs: Record<string, string>) => Object.keys(errs).length > 0;
+
   const validarPaso0 = () => {
+    const errs: Record<string, string> = {};
     const f = form;
-    if (!f.nombres || !f.apellidos || !f.identificacion || !f.fecha_nacimiento || !f.correo_personal) {
+    if (!f.nombres) errs.nombres = "Este campo es obligatorio.";
+    if (!f.apellidos) errs.apellidos = "Este campo es obligatorio.";
+    if (!f.identificacion) errs.identificacion = "Este campo es obligatorio.";
+    if (!f.fecha_nacimiento) errs.fecha_nacimiento = "Este campo es obligatorio.";
+    if (!f.correo_personal) errs.correo_personal = "Este campo es obligatorio.";
+    setFieldErrors(errs);
+    if (hasErrors(errs)) {
       setError("Complete todos los campos obligatorios de Datos Personales.");
       return false;
     }
@@ -111,7 +135,12 @@ export default function FormularioLegalizar({ matriculaId, onClose, onLegalizado
   };
 
   const validarPaso1 = () => {
-    if (!parroquiaId || !form.calle_principal || !form.numero_casa) {
+    const errs: Record<string, string> = {};
+    if (!parroquiaId) errs.parroquia = "Seleccione una parroquia.";
+    if (!form.calle_principal) errs.calle_principal = "Este campo es obligatorio.";
+    if (!form.numero_casa) errs.numero_casa = "Este campo es obligatorio.";
+    setFieldErrors(errs);
+    if (hasErrors(errs)) {
       setError("Complete la ubicación y dirección domiciliaria.");
       return false;
     }
@@ -119,23 +148,36 @@ export default function FormularioLegalizar({ matriculaId, onClose, onLegalizado
   };
 
   const validarPaso2 = () => {
-    if (!form.nombre_usuario || !form.contrasena || !form.contrasena_confirmar || !form.correo_institucional) {
+    const errs: Record<string, string> = {};
+    if (!form.nombre_usuario) errs.nombre_usuario = "Este campo es obligatorio.";
+    if (!form.correo_institucional) errs.correo_institucional = "Este campo es obligatorio.";
+    if (!form.contrasena) errs.contrasena = "Este campo es obligatorio.";
+    if (form.contrasena && form.contrasena.length < 6) errs.contrasena = "Debe tener al menos 6 caracteres.";
+    if (!form.contrasena_confirmar) errs.contrasena_confirmar = "Confirme la contraseña.";
+    if (form.contrasena && form.contrasena_confirmar && form.contrasena !== form.contrasena_confirmar) {
+      errs.contrasena_confirmar = "Las contraseñas no coinciden.";
+    }
+    setFieldErrors(errs);
+    if (hasErrors(errs)) {
       setError("Complete todos los campos de la cuenta.");
-      return false;
-    }
-    if (form.contrasena.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres.");
-      return false;
-    }
-    if (form.contrasena !== form.contrasena_confirmar) {
-      setError("Las contraseñas no coinciden.");
       return false;
     }
     return true;
   };
 
+  const errorStyle = (field: string): React.CSSProperties => ({
+    ...fieldStyle,
+    borderColor: fieldErrors[field] ? "#dc2626" : "var(--outline-variant)",
+    borderWidth: fieldErrors[field] ? "2px" : "1px",
+  });
+
+  const errorTextStyle = (field: string): React.CSSProperties => ({
+    color: "#dc2626", fontSize: "12px", marginTop: "4px", display: fieldErrors[field] ? "block" : "none",
+  });
+
   const handleSubmit = async () => {
     setError("");
+    setFieldErrors({});
     if (!validarPaso2()) return;
 
     setEnviando(true);
@@ -168,12 +210,12 @@ export default function FormularioLegalizar({ matriculaId, onClose, onLegalizado
       if (res?.cuenta_creada) {
         setCredenciales(res.cuenta_creada);
       } else {
-        alert("Matrícula legalizada con éxito.");
+        showSuccess("Matrícula legalizada exitosamente");
         onLegalizado();
       }
     } catch (err: any) {
-      const msg = err?.response?.data?.error || err?.response?.data ? JSON.stringify(err.response.data) : "Error al legalizar.";
-      setError(msg);
+      showError(getErrorMessage(err));
+      setError(getErrorMessage(err));
     } finally {
       setEnviando(false);
     }
@@ -223,11 +265,23 @@ export default function FormularioLegalizar({ matriculaId, onClose, onLegalizado
             <div>
               <h3 style={{ margin: "0 0 16px", color: "var(--primary)", fontSize: "16px" }}>Datos Personales del Estudiante</h3>
               <div style={inputRow}>
-                <div><label style={labelStyle}>Nombres *</label><input style={fieldStyle} value={form.nombres} onChange={e => actualizar("nombres", e.target.value)} /></div>
-                <div><label style={labelStyle}>Apellidos *</label><input style={fieldStyle} value={form.apellidos} onChange={e => actualizar("apellidos", e.target.value)} /></div>
+                <div>
+                  <label style={labelStyle}>Nombres *</label>
+                  <input style={errorStyle("nombres")} value={form.nombres} onChange={e => { actualizar("nombres", e.target.value); clearFieldError("nombres"); }} />
+                  <span style={errorTextStyle("nombres")}>{fieldErrors.nombres}</span>
+                </div>
+                <div>
+                  <label style={labelStyle}>Apellidos *</label>
+                  <input style={errorStyle("apellidos")} value={form.apellidos} onChange={e => { actualizar("apellidos", e.target.value); clearFieldError("apellidos"); }} />
+                  <span style={errorTextStyle("apellidos")}>{fieldErrors.apellidos}</span>
+                </div>
               </div>
               <div style={inputRow}>
-                <div><label style={labelStyle}>Identificación *</label><input style={fieldStyle} value={form.identificacion} onChange={e => { actualizar("identificacion", e.target.value); autoUsuario(); autoCorreoInst(); }} /></div>
+                <div>
+                  <label style={labelStyle}>Identificación *</label>
+                  <input style={errorStyle("identificacion")} value={form.identificacion} onChange={e => { actualizar("identificacion", e.target.value); clearFieldError("identificacion"); autoUsuario(); autoCorreoInst(); }} />
+                  <span style={errorTextStyle("identificacion")}>{fieldErrors.identificacion}</span>
+                </div>
                 <div><label style={labelStyle}>Tipo Identificación</label>
                   <select style={fieldStyle} value={form.tipo_identificacion} onChange={e => actualizar("tipo_identificacion", e.target.value)}>
                     <option value="CEDULA">Cédula</option><option value="PASAPORTE">Pasaporte</option><option value="RUC">RUC</option>
@@ -235,11 +289,19 @@ export default function FormularioLegalizar({ matriculaId, onClose, onLegalizado
                 </div>
               </div>
               <div style={inputRow}>
-                <div><label style={labelStyle}>Fecha de Nacimiento *</label><input type="date" style={fieldStyle} value={form.fecha_nacimiento} onChange={e => actualizar("fecha_nacimiento", e.target.value)} /></div>
+                <div>
+                  <label style={labelStyle}>Fecha de Nacimiento *</label>
+                  <input type="date" style={errorStyle("fecha_nacimiento")} value={form.fecha_nacimiento} onChange={e => { actualizar("fecha_nacimiento", e.target.value); clearFieldError("fecha_nacimiento"); }} />
+                  <span style={errorTextStyle("fecha_nacimiento")}>{fieldErrors.fecha_nacimiento}</span>
+                </div>
                 <div><label style={labelStyle}>Celular</label><input style={fieldStyle} value={form.celular} onChange={e => actualizar("celular", e.target.value)} /></div>
               </div>
               <div style={inputRow}>
-                <div><label style={labelStyle}>Correo Personal *</label><input type="email" style={fieldStyle} value={form.correo_personal} onChange={e => actualizar("correo_personal", e.target.value)} /></div>
+                <div>
+                  <label style={labelStyle}>Correo Personal *</label>
+                  <input type="email" style={errorStyle("correo_personal")} value={form.correo_personal} onChange={e => { actualizar("correo_personal", e.target.value); clearFieldError("correo_personal"); }} />
+                  <span style={errorTextStyle("correo_personal")}>{fieldErrors.correo_personal}</span>
+                </div>
                 <div />
               </div>
             </div>
@@ -269,21 +331,31 @@ export default function FormularioLegalizar({ matriculaId, onClose, onLegalizado
                     {cantones.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                   </select>
                 </div>
-                <div><label style={labelStyle}>Parroquia *</label>
-                  <select style={fieldStyle} value={parroquiaId} onChange={e => setParroquiaId(e.target.value)} disabled={!cantonId}>
+                <div>
+                  <label style={labelStyle}>Parroquia *</label>
+                  <select style={errorStyle("parroquia")} value={parroquiaId} onChange={e => { setParroquiaId(e.target.value); clearFieldError("parroquia"); }} disabled={!cantonId}>
                     <option value="">Seleccione...</option>
                     {parroquias.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
                   </select>
+                  <span style={errorTextStyle("parroquia")}>{fieldErrors.parroquia}</span>
                 </div>
               </div>
 
               <h3 style={{ margin: "24px 0 16px", color: "var(--primary)", fontSize: "16px" }}>Dirección Domiciliaria</h3>
               <div style={inputRow}>
-                <div><label style={labelStyle}>Calle Principal *</label><input style={fieldStyle} value={form.calle_principal} onChange={e => actualizar("calle_principal", e.target.value)} /></div>
+                <div>
+                  <label style={labelStyle}>Calle Principal *</label>
+                  <input style={errorStyle("calle_principal")} value={form.calle_principal} onChange={e => { actualizar("calle_principal", e.target.value); clearFieldError("calle_principal"); }} />
+                  <span style={errorTextStyle("calle_principal")}>{fieldErrors.calle_principal}</span>
+                </div>
                 <div><label style={labelStyle}>Calle Secundaria</label><input style={fieldStyle} value={form.calle_secundaria} onChange={e => actualizar("calle_secundaria", e.target.value)} /></div>
               </div>
               <div style={inputRow}>
-                <div><label style={labelStyle}>N° Casa / Lote *</label><input style={fieldStyle} value={form.numero_casa} onChange={e => actualizar("numero_casa", e.target.value)} /></div>
+                <div>
+                  <label style={labelStyle}>N° Casa / Lote *</label>
+                  <input style={errorStyle("numero_casa")} value={form.numero_casa} onChange={e => { actualizar("numero_casa", e.target.value); clearFieldError("numero_casa"); }} />
+                  <span style={errorTextStyle("numero_casa")}>{fieldErrors.numero_casa}</span>
+                </div>
                 <div><label style={labelStyle}>Referencia</label><input style={fieldStyle} value={form.referencia} onChange={e => actualizar("referencia", e.target.value)} /></div>
               </div>
             </div>
@@ -295,12 +367,28 @@ export default function FormularioLegalizar({ matriculaId, onClose, onLegalizado
                 Cuenta de Acceso <span style={{ fontWeight: 400, fontSize: "13px", color: "var(--on-surface-variant)" }}>(Rol: Estudiante)</span>
               </h3>
               <div style={inputRow}>
-                <div><label style={labelStyle}>Nombre de Usuario *</label><input style={fieldStyle} value={form.nombre_usuario} onChange={e => actualizar("nombre_usuario", e.target.value)} placeholder="Se auto-genera desde la cédula" /></div>
-                <div><label style={labelStyle}>Correo Institucional *</label><input type="email" style={fieldStyle} value={form.correo_institucional} onChange={e => actualizar("correo_institucional", e.target.value)} placeholder="Se auto-genera" /></div>
+                <div>
+                  <label style={labelStyle}>Nombre de Usuario *</label>
+                  <input style={errorStyle("nombre_usuario")} value={form.nombre_usuario} onChange={e => { actualizar("nombre_usuario", e.target.value); clearFieldError("nombre_usuario"); }} placeholder="Se auto-genera desde la cédula" />
+                  <span style={errorTextStyle("nombre_usuario")}>{fieldErrors.nombre_usuario}</span>
+                </div>
+                <div>
+                  <label style={labelStyle}>Correo Institucional *</label>
+                  <input type="email" style={errorStyle("correo_institucional")} value={form.correo_institucional} onChange={e => { actualizar("correo_institucional", e.target.value); clearFieldError("correo_institucional"); }} placeholder="Se auto-genera" />
+                  <span style={errorTextStyle("correo_institucional")}>{fieldErrors.correo_institucional}</span>
+                </div>
               </div>
               <div style={inputRow}>
-                <div><label style={labelStyle}>Contraseña *</label><input type="password" style={fieldStyle} value={form.contrasena} onChange={e => actualizar("contrasena", e.target.value)} placeholder="Mín. 6 caracteres" /></div>
-                <div><label style={labelStyle}>Confirmar Contraseña *</label><input type="password" style={fieldStyle} value={form.contrasena_confirmar} onChange={e => actualizar("contrasena_confirmar", e.target.value)} /></div>
+                <div>
+                  <label style={labelStyle}>Contraseña *</label>
+                  <input type="password" style={errorStyle("contrasena")} value={form.contrasena} onChange={e => { actualizar("contrasena", e.target.value); clearFieldError("contrasena"); }} placeholder="Mín. 6 caracteres" />
+                  <span style={errorTextStyle("contrasena")}>{fieldErrors.contrasena}</span>
+                </div>
+                <div>
+                  <label style={labelStyle}>Confirmar Contraseña *</label>
+                  <input type="password" style={errorStyle("contrasena_confirmar")} value={form.contrasena_confirmar} onChange={e => { actualizar("contrasena_confirmar", e.target.value); clearFieldError("contrasena_confirmar"); }} />
+                  <span style={errorTextStyle("contrasena_confirmar")}>{fieldErrors.contrasena_confirmar}</span>
+                </div>
               </div>
               <p style={{ fontSize: "12px", color: "var(--on-surface-variant)", marginTop: "12px" }}>
                 La institución se asignará automáticamente según la secretaría que realiza el proceso.
@@ -313,9 +401,9 @@ export default function FormularioLegalizar({ matriculaId, onClose, onLegalizado
         <div style={{ display: "flex", justifyContent: "space-between", padding: "16px 24px", borderTop: "1px solid var(--outline-variant)", background: "var(--surface-container-low)" }}>
           <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: "8px", border: "1px solid var(--outline)", background: "white", cursor: "pointer" }}>Cancelar</button>
           <div style={{ display: "flex", gap: "12px" }}>
-            {step > 0 && <button onClick={() => { setStep(prev => prev - 1); setError(""); }} style={{ padding: "10px 20px", borderRadius: "8px", border: "1px solid var(--outline)", background: "white", cursor: "pointer" }}>Atrás</button>}
+            {step > 0 && <button onClick={() => { setStep(prev => prev - 1); setError(""); setFieldErrors({}); }} style={{ padding: "10px 20px", borderRadius: "8px", border: "1px solid var(--outline)", background: "white", cursor: "pointer" }}>Atrás</button>}
             {step < 2 ? (
-              <button onClick={() => { setError(""); if ((step === 0 && validarPaso0()) || (step === 1 && validarPaso1())) setStep(prev => prev + 1); }}
+              <button onClick={() => { setError(""); setFieldErrors({}); if ((step === 0 && validarPaso0()) || (step === 1 && validarPaso1())) setStep(prev => prev + 1); }}
                 style={{ padding: "10px 24px", borderRadius: "8px", border: "none", background: "var(--primary)", color: "white", fontWeight: "600", cursor: "pointer" }}>
                 Siguiente
               </button>
