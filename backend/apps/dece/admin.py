@@ -9,8 +9,8 @@ from .models import (
 
 @admin.register(AdaptacionCurricular)
 class AdaptacionCurricularAdmin(admin.ModelAdmin):
-    list_display = ('id', 'matricula_referencia', 'discapacidad_tipo', 'discapacidad_grado', 'necesidad_educativa', 'created_at')
-    search_fields = ('matricula_referencia', 'necesidad_educativa')
+    list_display = ('id', 'matricula', 'discapacidad_tipo', 'discapacidad_grado', 'necesidad_educativa', 'created_at')
+    search_fields = ('matricula__estado', 'necesidad_educativa')
     list_filter = ('discapacidad_tipo', 'discapacidad_grado', 'created_at')
 
 
@@ -23,6 +23,6 @@ class AdaptacionCurricularEvidenciaAdmin(admin.ModelAdmin):
 
 @admin.register(AdaptacionCurricularPlanificacion)
 class AdaptacionCurricularPlanificacionAdmin(admin.ModelAdmin):
-    list_display = ('id', 'adaptacion_curricular', 'estado', 'created_at')
-    search_fields = ('comentario', 'distributivo_asignatura_referencia')
+    list_display = ('id', 'adaptacion_curricular', 'distributivo_asignatura', 'estado', 'created_at')
+    search_fields = ('comentario', 'distributivo_asignatura__asignatura_ofertada__nombre')
     list_filter = ('estado', 'created_at')

@@ -13,6 +13,8 @@ class Institucion(models.Model):
     modalidad = models.CharField(max_length=2, choices=Modalidad.choices, verbose_name="Modalidad")
     jornada = models.CharField(max_length=3, choices=Jornada.choices, verbose_name="Jornada")
 
+    es_activo = models.BooleanField(default=True, verbose_name="¿Activo?")
+
     # ──► ASOCIACIÓN CON DIRECCIÓN
     direccion = models.OneToOneField(
         Direccion, 

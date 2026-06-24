@@ -6,4 +6,4 @@ class ParroquiaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Parroquia
-        fields = ['id', 'nombre', 'canton', 'canton_nombre']
+        fields = ['id', 'nombre', 'canton', 'canton_nombre', 'is_active']

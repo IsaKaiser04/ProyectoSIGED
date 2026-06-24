@@ -6,16 +6,14 @@
 from rest_framework import generics
 from apps.actoresAcademicos.models.administrativo import Administrador
 from ..serializers.administrativos_serializer import AdministradorSerializer
+from apps.actoresAcademicos.models.permissions import EsAdministradorGlobal
 
 class AdministradorListCreateView(generics.ListCreateAPIView):
-
-    queryset = Administrador.objects.select_related('cuenta', 'direccion_domicilio__parroquia__canton__provincia__pais').all()
-
+    permission_classes = [EsAdministradorGlobal]
+    queryset = Administrador.objects.select_related('cuenta').all()
     serializer_class = AdministradorSerializer
 
-
 class AdministradorDetailView(generics.RetrieveUpdateDestroyAPIView):
-
-    queryset = Administrador.objects.select_related('cuenta', 'direccion_domicilio__parroquia__canton__provincia__pais').all()
-
+    permission_classes = [EsAdministradorGlobal]
+    queryset = Administrador.objects.select_related('cuenta').all()
     serializer_class = AdministradorSerializer

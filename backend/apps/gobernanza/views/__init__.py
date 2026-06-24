@@ -1,6 +1,5 @@
-from .gobernanza_view import GobernanzaListCreateView, GobernanzaDetailView
+from .gobernanza_view import GobernanzaViewSet
 
 __all__ = [
-    'GobernanzaListCreateView',
-    'GobernanzaDetailView',
+    'GobernanzaViewSet',
 ]

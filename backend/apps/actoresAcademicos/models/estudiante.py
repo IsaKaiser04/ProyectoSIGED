@@ -8,7 +8,6 @@ from apps.institucion.models.institucion import Institucion
    Usuario y agrega un campo para la foto del 
    estudiante."""
 class Estudiante(Usuario):
-    #Atributos
     cuenta = models.OneToOneField(
         Cuenta, 
         on_delete=models.CASCADE, 
@@ -25,7 +24,8 @@ class Estudiante(Usuario):
 
     institucion = models.ForeignKey(Institucion,on_delete=models.PROTECT,related_name='estudiantes')
 
-    correo_institucional = models.EmailField(unique=True,blank=True,null=True)
+    direccion_domicilio = models.ForeignKey('ubicacion.Direccion',on_delete=models.SET_NULL,null=True,blank=True,related_name='estudiante_direccion',verbose_name="Dirección Domiciliaria")
+
 
     #Método para representar el objeto como una cadena
     def __str__(self):

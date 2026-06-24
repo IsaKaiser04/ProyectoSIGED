@@ -1,14 +1,23 @@
-from rest_framework import generics
+from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
-from ..models import PlanificacionCurricularHistorial
-from ..serializers import PlanificacionCurricularHistorialSerializer
-
-
-class PlanificacionCurricularHistorialListCreateView(generics.ListCreateAPIView):
-    queryset = PlanificacionCurricularHistorial.objects.select_related('planificacion_curricular').all()
-    serializer_class = PlanificacionCurricularHistorialSerializer
+from ..services import PlanificacionCurricularHistorialService
 
 
-class PlanificacionCurricularHistorialDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = PlanificacionCurricularHistorial.objects.select_related('planificacion_curricular').all()
-    serializer_class = PlanificacionCurricularHistorialSerializer
+class PlanificacionCurricularHistorialViewSet(viewsets.ViewSet):
+    def list(self, request):
+        return Response(PlanificacionCurricularHistorialService.list_all())
+
+    def retrieve(self, request, pk=None):
+        data = PlanificacionCurricularHistorialService.retrieve(pk)
+        if not data:
+            return Response({"error": "Registro no encontrado"}, status=404)
+        return Response(data)
+
+    @action(detail=False, methods=['get'])
+    def por_planificacion(self, request):
+        planificacion_id = request.query_params.get('planificacion_id')
+        return Response(
+            PlanificacionCurricularHistorialService.por_planificacion(planificacion_id)
+        )

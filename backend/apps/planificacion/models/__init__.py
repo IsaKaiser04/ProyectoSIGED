@@ -1,4 +1,4 @@
-from .enums import PeriodoTipo
+from .enums import PeriodoTipo, AnioLectivoEstado
 from .educacion import EducacionNivel, EducacionSubNivel
 from .plan_estudio import PlanEstudio, Grado, Asignatura
 from .anio_lectivo import AnioLectivo, PeriodoAcademico

@@ -1,32 +1,18 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 
-# Descomentar cuando el módulo InstitucionEducativa esté integrado
-# from apps.instituciones.models import InstitucionEducativa
-
 
 class JornadaHora(models.Model):
     nombre = models.CharField(max_length=100)
     hora_inicio = models.TimeField()
     hora_fin = models.TimeField()
-
-    # Referencia temporal mientras el módulo InstitucionEducativa
-    # aún no se encuentra integrado.
-    institucion_educativa_referencia = models.CharField(
-        max_length=150,
+    institucion = models.ForeignKey(
+        'institucion.Institucion',
+        on_delete=models.PROTECT,
+        related_name='jornadas_hora',
         null=True,
-        blank=True,
-        help_text='TODO: replace with FK to InstitucionEducativa when module exists.'
+        blank=True
     )
-
-    # Cuando se implemente la relación con InstitucionEducativa,
-    # se debe eliminar el campo `institucion_educativa_referencia`
-    # y descomentar el siguiente código:
-    # institucion_educativa = models.ForeignKey(
-    #     InstitucionEducativa,
-    #     on_delete=models.CASCADE
-    # )
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

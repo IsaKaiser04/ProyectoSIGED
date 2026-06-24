@@ -16,15 +16,44 @@ class AsignaturaOfertadaSerializer(serializers.ModelSerializer):
 
 class GradoOfertadoSerializer(serializers.ModelSerializer):
     asignaturasOfertadas = AsignaturaOfertadaSerializer(many=True, read_only=True)
+    grado_id = serializers.IntegerField(source='grado.id', read_only=True)
+    grado_nombre = serializers.CharField(source='grado.nombre', read_only=True)
 
     class Meta:
         model = GradoOfertado
-        fields = ['id', 'nombre', 'ofertaAcademica', 'grado', 'asignaturasOfertadas']
+        fields = ['id', 'nombre', 'ofertaAcademica', 'grado', 'grado_id', 'grado_nombre', 'asignaturasOfertadas']
         extra_kwargs = {
             'nombre': {'required': True, 'max_length': 100},
             'ofertaAcademica': {'required': True},
             'grado': {'required': True},
         }
+
+    def validate(self, attrs):
+        grado = attrs.get('grado')
+        if grado:
+            sum_periods = sum(a.periodoPedagogicoSemanaMinimo for a in grado.asignaturas.all())
+            min_semana = 0
+            if grado.educacionSubNivel and grado.educacionSubNivel.periodoPedagogicoSemanaMinimo:
+                min_semana = grado.educacionSubNivel.periodoPedagogicoSemanaMinimo
+            elif grado.educacionNivel and grado.educacionNivel.periodoPedagogicoSemanaMinimo:
+                min_semana = grado.educacionNivel.periodoPedagogicoSemanaMinimo
+
+            if sum_periods < min_semana:
+                raise serializers.ValidationError({
+                    "grado": f"El grado '{grado.nombre}' no cumple con el mínimo de periodos pedagógicos semanales establecido globalmente ({sum_periods} de {min_semana} requeridos)."
+                })
+
+        request = self.context.get('request')
+        auth = getattr(request, 'auth', None) if request else None
+        institucion_id = auth.get('institucion_id') if auth else None
+
+        if institucion_id and grado:
+            grado_institucion_id = grado.institucion_id or (grado.planEstudio.institucion_id if grado.planEstudio else None)
+            if grado_institucion_id and grado_institucion_id != institucion_id:
+                raise serializers.ValidationError({
+                    "grado": "El grado seleccionado no pertenece a su institución."
+                })
+        return attrs
 
 
 class OfertaAcademicaSerializer(serializers.ModelSerializer):

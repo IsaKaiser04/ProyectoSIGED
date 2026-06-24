@@ -16,7 +16,7 @@ class PeriodoAcademicoSerializer(serializers.ModelSerializer):
             'fechaInicio': {'required': True},
             'fechaFin': {'required': True},
             'periodoTipo': {'required': True},
-            'anioLectivo': {'required': True},
+            'anioLectivo': {'required': False},
         }
 
     def validate(self, data):
@@ -29,16 +29,16 @@ class PeriodoAcademicoSerializer(serializers.ModelSerializer):
 
 
 class AnioLectivoSerializer(serializers.ModelSerializer):
-    periodosAcademicos = PeriodoAcademicoSerializer(many=True, read_only=True)
+    periodosAcademicos = PeriodoAcademicoSerializer(many=True, required=False)
 
     class Meta:
         model = AnioLectivo
-        fields = ['id', 'nombre', 'fechaInicio', 'fechaFin', 'esActivo', 'periodosAcademicos']
+        fields = ['id', 'nombre', 'fechaInicio', 'fechaFin', 'estado', 'periodosAcademicos']
         extra_kwargs = {
             'nombre': {'required': True, 'max_length': 50},
             'fechaInicio': {'required': True},
             'fechaFin': {'required': True},
-            'esActivo': {'default': True},
+            'estado': {'required': False},
         }
 
     def validate(self, data):
@@ -48,8 +48,3 @@ class AnioLectivoSerializer(serializers.ModelSerializer):
                     {'fechaFin': 'La fecha de fin debe ser posterior a la fecha de inicio.'}
                 )
         return data
-
-    def create(self, validated_data):
-        with transaction.atomic():
-            anio = AnioLectivo.objects.create(**validated_data)
-        return anio

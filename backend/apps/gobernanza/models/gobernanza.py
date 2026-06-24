@@ -1,47 +1,38 @@
 from django.db import models
 from .enums import GobernanzaTipo
+from apps.institucion.models.institucion import Institucion
 
 
 class Gobernanza(models.Model):
-   
-    # Archivo digital del documento (PDF, Word, etc.)
+
     archivo = models.FileField(upload_to='gobernanza/documentos/')
     vigenteDesde = models.DateTimeField()
     vigenteHasta = models.DateTimeField()
-    
+    es_activo = models.BooleanField(default=True)
+
     gobernanzaTipo = models.CharField(
         max_length=50,
         choices=GobernanzaTipo.choices
     )
 
-    # Institución a la que pertenece el documento
-    # Relación: Institucion (1) ---- (1..n) Gobernanza
-    # COMENTADO: Pertenece al módulo Actores Académicos, no implementado aún
-    """
     institucion = models.ForeignKey(
-        'actoresAcademicos.Institucion',
+        Institucion,
         on_delete=models.CASCADE,
-        related_name='gobernanzas'
+        related_name='gobernanzas',
+        verbose_name='Institución'
     )
-    """
 
-    # Año lectivo al que aplica el documento
-    # Relación: Gobernanza (1..3) ---- (1) AnioLectivo
-    # COMENTADO: Pertenece al módulo Planificación, no implementado aún
-    # Nota: El diagrama indica multiplicidad 1..3 del lado de Gobernanza,
-    # lo que significa que un documento puede aplicar a máximo 3 años lectivos.
-    # En Django esto se manejaría con ManyToManyField o ForeignKey según diseño.
-    """
     anioLectivo = models.ForeignKey(
         'planificacion.AnioLectivo',
         on_delete=models.CASCADE,
-        related_name='gobernanzas'
+        related_name='gobernanzas',
+        verbose_name='Año Lectivo'
     )
-    """
-
-    def __str__(self):
-        return f"{self.get_gobernanzaTipo_display()} - {self.vigenteDesde.year}"
 
     class Meta:
         verbose_name = 'Gobernanza'
         verbose_name_plural = 'Gobernanza'
+        unique_together = ('institucion', 'anioLectivo', 'gobernanzaTipo')
+
+    def __str__(self):
+        return f"{self.get_gobernanzaTipo_display()} - {self.institucion.nombre} - {self.anioLectivo.nombre}"

@@ -1,7 +1,15 @@
 from django.db import models
 from .enums import RolTipo
-
+from django.contrib.auth.hashers import make_password
 class Cuenta(models.Model):
+
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
 
     nombre_usuario = models.CharField(
         max_length=50, 

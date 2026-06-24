@@ -1,14 +1,18 @@
 from django.db import models
-from .enums import PeriodoTipo
+from .enums import PeriodoTipo, AnioLectivoEstado
 
 
 class AnioLectivo(models.Model):
     nombre = models.CharField(max_length=50)
     fechaInicio = models.DateField()
     fechaFin = models.DateField()
-    esActivo = models.BooleanField(default=True)
+    estado = models.CharField(
+        max_length=20,
+        choices=AnioLectivoEstado.choices,
+        default=AnioLectivoEstado.BORRADOR
+    )
 
-    # institucion = models.ForeignKey('actoresAcademicos.Institucion', on_delete=models.CASCADE, related_name='anios_lectivos')
+    institucion = models.ForeignKey('institucion.Institucion', on_delete=models.CASCADE, related_name='anios_lectivos', null=True, blank=True)
 
     def __str__(self):
         return self.nombre

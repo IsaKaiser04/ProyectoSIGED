@@ -12,22 +12,22 @@ from .models import (
 
 @admin.register(Distributivo)
 class DistributivoAdmin(admin.ModelAdmin):
-    list_display = ('id', 'docente_referencia', 'anio_lectivo_referencia', 'created_at')
-    search_fields = ('docente_referencia', 'anio_lectivo_referencia')
+    list_display = ('id', 'docente', 'anio_lectivo', 'created_at')
+    search_fields = ('docente__nombres', 'docente__apellidos', 'anio_lectivo__nombre')
     list_filter = ('created_at',)
 
 
 @admin.register(DistributivoAsignatura)
 class DistributivoAsignaturaAdmin(admin.ModelAdmin):
-    list_display = ('id', 'distributivo', 'asignatura_ofertada_referencia', 'created_at')
-    search_fields = ('asignatura_ofertada_referencia',)
+    list_display = ('id', 'distributivo', 'asignatura_ofertada', 'created_at')
+    search_fields = ('asignatura_ofertada__nombre',)
     list_filter = ('created_at',)
 
 
 @admin.register(JornadaHora)
 class JornadaHoraAdmin(admin.ModelAdmin):
-    list_display = ('id', 'nombre', 'hora_inicio', 'hora_fin', 'institucion_educativa_referencia')
-    search_fields = ('nombre', 'institucion_educativa_referencia')
+    list_display = ('id', 'nombre', 'hora_inicio', 'hora_fin', 'institucion')
+    search_fields = ('nombre', 'institucion__nombre')
 
 
 @admin.register(PlanificacionCurricular)

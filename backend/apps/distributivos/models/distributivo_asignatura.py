@@ -1,31 +1,30 @@
 from django.db import models
-
+from django.core.exceptions import ValidationError
 from .distributivo import Distributivo
 
-# Descomentar cuando el módulo AsignaturaOfertada esté integrado
-# from apps.asignaturas.models import AsignaturaOfertada
 
 class DistributivoAsignatura(models.Model):
     distributivo = models.ForeignKey(
         Distributivo,
         on_delete=models.CASCADE,
-        related_name='asignaturas'
+        related_name='asignaturas',
+        null=True,
+        blank=True
     )
-
-    # Referencia temporal mientras el módulo AsignaturaOfertada
-    # aún no se encuentra integrado.
-    asignatura_ofertada_referencia = models.CharField(
-        max_length=150,
-        help_text='TODO: replace with FK to AsignaturaOfertada when module exists.'
+    asignatura_ofertada = models.ForeignKey(
+        'planificacion.AsignaturaOfertada',
+        on_delete=models.PROTECT,
+        related_name='distributivos_asignaturas',
+        null=True,
+        blank=True
     )
-    # Cuando se implemente la relación con AsignaturaOfertada,
-    # se debe eliminar el campo asignatura_ofertada_referencia
-    # y descomentar el siguiente código:
-    # asignatura_ofertada = models.ForeignKey(
-    #     AsignaturaOfertada,
-    #     on_delete=models.CASCADE
-    # )
-
+    paralelo = models.ForeignKey(
+        'planificacion.Paralelo',
+        on_delete=models.PROTECT,
+        related_name='distributivos_asignatura',
+        null=True,
+        blank=True
+    )
     observacion = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -34,6 +33,22 @@ class DistributivoAsignatura(models.Model):
         ordering = ['-created_at']
         verbose_name = 'Distributivo Asignatura'
         verbose_name_plural = 'Distributivos Asignatura'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['distributivo', 'asignatura_ofertada', 'paralelo'],
+                name='unique_distributivo_asignatura_paralelo'
+            )
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.asignatura_ofertada and self.paralelo:
+            if self.asignatura_ofertada.gradoOfertado_id != self.paralelo.gradoOfertado_id:
+                raise ValidationError({
+                    'paralelo': 'El grado ofertado del paralelo debe coincidir con el de la asignatura ofertada.'
+                })
 
     def __str__(self):
-        return f'{self.distributivo_id} - {self.asignatura_ofertada_referencia}'
+        paralelo_nombre = f" ({self.paralelo.nombre})" if self.paralelo else ""
+        return f'{self.distributivo} - {self.asignatura_ofertada}{paralelo_nombre}'
+

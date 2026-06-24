@@ -6,7 +6,10 @@ from apps.actoresAcademicos.views.autoridad_view import AutoridadListCreateView,
 from apps.actoresAcademicos.views.secretaria_view import SecretariaListCreateView, SecretariaDetailView
 from apps.actoresAcademicos.views.dece_view import DeceListCreateView, DeceDetailView
 from apps.actoresAcademicos.views.cuenta_view import CuentaListAPIView,CuentaDetailUpdateDestroyAPIView
-
+from apps.actoresAcademicos.views.autenticacion_view import LoginAPIView
+from apps.actoresAcademicos.views.usuario_actual_view import UsuarioActualView
+from apps.actoresAcademicos.views.usuario_registro_view import UsuarioRegistroAdminView
+from apps.actoresAcademicos.views.primer_admin_view import PrimerAdminView
 urlpatterns = [
     # ... tus rutas anteriores de estudiantes, docentes, etc. ...
 
@@ -37,4 +40,12 @@ urlpatterns = [
     # DECE
     path('deces/', DeceListCreateView.as_view(), name='dece-list-create'),
     path('deces/<int:pk>/', DeceDetailView.as_view(), name='dece-detail'),
+
+    # Primer administrador (setup inicial)
+    path('primer-admin/', PrimerAdminView.as_view(), name='primer-admin'),
+
+    # Autenticacion
+    path('login/', LoginAPIView.as_view(), name='login'),
+    path('yo/', UsuarioActualView.as_view(), name='usuario-actual'),
+    path('usuarios/', UsuarioRegistroAdminView.as_view(), name='usuario-registro-admin'),
 ]

@@ -1,11 +1,12 @@
-from django.urls import path
-from .views import (
-    GobernanzaListCreateView,
-    GobernanzaDetailView,
-)
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import GobernanzaViewSet
+
+router = DefaultRouter()
+router.register(r'gobernanzas', GobernanzaViewSet, basename='gobernanza')
+
+app_name = 'gobernanza'
 
 urlpatterns = [
-    path('gobernanzas/', GobernanzaListCreateView.as_view(), name='gobernanza-list-create'),
-    path('gobernanzas/<int:pk>/', GobernanzaDetailView.as_view(), name='gobernanza-detail'),
-    
+    path('', include(router.urls)),
 ]

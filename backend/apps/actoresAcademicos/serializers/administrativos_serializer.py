@@ -4,6 +4,7 @@ from apps.actoresAcademicos.models.cuenta import Cuenta
 from apps.institucion.models.institucion import Institucion
 from apps.ubicacion.serializers.direccion_serializer import DireccionSerializer
 from apps.actoresAcademicos.serializers.cuenta_serializer import CuentaSerializer
+from django.db import transaction
 from rest_framework import serializers
 
 
@@ -19,8 +20,16 @@ class AutoridadSerializer(UsuarioSerializer):
         fields = "__all__"
 
     def create(self, validated_data):
-        return self.registrar_usuario_transaccional(Autoridad, validated_data)
+        validated_data["cuenta"]["rol"] = "AUTORIDAD"
+        return self.registrar_usuario_transaccional(
+            Autoridad,
+            validated_data
+        )
 
+    def update(self, instance, validated_data):
+        if "cuenta" in validated_data and validated_data["cuenta"]:
+            validated_data["cuenta"]["rol"] = "AUTORIDAD"
+        return self.actualizar_usuario_transaccional(instance, validated_data)
 
 class SecretariaSerializer(UsuarioSerializer):
     direccion_domicilio = DireccionSerializer(required=False, allow_null=True)
@@ -32,8 +41,13 @@ class SecretariaSerializer(UsuarioSerializer):
         fields = "__all__"
 
     def create(self, validated_data):
+        validated_data["cuenta"]["rol"] = "SECRETARIA"
         return self.registrar_usuario_transaccional(Secretaria, validated_data)
 
+    def update(self, instance, validated_data):
+        if "cuenta" in validated_data and validated_data["cuenta"]:
+            validated_data["cuenta"]["rol"] = "SECRETARIA"
+        return self.actualizar_usuario_transaccional(instance, validated_data)
 
 class DeceSerializer(UsuarioSerializer):
     direccion_domicilio = DireccionSerializer(required=False, allow_null=True)
@@ -45,11 +59,15 @@ class DeceSerializer(UsuarioSerializer):
         fields = "__all__"
 
     def create(self, validated_data):
+        validated_data["cuenta"]["rol"] = "DECE"
         return self.registrar_usuario_transaccional(Dece, validated_data)
 
+    def update(self, instance, validated_data):
+        if "cuenta" in validated_data and validated_data["cuenta"]:
+            validated_data["cuenta"]["rol"] = "DECE"
+        return self.actualizar_usuario_transaccional(instance, validated_data)
 
 class AdministradorSerializer(UsuarioSerializer):
-    direccion_domicilio = DireccionSerializer(required=False, allow_null=True)
     cuenta = CuentaSerializer()
 
     class Meta:
@@ -57,4 +75,22 @@ class AdministradorSerializer(UsuarioSerializer):
         fields = "__all__"
 
     def create(self, validated_data):
-        return self.registrar_usuario_transaccional(Administrador, validated_data)
+        cuenta_data = validated_data.pop("cuenta", None)
+        cuenta_data["rol"] = "ADMINISTRADOR"
+        with transaction.atomic():
+            cuenta = self.crear_cuenta(cuenta_data)
+            return Administrador.objects.create(cuenta=cuenta, **validated_data)
+
+    def update(self, instance, validated_data):
+        cuenta_data = validated_data.pop("cuenta", None)
+        with transaction.atomic():
+            if cuenta_data and instance.cuenta:
+                cuenta_serializer = CuentaSerializer(
+                    instance.cuenta, data=cuenta_data, partial=True
+                )
+                cuenta_serializer.is_valid(raise_exception=True)
+                cuenta_serializer.save()
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            instance.save()
+            return instance

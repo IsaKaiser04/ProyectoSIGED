@@ -9,4 +9,4 @@ class CantonSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Canton
-        fields = ['id', 'nombre', 'provincia', 'pais_detalle', 'provincia_detalle']
+        fields = ['id', 'nombre', 'provincia', 'pais_detalle', 'provincia_detalle', 'is_active']

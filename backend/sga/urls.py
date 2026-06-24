@@ -40,7 +40,9 @@ urlpatterns = [
     path('api/actoresAcademicos/',include('apps.actoresAcademicos.urls')),
     path('api/ubicacion/', include('apps.ubicacion.urls')),
     path('api/institucion/', include('apps.institucion.urls')), 
+    path('api/asistencia/', include('apps.asistencia.urls')),
     path('api/gobernanza/', include('apps.gobernanza.urls')),
+    path('api/matricula/', include('apps.matricula.urls')),
 
 ]
 

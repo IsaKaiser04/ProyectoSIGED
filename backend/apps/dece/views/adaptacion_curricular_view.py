@@ -5,10 +5,10 @@ from ..serializers import AdaptacionCurricularSerializer
 
 
 class AdaptacionCurricularListCreateView(generics.ListCreateAPIView):
-    queryset = AdaptacionCurricular.objects.all()
+    queryset = AdaptacionCurricular.objects.select_related('matricula').all()
     serializer_class = AdaptacionCurricularSerializer
 
 
 class AdaptacionCurricularDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = AdaptacionCurricular.objects.all()
+    queryset = AdaptacionCurricular.objects.select_related('matricula').all()
     serializer_class = AdaptacionCurricularSerializer

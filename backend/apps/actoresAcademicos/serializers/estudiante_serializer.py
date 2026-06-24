@@ -9,7 +9,7 @@ from apps.actoresAcademicos.serializers.cuenta_serializer import CuentaSerialize
 class EstudianteSerializer(UsuarioSerializer, serializers.ModelSerializer):
     # Aquí mapeamos los sub-objetos del JSON
     direccion_domicilio = DireccionSerializer(required=False, allow_null=True)
-    cuenta = CuentaSerializer()
+    cuenta = CuentaSerializer(required=False, allow_null=True)
     #institucion = serializers.PrimaryKeyRelatedField(queryset=Institucion.objects.all())
    
     # 💡 AJUSTE CLAVE: required=False le dice a DRF que no exija este campo en el JSON de entrada.
@@ -25,4 +25,11 @@ class EstudianteSerializer(UsuarioSerializer, serializers.ModelSerializer):
         fields = "__all__"
     
     def create(self, validated_data):
+        if "cuenta" in validated_data and validated_data["cuenta"]:
+            validated_data["cuenta"]["rol"] = "ESTUDIANTE"
         return self.registrar_usuario_transaccional(Estudiante, validated_data)
+
+    def update(self, instance, validated_data):
+        if "cuenta" in validated_data and validated_data["cuenta"]:
+            validated_data["cuenta"]["rol"] = "ESTUDIANTE"
+        return self.actualizar_usuario_transaccional(instance, validated_data)
