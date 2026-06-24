@@ -3,8 +3,9 @@
 // Este layout es para el rol del DECE y se enfoca en mostrar el panel de navegación 
 // lateral con las opciones críticas de soporte estudiantil y adaptaciones con el ecosistema "Professional Trust".
 
-import React from "react";
+import React, { useState } from "react";
 import { NAVIGATION_DECE } from "../config/navigationDece";
+import { UserMenu } from "../components/UserMenu";
 
 interface DeceLayoutProps {
   currentView: string;
@@ -17,8 +18,18 @@ export const DeceLayout: React.FC<DeceLayoutProps> = ({
   onNavigate,
   children,
 }) => {
+  const [collapsed, setCollapsed] = useState(() => {
+    return localStorage.getItem("sidebar_collapsed") === "true";
+  });
+
+  const toggleSidebar = () => {
+    const newState = !collapsed;
+    setCollapsed(newState);
+    localStorage.setItem("sidebar_collapsed", String(newState));
+  };
+
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${collapsed ? "sidebar-collapsed" : ""}`}>
 
       {/* SIDEBAR - Estilo Midnight Navy Clínico / Institucional */}
       <aside className="sidebar">
@@ -57,34 +68,20 @@ export const DeceLayout: React.FC<DeceLayoutProps> = ({
       <div className="content-layout">
         
         {/* TOPBAR - Cabecera Superior de Bienestar */}
-        <header className="topbar">
-          <span className="topbar-title">Soporte del Bienestar Estudiantil / Diagnósticos</span>
-          
-          <div className="topbar-user">
-            <div className="topbar-info">
-              <div className="topbar-name">Luis Maques</div>
-              <div className="topbar-role">Especialista DECE</div>
-            </div>
-            
-            {/* Avatar Cuadrado Estilizado Coherente */}
-            <div 
-              style={{ 
-                width: "40px", 
-                height: "40px", 
-                borderRadius: "8px", 
-                background: "var(--background)", 
-                color: "var(--primary)", 
-                display: "flex", 
-                alignItems: "center", 
-                justifyContent: "center", 
-                fontWeight: 700,
-                fontSize: "14px",
-                border: "1px solid var(--outline-variant)"
-              }}
-            >
-              DC
-            </div>
-          </div>
+        <header className="topbar" style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+          <button 
+            onClick={toggleSidebar} 
+            className="btn-toggle-sidebar" 
+            style={{ 
+              background: "transparent", border: "none", fontSize: "20px", 
+              cursor: "pointer", marginRight: "16px", color: "var(--on-surface)",
+              display: "flex", alignItems: "center" 
+            }}
+          >
+            ☰
+          </button>
+          <div style={{ flex: 1 }}></div>
+          <UserMenu />
         </header>
 
         {/* ÁREA CENTRAL DE GESTIÓN (Fichas de Seguimiento, Casos de Alumnos, Bitácoras) */}

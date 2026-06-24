@@ -6,6 +6,8 @@ import { DocenteLayout } from "../layouts/DocenteLayout";
 // Importa tus futuros dashboards e interfaces del EVA conforme los desarrolles:
 // import { EvaDashboard } from '../features/eva/components/EvaDashboard';
 // import { NotasRegistroPanel } from '../features/evaluacion/components/NotasRegistroPanel';
+import { VinculacionCurricularPage } from "../features/vinculacion-curricular";
+import { AsistenciaPage } from "../features/asistencia";
 // ──────────────────────────────────────────────────────────────────────────
 
 const InicioDocente = () => (
@@ -51,11 +53,15 @@ export function DocenteApp() {
       case "registro-notas":
         return <EnDesarrollo titulo="Cuadro de Calificaciones y Promedios Parciales/Finales" />;
       case "control-asistencia":
-        return <EnDesarrollo titulo="Control de Asistencia Semanal y Reporte de Incidencias" />;
+        return <AsistenciaPage />;
 
       // Planificación (Lectura)
       case "pca-horarios":
         return <EnDesarrollo titulo="Consulta de Planificación Curricular Anual (PCA) y Carga Horaria" />;
+
+      // Vinculación Curricular — Subida de PCA
+      case "vinculacion-curricular":
+        return <VinculacionCurricularPage />;
 
       // Comunicación
       case "buzon-notificaciones":

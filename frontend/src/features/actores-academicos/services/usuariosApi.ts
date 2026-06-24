@@ -1,13 +1,15 @@
 import {
   apiGet,
-  apiPost
+  apiPost,
+  apiPatch
 } from "../../../services/apiClient";
 
 import type {
   Autoridad,
   Secretaria,
   Dece,
-  Administrador
+  Administrador,
+  Docente
 } from "../../../types/entities/actoresAcademicos";
 
 /* ===========================
@@ -35,6 +37,12 @@ export async function obtenerDece() {
 export async function obtenerAdministradores() {
   return apiGet<Administrador[]>(
     "/actoresAcademicos/administradores/"
+  );
+}
+
+export async function obtenerDocentes() {
+  return apiGet<Docente[]>(
+    "/actoresAcademicos/docentes/"
   );
 }
 
@@ -72,9 +80,53 @@ export async function crearUsuario(
         data
       );
 
+    case "DOCENTE":
+      return apiPost(
+        "/actoresAcademicos/docentes/",
+        data
+      );
+
     default:
       throw new Error(
         "Rol no válido"
       );
   }
+}
+
+/* ===========================
+   ACTUALIZACIÓN
+=========================== */
+
+export async function actualizarUsuario(
+  rol: string,
+  id: number,
+  data: any
+) {
+  const endpoint = rolToEndpoint(rol);
+  return apiPatch(
+    `/actoresAcademicos/${endpoint}/${id}/`,
+    data
+  );
+}
+
+function rolToEndpoint(rol: string): string {
+  switch (rol) {
+    case "AUTORIDAD": return "autoridades";
+    case "SECRETARIA": return "secretarias";
+    case "DECE": return "deces";
+    case "ADMINISTRADOR": return "administradores";
+    case "DOCENTE": return "docentes";
+    default: throw new Error("Rol no válido");
+  }
+}
+
+/* ===========================
+   ACTIVAR / DESACTIVAR CUENTA
+=========================== */
+
+export async function toggleActivoCuenta(cuentaId: number, esActivo: boolean) {
+  return apiPatch(
+    `/actoresAcademicos/cuentas/${cuentaId}/`,
+    { es_activo: esActivo }
+  );
 }

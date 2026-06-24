@@ -3,8 +3,9 @@
 // Layout simplificado para el rol de Estudiante. Enfocado en la visualización
 // fluida de contenidos y el acceso directo a sus aulas virtuales con la identidad "Professional Trust".
 
-import React from "react";
+import React, { useState } from "react";
 import { NAVIGATION_ESTUDIANTE } from "../config/navigationEstudiante";
+import { UserMenu } from "../components/UserMenu";
 
 interface EstudianteLayoutProps {
   currentView: string;
@@ -17,8 +18,18 @@ export const EstudianteLayout: React.FC<EstudianteLayoutProps> = ({
   onNavigate,
   children,
 }) => {
+  const [collapsed, setCollapsed] = useState(() => {
+    return localStorage.getItem("sidebar_collapsed") === "true";
+  });
+
+  const toggleSidebar = () => {
+    const newState = !collapsed;
+    setCollapsed(newState);
+    localStorage.setItem("sidebar_collapsed", String(newState));
+  };
+
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${collapsed ? "sidebar-collapsed" : ""}`}>
 
       {/* SIDEBAR - Estilo Midnight Navy Unificado */}
       <aside className="sidebar">
@@ -57,34 +68,20 @@ export const EstudianteLayout: React.FC<EstudianteLayoutProps> = ({
       <div className="content-layout">
         
         {/* TOPBAR - Cabecera Superior de Seguimiento */}
-        <header className="topbar">
-          <span className="topbar-title">Seguimiento Académico y Aprendizaje</span>
-          
-          <div className="topbar-user">
-            <div className="topbar-info">
-              <div className="topbar-name">Luis Maques</div>
-              <div className="topbar-role">Consulta Regular</div>
-            </div>
-            
-            {/* Avatar Cuadrado Estilizado Coherente */}
-            <div 
-              style={{ 
-                width: "40px", 
-                height: "40px", 
-                borderRadius: "8px", 
-                background: "var(--background)", 
-                color: "var(--primary)", 
-                display: "flex", 
-                alignItems: "center", 
-                justifyContent: "center", 
-                fontWeight: 700,
-                fontSize: "14px",
-                border: "1px solid var(--outline-variant)"
-              }}
-            >
-              LM
-            </div>
-          </div>
+        <header className="topbar" style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+          <button 
+            onClick={toggleSidebar} 
+            className="btn-toggle-sidebar" 
+            style={{ 
+              background: "transparent", border: "none", fontSize: "20px", 
+              cursor: "pointer", marginRight: "16px", color: "var(--on-surface)",
+              display: "flex", alignItems: "center" 
+            }}
+          >
+            ☰
+          </button>
+          <div style={{ flex: 1 }}></div>
+          <UserMenu />
         </header>
 
         {/* CONTENEDOR CENTRAL DE PÁGINAS (Notas, Aulas, Reportes, etc.) */}

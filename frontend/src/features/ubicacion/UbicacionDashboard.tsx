@@ -4,12 +4,19 @@ import { PanelFiltros } from './components/PanelFiltros';
 import { TabCanton } from './components/TabCanton';
 import { TabProvincia } from './components/TabProvincia';
 import { TabPais } from './components/TabPais';
-import { TabParroquia } from './components/TabParroquia'; // 1. Importamos la pestaña real
+import { TabParroquia } from './components/TabParroquia';
+import { FormularioPais } from './components/FormularioPais';
+import { FormularioProvincia } from './components/FormularioProvincia';
+import { FormularioCanton } from './components/FormularioCanton';
+import { FormularioParroquia } from './components/FormularioParroquia';
+import { Pagination } from '../../components/Pagination';
 
 export const UbicacionDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'pais' | 'provincia' | 'canton' | 'parroquia'>('pais');
+  const [showForm, setShowForm] = useState(false);
+  const [page, setPage] = useState(1);
+  const rowsPerPage = 10;
 
-  // 2. Añadimos cantonesFiltradosForm y parroquiaForm que extraemos del hook actualizado
   const {
     paises,
     provincias,
@@ -17,13 +24,21 @@ export const UbicacionDashboard: React.FC = () => {
     parroquias,
     provinciasFiltradasFiltro,
     provinciasFiltradasForm,
-    cantonesFiltradosForm, // <-- Agregado para la cascada del formulario
+    cantonesFiltradosForm,
     paisForm,
     provinciaForm,
     cantonForm,
-    parroquiaForm,          // <-- Agregado para controlar el submit y los inputs
+    parroquiaForm,
     filtros,
+    refresh,
   } = useUbicacion(activeTab);
+
+  const dataAtual = activeTab === 'pais' ? paises : activeTab === 'provincia' ? provincias : activeTab === 'canton' ? cantones : (parroquias || []);
+  const totalPages = Math.ceil(dataAtual.length / rowsPerPage) || 1;
+  const startIndex = (page - 1) * rowsPerPage;
+  const dataPaginated = dataAtual.slice(startIndex, startIndex + rowsPerPage);
+
+  React.useEffect(() => { setPage(1); }, [activeTab]);
 
   const tabLabel: Record<string, string> = {
     pais: 'Catálogo de Países',
@@ -32,17 +47,45 @@ export const UbicacionDashboard: React.FC = () => {
     parroquia: 'Catálogo de Parroquias',
   };
 
+  const btnLabel: Record<string, string> = {
+    pais: '+ Nuevo País',
+    provincia: '+ Nueva Provincia',
+    canton: '+ Nuevo Cantón',
+    parroquia: '+ Nueva Parroquia',
+  };
+
+  const handleSaveSuccess = () => {
+    setShowForm(false);
+    refresh();
+  };
+
+  const modalOverlay: React.CSSProperties = {
+    position: 'fixed', inset: '0', background: 'rgba(0,0,0,0.4)',
+    display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999,
+  };
+  const modalContent: React.CSSProperties = {
+    width: '90%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto',
+    background: 'white', borderRadius: '10px',
+  };
+
+  const renderForm = () => {
+    const props = { onSaveSuccess: handleSaveSuccess, onCancel: () => setShowForm(false), paises };
+    switch (activeTab) {
+      case 'pais': return <FormularioPais {...props} />;
+      case 'provincia': return <FormularioProvincia {...props} />;
+      case 'canton': return <FormularioCanton {...props} />;
+      case 'parroquia': return <FormularioParroquia {...props} />;
+    }
+  };
+
   return (
     <div className="dashboard-content" style={{ padding: '0 24px 24px 24px', width: '100%', boxSizing: 'border-box' }}>
-
-      {/* Encabezado */}
       <div className="content-heading" style={{ padding: '8px 0', marginBottom: '12px' }}>
         <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: 'var(--primary)', letterSpacing: '-0.3px' }}>
           {tabLabel[activeTab]}
         </h2>
       </div>
 
-      {/* Tabs de navegación */}
       <div style={{
         display: 'flex', borderBottom: '1px solid var(--outline-variant)',
         background: 'var(--surface-container-lowest)', borderRadius: '8px', marginBottom: '20px',
@@ -65,50 +108,48 @@ export const UbicacionDashboard: React.FC = () => {
         ))}
       </div>
 
-      {/* Grid principal: filtros (izquierda) + contenido (derecha) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', alignItems: 'start' }}>
-
-      {/* COLUMNA IZQUIERDA — Panel de filtros */}
-      <PanelFiltros
-        activeTab={activeTab}
-        paises={paises}
-        provinciasFiltradasFiltro={provinciasFiltradasFiltro}
-        cantonesFiltradosFiltro={cantonesFiltradosForm} // <-- Le pasamos también la cascada de cantones calculada en el hook
-        filtros={filtros}
-      />
-        {/* COLUMNA DERECHA — Formulario + Tabla del tab activo */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0 }}>
-
-          {activeTab === 'pais' && (
-            <TabPais paises={paises} paisForm={paisForm} />
-          )}
-
-          {activeTab === 'provincia' && (
-            <TabProvincia paises={paises} provincias={provincias} provinciaForm={provinciaForm} />
-          )}
-
-          {activeTab === 'canton' && (
-            <TabCanton
-              paises={paises}
-              provinciasFiltradasForm={provinciasFiltradasForm}
-              cantones={cantones}
-              cantonForm={cantonForm}
-            />
-          )}
-
-          {/* 3. Reemplazamos el recuadro estático por el componente real de Parroquia */}
-          {activeTab === 'parroquia' && (
-            <TabParroquia
-              paises={paises}
-              provinciasFiltradasForm={provinciasFiltradasForm}
-              cantonesFiltradosForm={cantonesFiltradosForm || []}
-              parroquias={parroquias || []}
-              parroquiaForm={parroquiaForm}
-            />
-          )}
-
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            onClick={() => setShowForm(true)}
+            style={{ background: 'var(--secondary)', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}
+          >
+            {btnLabel[activeTab]}
+          </button>
         </div>
+
+        <PanelFiltros
+          activeTab={activeTab}
+          paises={paises}
+          provinciasFiltradasFiltro={provinciasFiltradasFiltro}
+          cantonesFiltradosFiltro={cantonesFiltradosForm}
+          filtros={filtros}
+        />
+
+        {activeTab === 'pais' && <TabPais paises={dataPaginated} paisForm={paisForm} />}
+        {activeTab === 'provincia' && <TabProvincia paises={paises} provincias={dataPaginated} provinciaForm={provinciaForm} />}
+        {activeTab === 'canton' && (
+          <TabCanton paises={paises} provinciasFiltradasForm={provinciasFiltradasForm} cantones={dataPaginated} cantonForm={cantonForm} />
+        )}
+        {activeTab === 'parroquia' && (
+          <TabParroquia
+            paises={paises}
+            provinciasFiltradasForm={provinciasFiltradasForm}
+            cantonesFiltradosForm={cantonesFiltradosForm || []}
+            parroquias={dataPaginated}
+            parroquiaForm={parroquiaForm}
+          />
+        )}
+        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
+
+      {showForm && (
+        <div style={modalOverlay}>
+          <div style={modalContent}>
+            {renderForm()}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

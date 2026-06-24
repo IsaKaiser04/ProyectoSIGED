@@ -4,10 +4,20 @@ import { BackendModule } from "../types/module";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api";
 
+const TOKEN_KEY = "siged_token";
+
 type RequestOptions = {
   signal?: AbortSignal;
   headers?: HeadersInit;
 };
+
+function getAuthHeaders(): HeadersInit {
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (token) {
+    return { Authorization: `Bearer ${token}` };
+  }
+  return {};
+}
 
 /**
  * Utilidad para construir la ruta base de un módulo con su barra inclinada correspondiente.
@@ -26,10 +36,18 @@ export async function apiGet<TResponse>(
     method: "GET",
     headers: {
       Accept: "application/json",
+      ...getAuthHeaders(),
       ...options.headers
     },
     signal: options.signal
   });
+
+  if (response.status === 401) {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem("siged_usuario");
+    window.location.reload();
+    throw new Error("Sesión expirada");
+  }
 
   if (!response.ok) {
     throw new Error(`Error ${response.status} consultando ${path}`);
@@ -49,11 +67,19 @@ export async function apiPost<TBody, TResponse>(
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
+      ...getAuthHeaders(),
       ...options.headers
     },
     body: JSON.stringify(body),
     signal: options.signal
   });
+
+  if (response.status === 401) {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem("siged_usuario");
+    window.location.reload();
+    throw new Error("Sesión expirada");
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -76,11 +102,19 @@ export async function apiPut<TBody, TResponse>(
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
+      ...getAuthHeaders(),
       ...options.headers
     },
     body: JSON.stringify(body),
     signal: options.signal
   });
+
+  if (response.status === 401) {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem("siged_usuario");
+    window.location.reload();
+    throw new Error("Sesión expirada");
+  }
 
   if (!response.ok) {
     // Capturamos errores de validación (ej. Django REST Framework 400 Bad Request)
@@ -104,16 +138,92 @@ export async function apiPatch<TBody, TResponse>(
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
+      ...getAuthHeaders(),
       ...options.headers
     },
     body: JSON.stringify(body),
     signal: options.signal
   });
 
+  if (response.status === 401) {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem("siged_usuario");
+    window.location.reload();
+    throw new Error("Sesión expirada");
+  }
+
   if (!response.ok) {
     // Capturamos errores de validación
     const errorData = await response.json().catch(() => ({}));
     const error = new Error(`Error ${response.status} modificando en ${path}`) as any;
+    error.data = errorData;
+    throw error;
+  }
+
+  return response.json() as Promise<TResponse>;
+}
+
+// --- FUNCIÓN UPLOAD (multipart/form-data) ---
+export async function apiUpload<TResponse>(
+  path: string,
+  formData: FormData,
+  options: RequestOptions = {}
+): Promise<TResponse> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      ...getAuthHeaders(),
+      ...options.headers
+    },
+    body: formData,
+    signal: options.signal
+  });
+
+  if (response.status === 401) {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem("siged_usuario");
+    window.location.reload();
+    throw new Error("Sesión expirada");
+  }
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const error = new Error(`Error ${response.status} subiendo archivo en ${path}`) as any;
+    error.data = errorData;
+    throw error;
+  }
+
+  return response.json() as Promise<TResponse>;
+}
+
+// --- FUNCIÓN UPLOAD PATCH (multipart/form-data, método PATCH) ---
+export async function apiUploadPatch<TResponse>(
+  path: string,
+  formData: FormData,
+  options: RequestOptions = {}
+): Promise<TResponse> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "PATCH",
+    headers: {
+      Accept: "application/json",
+      ...getAuthHeaders(),
+      ...options.headers
+    },
+    body: formData,
+    signal: options.signal
+  });
+
+  if (response.status === 401) {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem("siged_usuario");
+    window.location.reload();
+    throw new Error("Sesión expirada");
+  }
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const error = new Error(`Error ${response.status} actualizando archivo en ${path}`) as any;
     error.data = errorData;
     throw error;
   }
@@ -129,10 +239,18 @@ export async function apiDelete<TResponse = void>(
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "DELETE",
     headers: {
+      ...getAuthHeaders(),
       ...options.headers
     },
     signal: options.signal
   });
+
+  if (response.status === 401) {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem("siged_usuario");
+    window.location.reload();
+    throw new Error("Sesión expirada");
+  }
 
   if (!response.ok) {
     throw new Error(`Error ${response.status} eliminando en ${path}`);

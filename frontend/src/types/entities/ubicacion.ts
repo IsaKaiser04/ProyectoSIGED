@@ -6,6 +6,7 @@
 export interface Pais {
   id: number;
   nombre: string;
+  is_active?: boolean;
 }
 
 export interface Provincia {
@@ -16,6 +17,7 @@ export interface Provincia {
     id: number;
     nombre: string;
   };
+  is_active?: boolean;
 }
 
 export interface Canton {

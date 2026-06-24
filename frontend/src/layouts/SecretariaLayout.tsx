@@ -4,8 +4,9 @@
 // lateral con las opciones operativas asignadas (Docentes, Estudiantes, Matrículas)
 // y el área principal para el contenido de la sede seleccionada utilizando la identidad del SIGED.
 
-import React from "react";
+import React, { useState } from "react";
 import { NAVIGATION_SECRETARIA } from "../config/navigationSecretaria";
+import { UserMenu } from "../components/UserMenu";
 
 interface SecretariaLayoutProps {
   currentView: string;
@@ -18,8 +19,18 @@ export const SecretariaLayout: React.FC<SecretariaLayoutProps> = ({
   onNavigate,
   children,
 }) => {
+  const [collapsed, setCollapsed] = useState(() => {
+    return localStorage.getItem("sidebar_collapsed") === "true";
+  });
+
+  const toggleSidebar = () => {
+    const newState = !collapsed;
+    setCollapsed(newState);
+    localStorage.setItem("sidebar_collapsed", String(newState));
+  };
+
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${collapsed ? "sidebar-collapsed" : ""}`}>
 
       {/* SIDEBAR - Estilo Midnight Navy Operativo */}
       <aside className="sidebar">
@@ -58,34 +69,20 @@ export const SecretariaLayout: React.FC<SecretariaLayoutProps> = ({
       <div className="content-layout">
         
         {/* TOPBAR - Barra Superior de Gestión */}
-        <header className="topbar">
-          <span className="topbar-title">Panel Secretaría / Gestión de Sede</span>
-          
-          <div className="topbar-user">
-            <div className="topbar-info">
-              <div className="topbar-name">Luis Maques</div>
-              <div className="topbar-role">Secretaría</div>
-            </div>
-            
-            {/* Avatar Cuadrado Estilizado Coherente */}
-            <div 
-              style={{ 
-                width: "40px", 
-                height: "40px", 
-                borderRadius: "8px", 
-                background: "var(--background)", 
-                color: "var(--primary)", 
-                display: "flex", 
-                alignItems: "center", 
-                justifyContent: "center", 
-                fontWeight: 700,
-                fontSize: "14px",
-                border: "1px solid var(--outline-variant)"
-              }}
-            >
-              SP
-            </div>
-          </div>
+        <header className="topbar" style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+          <button 
+            onClick={toggleSidebar} 
+            className="btn-toggle-sidebar" 
+            style={{ 
+              background: "transparent", border: "none", fontSize: "20px", 
+              cursor: "pointer", marginRight: "16px", color: "var(--on-surface)",
+              display: "flex", alignItems: "center" 
+            }}
+          >
+            ☰
+          </button>
+          <div style={{ flex: 1 }}></div>
+          <UserMenu />
         </header>
 
         {/* ÁREA CENTRAL DE TRABAJO (Formularios de Matrículas, Tablas de Estudiantes, etc.) */}

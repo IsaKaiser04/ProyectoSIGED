@@ -5,6 +5,7 @@ export interface Institucion {
   nombre: string;
   codigo_amie: string;
   ruc: string;
+  es_activo?: boolean;
 
   zona_coordinacion: string;
   regimen: string;
@@ -25,6 +26,7 @@ export interface Institucion {
     calle_secundaria: string;
     numero_casa: string;
     referencia: string;
+    parroquia?: number;
 
     parroquia_detalle: {
       parroquia: string;

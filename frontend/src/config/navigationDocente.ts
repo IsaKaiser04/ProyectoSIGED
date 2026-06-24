@@ -46,6 +46,12 @@ export const getNavigationDocente = (esTutor: boolean): NavGroup[] => {
       ],
     },
     {
+      groupLabel: "Vinculación Curricular",
+      items: [
+        { view: "vinculacion-curricular", label: "Subir PCA", icon: "📄" },
+      ],
+    },
+    {
       groupLabel: "Comunicación",
       items: [
         { view: "buzon-notificaciones", label: "Buzón de Notificaciones", icon: "✉️" },

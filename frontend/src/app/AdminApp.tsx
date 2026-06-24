@@ -1,19 +1,10 @@
 // src/app/AdminApp.tsx
 import { useState } from 'react';
 import { AdminLayout } from '../layouts/AdminLayout';
+import { InicioAdmin } from '../features/admin/InicioAdmin';
 import { UbicacionDashboard } from '../features/ubicacion/UbicacionDashboard';
 import { InstitucionDashboard } from '../features/institucion/InstitucionDashboard';
 import ActoresDashboard from '../features/actores-academicos/ActoresDashboard';
-
-// Sub-componentes adaptados al sistema de diseño "Professional Trust"
-const InicioBienvenida = () => (
-  <div className="content-heading">
-    <h2 className="page-title">Bienvenido al Dashboard de Gobernanza SIGED</h2>
-    <p className="page-subtitle">
-      Seleccione un módulo maestro en el menú lateral para operar el control institucional del cantón.
-    </p>
-  </div>
-);
 
 const SeguridadFuturaMock = () => (
   <div className="content-heading">
@@ -39,7 +30,7 @@ export function AdminApp() {
   const renderView = () => {
     switch (currentView) {
       case 'inicio':
-        return <InicioBienvenida />;
+        return <InicioAdmin />;
       case 'instituciones':
         return <InstitucionDashboard />;
       case 'usuarios':
@@ -49,7 +40,7 @@ export function AdminApp() {
       case 'ubicaciones':
         return <UbicacionDashboard />;
       default:
-        return <InicioBienvenida />;
+        return <InicioAdmin />;
     }
   };
 

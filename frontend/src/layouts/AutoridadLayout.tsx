@@ -3,29 +3,53 @@
 // Este layout es para la autoridad académica (rector, vicerrector, decano) y se enfoca en mostrar un panel de navegación lateral con las 
 // opciones relevantes para su rol, y un área principal para mostrar el contenido seleccionado. 
 // El diseño es limpio y profesional, utilizando la hoja de estilos global unificada.
-import React from "react";
+import React, { useState } from "react";
 import { NAVIGATION_AUTORIDAD } from "../config/navigationAutoridad";
+import { UserMenu } from "../components/UserMenu";
 
 interface AutoridadLayoutProps {
   currentView: string;
   onNavigate: (view: string) => void;
   children: React.ReactNode;
+  institucionNombre?: string;
 }
 
 export const AutoridadLayout: React.FC<AutoridadLayoutProps> = ({
   currentView,
   onNavigate,
   children,
+  institucionNombre,
 }) => {
+  const [collapsed, setCollapsed] = useState(() => {
+    return localStorage.getItem("sidebar_collapsed") === "true";
+  });
+
+  const toggleSidebar = () => {
+    const newState = !collapsed;
+    setCollapsed(newState);
+    localStorage.setItem("sidebar_collapsed", String(newState));
+  };
+
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${collapsed ? "sidebar-collapsed" : ""}`}>
 
       {/* SIDEBAR - Estilo Midnight Navy Institucional */}
       <aside className="sidebar">
         {/* Encabezado de Gestión de Alta Autoridad */}
         <div className="sidebar-header">
           <h1>SIGED</h1>
-          <p>Autoridad Académica</p>
+          <p style={{ fontWeight: 600, margin: 0 }}>Autoridad Académica</p>
+          {institucionNombre && (
+            <p style={{ 
+              fontSize: "11px", 
+              opacity: 0.8, 
+              marginTop: "4px", 
+              wordBreak: "break-word",
+              lineHeight: "1.3"
+            }}>
+              {institucionNombre}
+            </p>
+          )}
         </div>
 
         {/* Navegación Estratégica */}
@@ -57,34 +81,21 @@ export const AutoridadLayout: React.FC<AutoridadLayoutProps> = ({
       <div className="content-layout">
         
         {/* TOPBAR - Cabecera Superior Corporativa */}
-        <header className="topbar">
-          <span className="topbar-title">Panel Autoridad / Control Estratégico</span>
+        <header className="topbar" style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+          <button 
+            onClick={toggleSidebar} 
+            className="btn-toggle-sidebar" 
+            style={{ 
+              background: "transparent", border: "none", fontSize: "20px", 
+              cursor: "pointer", marginRight: "16px", color: "var(--on-surface)",
+              display: "flex", alignItems: "center" 
+            }}
+          >
+            ☰
+          </button>
+          <span className="topbar-title" style={{ flex: 1 }}>Panel Autoridad / Control Estratégico</span>
           
-          <div className="topbar-user">
-            <div className="topbar-info">
-              <div className="topbar-name">Luis Maques</div>
-              <div className="topbar-role">Autoridad Académica</div>
-            </div>
-            
-            {/* Avatar Cuadrado Estilizado Coherente */}
-            <div 
-              style={{ 
-                width: "40px", 
-                height: "40px", 
-                borderRadius: "8px", 
-                background: "var(--background)", 
-                color: "var(--primary)", 
-                display: "flex", 
-                alignItems: "center", 
-                justifyContent: "center", 
-                fontWeight: 700,
-                fontSize: "14px",
-                border: "1px solid var(--outline-variant)"
-              }}
-            >
-              AA
-            </div>
-          </div>
+          <UserMenu />
         </header>
 
         {/* ÁREA CENTRAL DE SEGUIMIENTO (Gráficos, Auditorías, Reportes Globales) */}

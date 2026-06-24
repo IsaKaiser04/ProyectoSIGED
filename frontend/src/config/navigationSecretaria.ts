@@ -28,7 +28,6 @@ export const NAVIGATION_SECRETARIA: NavGroup[] = [
     groupLabel: "Gestión de Personal",
     items: [
       { view: "docentes", label: "Docentes", icon: "🧑‍🏫" },
-      { view: "asignacion-tutores", label: "Asignación de Tutores", icon: "🔑" },
     ],
   },
   {
@@ -40,6 +39,8 @@ export const NAVIGATION_SECRETARIA: NavGroup[] = [
   {
     groupLabel: "Procesos de Matrícula",
     items: [
+      { view: "periodos-matricula", label: "Periodos de Matrícula", icon: "📅" },
+      { view: "requisitos-config", label: "Requisitos por Periodo", icon: "📋" },
       { view: "control-matriculas", label: "Control de Matrículas", icon: "📝" },
     ],
   },

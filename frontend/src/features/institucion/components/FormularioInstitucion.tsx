@@ -2,15 +2,18 @@
 
 import React from "react";
 import { useInstitucionForm } from "../hooks/useInstitucionForm";
+import { Institucion } from "../../../types/entities/institucion";
 
 interface Props {
   onSaveSuccess: () => void;
   onCancel: () => void;
+  institucionEdit?: Institucion | null;
 }
 
 export const FormularioInstitucion: React.FC<Props> = ({
   onSaveSuccess,
   onCancel,
+  institucionEdit,
 }) => {
   const {
     fields,
@@ -18,7 +21,8 @@ export const FormularioInstitucion: React.FC<Props> = ({
     ubicacionCascada,
     enviando,
     handleSubmit,
-  } = useInstitucionForm(onSaveSuccess);
+    isEditing,
+  } = useInstitucionForm(onSaveSuccess, institucionEdit);
 
   const fieldStyle: React.CSSProperties = {
     width: "100%",
@@ -64,7 +68,7 @@ export const FormularioInstitucion: React.FC<Props> = ({
             fontWeight: "700",
           }}
         >
-          Registrar Institución
+          {isEditing ? "Editar Institución" : "Registrar Institución"}
         </h2>
 
         <p
@@ -74,7 +78,7 @@ export const FormularioInstitucion: React.FC<Props> = ({
             fontSize: "14px",
           }}
         >
-          Complete la información institucional y la ubicación de la sede.
+          {isEditing ? "Modifique la información institucional." : "Complete la información institucional y la ubicación de la sede."}
         </p>
       </div>
 
@@ -462,7 +466,7 @@ export const FormularioInstitucion: React.FC<Props> = ({
         >
           {enviando
             ? "Guardando..."
-            : "Guardar Institución"}
+            : isEditing ? "Actualizar Institución" : "Guardar Institución"}
         </button>
       </div>
     </form>

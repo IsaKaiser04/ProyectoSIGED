@@ -2,13 +2,21 @@ import React, { useEffect, useState } from "react";
 
 import { FormularioUsuario } from "./components/FormularioUsuario";
 import TablaUsuarios from "./components/UsuarioTable";
+import { PanelFiltrosUsuarios } from "./components/PanelFiltrosUsuarios";
 
 import { useUsuarios } from "./hooks/useUsuario";
+import { toggleActivoCuenta } from "./services/usuariosApi";
 import { apiGet, buildModulePath } from "../../services/apiClient";
+import { showSuccess, showError, showWarning } from "../../components/Toast";
 import { Institucion } from "../../types/entities/institucion";
+
+type Usuario = any;
 
 export default function ActoresDashboard() {
     const [showForm, setShowForm] = useState(false);
+    const [usuarioEdit, setUsuarioEdit] = useState<Usuario | null>(null);
+    const [page, setPage] = useState(1);
+    const rowsPerPage = 10;
 
     const {
         autoridades,
@@ -26,7 +34,30 @@ export default function ActoresDashboard() {
         ...administradores
     ];
 
-    // --- CATÁLOGO REAL DE INSTITUCIONES (desde su propio endpoint) ---
+    const [filtroNombre, setFiltroNombre] = useState("");
+    const [filtroIdentificacion, setFiltroIdentificacion] = useState("");
+    const [filtroRol, setFiltroRol] = useState("");
+
+    const usuariosFiltrados = usuarios.filter((u) => {
+        const nombreMatch = filtroNombre === "" || `${u.nombres} ${u.apellidos}`.toLowerCase().includes(filtroNombre.toLowerCase());
+        const idMatch = filtroIdentificacion === "" || (u.identificacion || "").includes(filtroIdentificacion);
+        const rol = u.cuenta?.rol || "";
+        const rolMatch = filtroRol === "" || rol === filtroRol;
+        return nombreMatch && idMatch && rolMatch;
+    });
+
+    const totalPages = Math.ceil(usuariosFiltrados.length / rowsPerPage) || 1;
+    const startIndex = (page - 1) * rowsPerPage;
+    const usuariosPaginados = usuariosFiltrados.slice(startIndex, startIndex + rowsPerPage);
+
+    useEffect(() => { setPage(1); }, [filtroNombre, filtroIdentificacion, filtroRol]);
+
+    const limpiarFiltros = () => {
+        setFiltroNombre("");
+        setFiltroIdentificacion("");
+        setFiltroRol("");
+    };
+
     const [instituciones, setInstituciones] = useState<Institucion[]>([]);
     const [cargandoInstituciones, setCargandoInstituciones] = useState(true);
 
@@ -46,6 +77,39 @@ export default function ActoresDashboard() {
         cargarInstituciones();
     }, []);
 
+    const handleToggleActive = async (usuario: Usuario) => {
+        const esActivo = usuario.cuenta?.es_activo;
+        const nuevoEstado = !esActivo;
+        const accion = nuevoEstado ? "activar" : "desactivar";
+
+        if (!window.confirm(`¿Está seguro de ${accion} este usuario?`)) return;
+
+        try {
+            const cuentaId = usuario.cuenta?.id;
+            if (!cuentaId) {
+                showError("Este usuario no tiene cuenta asociada.");
+                return;
+            }
+            await toggleActivoCuenta(cuentaId, nuevoEstado);
+            showSuccess(`Usuario ${nuevoEstado ? "activado" : "desactivado"} correctamente.`);
+            refrescarTablas();
+        } catch (error: any) {
+            const msg = error?.data ? JSON.stringify(error.data) : `No se pudo ${accion} el usuario.`;
+            showWarning(msg);
+        }
+    };
+
+    const handleCloseForm = () => {
+        setShowForm(false);
+        setUsuarioEdit(null);
+    };
+
+    const handleSaveSuccess = () => {
+        setShowForm(false);
+        setUsuarioEdit(null);
+        refrescarTablas();
+    };
+
     return (
         <div
             className="dashboard-content"
@@ -55,13 +119,12 @@ export default function ActoresDashboard() {
                 gap: "20px"
             }}
         >
-            {/* CABECERA */}
             <div
                 style={{
                     background: "var(--surface-container-lowest)",
                     border: "1px solid var(--outline-variant)",
                     borderRadius: "8px",
-                    padding: "20px"
+                    padding: "16px 20px"
                 }}
             >
                 <h2
@@ -73,85 +136,11 @@ export default function ActoresDashboard() {
                 >
                     Gestión de Usuarios y Cuentas
                 </h2>
-                <p
-                    style={{
-                        marginTop: "8px",
-                        color: "var(--on-surface-variant)"
-                    }}
-                >
-                    Administración de usuarios, perfiles institucionales y control de acceso del sistema.
-                </p>
             </div>
 
-            {/* RESUMEN DE CONTADORES */}
-            <div
-                style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(4,1fr)",
-                    gap: "16px"
-                }}
-            >
-                <div
-                    style={{
-                        background: "var(--surface-container-lowest)",
-                        border: "1px solid var(--outline-variant)",
-                        borderRadius: "8px",
-                        padding: "16px"
-                    }}
-                >
-                    <div style={{ fontSize: "28px", fontWeight: "700", color: "var(--primary)" }}>
-                        {autoridades.length}
-                    </div>
-                    <div>Autoridades</div>
-                </div>
-
-                <div
-                    style={{
-                        background: "var(--surface-container-lowest)",
-                        border: "1px solid var(--outline-variant)",
-                        borderRadius: "8px",
-                        padding: "16px"
-                    }}
-                >
-                    <div style={{ fontSize: "28px", fontWeight: "700", color: "var(--primary)" }}>
-                        {secretarias.length}
-                    </div>
-                    <div>Secretarias</div>
-                </div>
-
-                <div
-                    style={{
-                        background: "var(--surface-container-lowest)",
-                        border: "1px solid var(--outline-variant)",
-                        borderRadius: "8px",
-                        padding: "16px"
-                    }}
-                >
-                    <div style={{ fontSize: "28px", fontWeight: "700", color: "var(--primary)" }}>
-                        {deces.length}
-                    </div>
-                    <div>DECE</div>
-                </div>
-
-                <div
-                    style={{
-                        background: "var(--surface-container-lowest)",
-                        border: "1px solid var(--outline-variant)",
-                        borderRadius: "8px",
-                        padding: "16px"
-                    }}
-                >
-                    <div style={{ fontSize: "28px", fontWeight: "700", color: "var(--primary)" }}>
-                        {administradores.length}
-                    </div>
-                    <div>Administradores</div>
-                </div>
-            </div>
-
-            {/* BOTÓN DE ACCIÓN */}
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
                 <button
-                    onClick={() => setShowForm(true)}
+                    onClick={() => { setUsuarioEdit(null); setShowForm(true); }}
                     style={{
                         background: "var(--secondary)",
                         color: "white",
@@ -166,7 +155,16 @@ export default function ActoresDashboard() {
                 </button>
             </div>
 
-            {/* SECCIÓN DE LA TABLA */}
+            <PanelFiltrosUsuarios
+                filtroNombre={filtroNombre}
+                setFiltroNombre={setFiltroNombre}
+                filtroIdentificacion={filtroIdentificacion}
+                setFiltroIdentificacion={setFiltroIdentificacion}
+                filtroRol={filtroRol}
+                setFiltroRol={setFiltroRol}
+                onLimpiar={limpiarFiltros}
+            />
+
             {loading ? (
                 <div
                     style={{
@@ -180,10 +178,16 @@ export default function ActoresDashboard() {
                     Cargando usuarios...
                 </div>
             ) : (
-                <TablaUsuarios usuarios={usuarios} />
+                <TablaUsuarios
+                    usuarios={usuariosPaginados}
+                    onToggleActive={handleToggleActive}
+                    page={page}
+                    totalPages={totalPages}
+                    startIndex={startIndex}
+                    onPageChange={setPage}
+                />
             )}
 
-            {/* MODAL DEL FORMULARIO */}
             {showForm && (
                 <div
                     style={{
@@ -213,11 +217,9 @@ export default function ActoresDashboard() {
                         ) : (
                             <FormularioUsuario
                                 instituciones={instituciones}
-                                onCancel={() => setShowForm(false)}
-                                onSaveSuccess={() => {
-                                    setShowForm(false);
-                                    refrescarTablas();
-                                }}
+                                usuarioEdit={usuarioEdit}
+                                onCancel={handleCloseForm}
+                                onSaveSuccess={handleSaveSuccess}
                             />
                         )}
                     </div>

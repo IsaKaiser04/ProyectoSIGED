@@ -5,172 +5,171 @@ interface PanelFiltrosProps {
   activeTab: 'pais' | 'provincia' | 'canton' | 'parroquia';
   paises: Pais[];
   provinciasFiltradasFiltro: Provincia[];
-  cantonesFiltradosFiltro?: Canton[]; // <-- Agregado para soportar los cantones en el filtro de Parroquia
+  cantonesFiltradosFiltro?: Canton[];
   filtros: any;
 }
 
-export const PanelFiltros: React.FC<PanelFiltrosProps> = ({ 
-  activeTab, 
-  paises, 
-  provinciasFiltradasFiltro, 
-  cantonesFiltradosFiltro = [], // Fallback por defecto vacío
-  filtros 
+export const PanelFiltros: React.FC<PanelFiltrosProps> = ({
+  activeTab,
+  paises,
+  provinciasFiltradasFiltro,
+  cantonesFiltradosFiltro = [],
+  filtros
 }) => {
+  const fieldStyle: React.CSSProperties = {
+    width: "100%",
+    height: "36px",
+    borderRadius: "6px",
+    border: "1px solid var(--outline-variant)",
+    padding: "0 10px",
+    background: "var(--surface-container-lowest)",
+    color: "var(--on-surface)",
+    fontSize: "var(--font-body-sm)",
+    boxSizing: "border-box",
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: "block",
+    marginBottom: "4px",
+    color: "var(--on-surface)",
+    fontSize: "11px",
+    fontWeight: 600,
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+  };
+
+  const btnStyle: React.CSSProperties = {
+    padding: "0 16px",
+    height: "36px",
+    borderRadius: "6px",
+    border: "1px solid var(--outline-variant)",
+    background: "var(--surface)",
+    color: "var(--on-surface)",
+    fontWeight: 600,
+    cursor: "pointer",
+    fontSize: "13px",
+    alignSelf: "flex-end",
+  };
+
+  const renderPais = () => (
+    <>
+      <div style={{ flex: "0 0 220px" }}>
+        <label style={labelStyle}>Nombre del País</label>
+        <input type="text" placeholder="Buscar país..." value={filtros.busqueda}
+          onChange={(e) => filtros.setBusqueda(e.target.value)} style={fieldStyle} />
+      </div>
+      <button type="button" onClick={filtros.cargarPaises} style={btnStyle}>
+        Buscar
+      </button>
+    </>
+  );
+
+  const renderProvincia = () => (
+    <>
+      <div style={{ flex: "0 0 220px" }}>
+        <label style={labelStyle}>Nombre de Provincia</label>
+        <input type="text" placeholder="Ej. Loja" value={filtros.busquedaProvincia}
+          onChange={(e) => filtros.setBusquedaProvincia(e.target.value)} style={fieldStyle} />
+      </div>
+      <div style={{ flex: "0 0 200px" }}>
+        <label style={labelStyle}>País</label>
+        <select value={filtros.paisSeleccionadoFiltro}
+          onChange={(e) => filtros.setPaisSeleccionadoFiltro(e.target.value)} style={fieldStyle}>
+          <option value="">Todos</option>
+          {paises.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+        </select>
+      </div>
+      <button type="button" onClick={filtros.cargarProvincias} style={btnStyle}>
+        Buscar
+      </button>
+    </>
+  );
+
+  const renderCanton = () => (
+    <>
+      <div style={{ flex: "0 0 180px" }}>
+        <label style={labelStyle}>País</label>
+        <select value={filtros.paisSeleccionadoFiltroCanton}
+          onChange={(e) => filtros.setPaisSeleccionadoFiltroCanton(e.target.value)} style={fieldStyle}>
+          <option value="">Todos</option>
+          {paises.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+        </select>
+      </div>
+      <div style={{ flex: "0 0 200px" }}>
+        <label style={labelStyle}>Provincia</label>
+        <select value={filtros.provinciaSeleccionadaFiltroCanton}
+          onChange={(e) => filtros.setProvinciaSeleccionadaFiltroCanton(e.target.value)} style={fieldStyle}>
+          <option value="">Todas</option>
+          {provinciasFiltradasFiltro.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+        </select>
+      </div>
+      <div style={{ flex: "0 0 200px" }}>
+        <label style={labelStyle}>Nombre del Cantón</label>
+        <input type="text" placeholder="Ej. Paltas" value={filtros.busquedaCanton}
+          onChange={(e) => filtros.setBusquedaCanton(e.target.value)} style={fieldStyle} />
+      </div>
+      <button type="button" onClick={filtros.cargarCantones} style={btnStyle}>
+        Buscar
+      </button>
+    </>
+  );
+
+  const renderParroquia = () => (
+    <>
+      <div style={{ flex: "0 0 160px" }}>
+        <label style={labelStyle}>País</label>
+        <select value={filtros.paisSeleccionadoFiltroParroquia || ''}
+          onChange={(e) => filtros.setPaisSeleccionadoFiltroParroquia?.(e.target.value)} style={fieldStyle}>
+          <option value="">Todos</option>
+          {paises.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+        </select>
+      </div>
+      <div style={{ flex: "0 0 180px" }}>
+        <label style={labelStyle}>Provincia</label>
+        <select value={filtros.provinciaSeleccionadaFiltroParroquia || ''}
+          onChange={(e) => filtros.setProvinciaSeleccionadaFiltroParroquia?.(e.target.value)} style={fieldStyle}
+          disabled={!filtros.paisSeleccionadoFiltroParroquia}>
+          <option value="">Todas</option>
+          {provinciasFiltradasFiltro.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+        </select>
+      </div>
+      <div style={{ flex: "0 0 180px" }}>
+        <label style={labelStyle}>Cantón</label>
+        <select value={filtros.cantonSeleccionadoFiltroParroquia || ''}
+          onChange={(e) => filtros.setCantonSeleccionadoFiltroParroquia?.(e.target.value)} style={fieldStyle}
+          disabled={!filtros.provinciaSeleccionadaFiltroParroquia}>
+          <option value="">Todos</option>
+          {cantonesFiltradosFiltro.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+        </select>
+      </div>
+      <div style={{ flex: "0 0 200px" }}>
+        <label style={labelStyle}>Nombre de Parroquia</label>
+        <input type="text" placeholder="Ej. San Lucas" value={filtros.busquedaParroquia || ''}
+          onChange={(e) => filtros.setBusquedaParroquia?.(e.target.value)} style={fieldStyle} />
+      </div>
+      <button type="button" onClick={filtros.cargarParroquias} style={btnStyle}>
+        Buscar
+      </button>
+    </>
+  );
+
   return (
-    <div style={{ 
-      background: 'var(--secondary)', padding: '24px', borderRadius: '8px', color: 'var(--on-secondary)',
-      boxShadow: '0 4px 12px rgba(0, 109, 67, 0.1)', display: 'flex', flexDirection: 'column', gap: '20px'
-    }}>
-      <h3 style={{ margin: 0, fontSize: 'var(--font-body-md)', fontWeight: '700', color: 'var(--on-secondary)' }}>
-        ⚡ Filtros de Búsqueda
-      </h3>
-      
-      {activeTab === 'pais' && (
-        <div>
-          <label style={{ display: 'block', marginBottom: '8px', fontSize: 'var(--font-label-md)', fontWeight: '600', color: 'var(--secondary-container)' }}>
-            Nombre del País
-          </label>
-          <input 
-            type="text" placeholder="Buscar país..." value={filtros.busqueda}
-            onChange={(e) => filtros.setBusqueda(e.target.value)}
-            style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255, 255, 255, 0.15)', color: '#fff', font: 'inherit' }}
-          />
-          <button onClick={filtros.cargarPaises} style={{ width: '100%', background: 'var(--secondary-container)', color: 'var(--on-secondary-container)', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: '700', marginTop: '16px', cursor: 'pointer' }}>
-            🔍 Aplicar Filtros
-          </button>
-        </div>
-      )}
-
-      {activeTab === 'provincia' && (
-        <div>
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: 'var(--font-label-md)', fontWeight: '600', color: 'var(--secondary-container)' }}>Nombre de Provincia</label>
-            <input 
-              type="text" placeholder="Ej. Loja" value={filtros.busquedaProvincia}
-              onChange={(e) => filtros.setBusquedaProvincia(e.target.value)}
-              style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255, 255, 255, 0.15)', color: '#fff', font: 'inherit' }}
-            />
-          </div>
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: 'var(--font-label-md)', fontWeight: '600', color: 'var(--secondary-container)' }}>País</label>
-            <select
-              value={filtros.paisSeleccionadoFiltro}
-              onChange={(e) => filtros.setPaisSeleccionadoFiltro(e.target.value)}
-              style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)', background: 'var(--surface-container-highest)', color: 'var(--on-surface)', font: 'inherit' }}
-            >
-              <option value="">Seleccionar País</option>
-              {paises.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-            </select>
-          </div>
-          <button onClick={filtros.cargarProvincias} style={{ width: '100%', background: 'var(--secondary-container)', color: 'var(--on-secondary-container)', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: '700', cursor: 'pointer' }}>
-            🔍 Aplicar Filtros
-          </button>
-        </div>
-      )}
-
-      {activeTab === 'canton' && (
-        <div>
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: 'var(--font-label-md)', fontWeight: '600', color: 'var(--secondary-container)' }}>País</label>
-            <select
-              value={filtros.paisSeleccionadoFiltroCanton}
-              onChange={(e) => filtros.setPaisSeleccionadoFiltroCanton(e.target.value)}
-              style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)', background: 'var(--surface-container-highest)', color: 'var(--on-surface)', font: 'inherit' }}
-            >
-              <option value="">Seleccione País...</option>
-              {paises.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-            </select>
-          </div>
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: 'var(--font-label-md)', fontWeight: '600', color: 'var(--secondary-container)' }}>Provincia</label>
-            <select
-              value={filtros.provinciaSeleccionadaFiltroCanton}
-              onChange={(e) => filtros.setProvinciaSeleccionadaFiltroCanton(e.target.value)}
-              style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)', background: 'var(--surface-container-highest)', color: 'var(--on-surface)', font: 'inherit' }}
-            >
-              <option value="">Seleccione Provincia...</option>
-              {provinciasFiltradasFiltro.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-            </select>
-          </div>
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: 'var(--font-label-md)', fontWeight: '600', color: 'var(--secondary-container)' }}>Nombre del Cantón</label>
-            <input 
-              type="text" placeholder="Ej. Paltas" value={filtros.busquedaCanton}
-              onChange={(e) => filtros.setBusquedaCanton(e.target.value)}
-              style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255, 255, 255, 0.15)', color: '#fff', font: 'inherit' }}
-            />
-          </div>
-          <button onClick={filtros.cargarCantones} style={{ width: '100%', background: 'var(--secondary-container)', color: 'var(--on-secondary-container)', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: '700', cursor: 'pointer' }}>
-            🔍 Aplicar Filtros
-          </button>
-        </div>
-      )}
-
-      {/* ARREGLADO: Interfaz de filtros dinámicos para Parroquia */}
-      {activeTab === 'parroquia' && (
-        <div>
-          {/* 1. Selección País (Filtro) */}
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: 'var(--font-label-md)', fontWeight: '600', color: 'var(--secondary-container)' }}>País</label>
-            <select
-              value={filtros.paisSeleccionadoFiltroParroquia || ''}
-              onChange={(e) => filtros.setPaisSeleccionadoFiltroParroquia?.(e.target.value)}
-              style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)', background: 'var(--surface-container-highest)', color: 'var(--on-surface)', font: 'inherit' }}
-            >
-              <option value="">Seleccione País...</option>
-              {paises.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-            </select>
-          </div>
-
-          {/* 2. Selección Provincia (Filtro) */}
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: 'var(--font-label-md)', fontWeight: '600', color: 'var(--secondary-container)' }}>Provincia</label>
-            <select
-              value={filtros.provinciaSeleccionadaFiltroParroquia || ''}
-              onChange={(e) => filtros.setProvinciaSeleccionadaFiltroParroquia?.(e.target.value)}
-              style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)', background: 'var(--surface-container-highest)', color: 'var(--on-surface)', font: 'inherit' }}
-              disabled={!filtros.paisSeleccionadoFiltroParroquia}
-            >
-              <option value="">Seleccione Provincia...</option>
-              {provinciasFiltradasFiltro.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-            </select>
-          </div>
-
-          {/* 3. Selección Cantón (Filtro) */}
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: 'var(--font-label-md)', fontWeight: '600', color: 'var(--secondary-container)' }}>Cantón</label>
-            <select
-              value={filtros.cantonSeleccionadoFiltroParroquia || ''}
-              onChange={(e) => filtros.setCantonSeleccionadoFiltroParroquia?.(e.target.value)}
-              style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)', background: 'var(--surface-container-highest)', color: 'var(--on-surface)', font: 'inherit' }}
-              disabled={!filtros.provinciaSeleccionadaFiltroParroquia}
-            >
-              <option value="">Seleccione Cantón...</option>
-              {cantonesFiltradosFiltro.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-            </select>
-          </div>
-
-          {/* 4. Input de Búsqueda por Texto */}
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: 'var(--font-label-md)', fontWeight: '600', color: 'var(--secondary-container)' }}>Nombre de Parroquia</label>
-            <input 
-              type="text" 
-              placeholder="Ej. San Lucas" 
-              value={filtros.busquedaParroquia || ''}
-              onChange={(e) => filtros.setBusquedaParroquia?.(e.target.value)}
-              style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255, 255, 255, 0.15)', color: '#fff', font: 'inherit' }}
-            />
-          </div>
-
-          {/* Botón Disparador */}
-          <button 
-            onClick={filtros.cargarParroquias} 
-            style={{ width: '100%', background: 'var(--secondary-container)', color: 'var(--on-secondary-container)', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: '700', cursor: 'pointer' }}
-          >
-            🔍 Aplicar Filtros
-          </button>
-        </div>
-      )}
+    <div
+      style={{
+        background: "var(--surface-container-lowest)",
+        border: "1px solid var(--outline-variant)",
+        borderRadius: "8px",
+        padding: "12px 20px",
+        display: "flex",
+        alignItems: "flex-end",
+        gap: "12px",
+        flexWrap: "wrap",
+      }}
+    >
+      {activeTab === 'pais' && renderPais()}
+      {activeTab === 'provincia' && renderProvincia()}
+      {activeTab === 'canton' && renderCanton()}
+      {activeTab === 'parroquia' && renderParroquia()}
     </div>
   );
 };

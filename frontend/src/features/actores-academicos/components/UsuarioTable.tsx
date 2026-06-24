@@ -5,6 +5,7 @@ import type {
   Dece,
   Administrador
 } from "../../../types/entities/actoresAcademicos";
+import { Pagination } from "../../../components/Pagination";
 
 type Usuario =
   | Autoridad
@@ -14,9 +15,14 @@ type Usuario =
 
 interface Props {
   usuarios: Usuario[];
+  onToggleActive: (usuario: Usuario) => void;
+  page: number;
+  totalPages: number;
+  startIndex: number;
+  onPageChange: (p: number) => void;
 }
 
-export default function TablaUsuarios({ usuarios }: Props) {
+export default function TablaUsuarios({ usuarios, onToggleActive, page, totalPages, startIndex, onPageChange }: Props) {
 
   const obtenerRol = (usuario: Usuario) => {
     if (usuario.cuenta?.rol) {
@@ -34,7 +40,6 @@ export default function TablaUsuarios({ usuarios }: Props) {
         overflow: "hidden"
       }}
     >
-      {/* TITULO */}
       <div
         style={{
           padding: "15px 20px",
@@ -46,7 +51,6 @@ export default function TablaUsuarios({ usuarios }: Props) {
         </h3>
       </div>
 
-      {/* CONTADOR */}
       <div
         style={{
           padding: "12px 20px",
@@ -59,17 +63,16 @@ export default function TablaUsuarios({ usuarios }: Props) {
         Mostrando {usuarios.length} usuarios
       </div>
 
-      {/* TABLA */}
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ background: "var(--primary)", color: "white" }}>
-            <th style={{ padding: "12px" }}>ID</th>
+            <th style={{ padding: "12px", width: "60px" }}>NRO</th>
             <th style={{ padding: "12px" }}>Usuario</th>
             <th style={{ padding: "12px" }}>Identificación</th>
             <th style={{ padding: "12px" }}>Institución</th>
             <th style={{ padding: "12px" }}>Rol</th>
             <th style={{ padding: "12px" }}>Estado</th>
-            <th style={{ padding: "12px" }}>Acciones</th>
+            <th style={{ padding: "12px", textAlign: "center" }}>Acciones</th>
           </tr>
         </thead>
 
@@ -81,13 +84,12 @@ export default function TablaUsuarios({ usuarios }: Props) {
               </td>
             </tr>
           ) : (
-            usuarios.map((usuario) => (
+            usuarios.map((usuario, index) => (
               <tr
-                // Cambiado para evitar conflictos con constructor.name en objetos JSON nativos
-                key={`${obtenerRol(usuario)}-${usuario.id}`} 
+                key={`${obtenerRol(usuario)}-${usuario.id}`}
                 style={{ borderBottom: "1px solid var(--outline-variant)" }}
               >
-                <td style={{ padding: "12px" }}>{usuario.id}</td>
+                <td style={{ padding: "12px", color: "var(--on-surface-variant)" }}>{startIndex + index + 1}</td>
 
                 <td style={{ padding: "12px" }}>
                   <div>
@@ -99,7 +101,6 @@ export default function TablaUsuarios({ usuarios }: Props) {
 
                 <td style={{ padding: "12px" }}>{usuario.identificacion}</td>
 
-                {/* COLUMNA DE LA INSTITUCIÓN TRATADA DE FORMA SEGURA */}
                 <td style={{ padding: "12px" }}>
                   {usuario.institucion?.nombre ? (
                     <div>
@@ -112,7 +113,7 @@ export default function TablaUsuarios({ usuarios }: Props) {
                       </small>
                     </div>
                   ) : (
-                    <span style={{ color: "var(--outline)" }}>-</span>
+                    <span style={{ color: "var(--outline)" }}>Ninguna</span>
                   )}
                 </td>
 
@@ -136,15 +137,11 @@ export default function TablaUsuarios({ usuarios }: Props) {
                 <td style={{ padding: "12px 20px", textAlign: "center" }}>
                   <button
                     type="button"
-                    style={{ background: "transparent", border: "none", cursor: "pointer", marginRight: "12px" }}
+                    onClick={() => onToggleActive(usuario)}
+                    title={usuario.cuenta?.es_activo ? "Desactivar" : "Activar"}
+                    style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: "16px" }}
                   >
-                    ✏️
-                  </button>
-                  <button
-                    type="button"
-                    style={{ background: "transparent", border: "none", cursor: "pointer" }}
-                  >
-                    🗑️
+                    {usuario.cuenta?.es_activo ? "🔴" : "🟢"}
                   </button>
                 </td>
               </tr>
@@ -152,6 +149,7 @@ export default function TablaUsuarios({ usuarios }: Props) {
           )}
         </tbody>
       </table>
+      <Pagination page={page} totalPages={totalPages} onPageChange={onPageChange} />
     </div>
   );
 }

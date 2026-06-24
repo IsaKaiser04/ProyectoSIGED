@@ -3,8 +3,9 @@
 // Layout para el rol de Docente. Maneja el sidebar adaptativo para docentes
 // regulares y docentes tutores. Utiliza la identidad visual unificada del SIGED.
 
-import React from "react";
+import React, { useState } from "react";
 import { getNavigationDocente } from "../config/navigationDocente";
+import { UserMenu } from "../components/UserMenu";
 
 interface DocenteLayoutProps {
   currentView: string;
@@ -19,11 +20,21 @@ export const DocenteLayout: React.FC<DocenteLayoutProps> = ({
   esTutor,
   children,
 }) => {
+  const [collapsed, setCollapsed] = useState(() => {
+    return localStorage.getItem("sidebar_collapsed") === "true";
+  });
+
+  const toggleSidebar = () => {
+    const newState = !collapsed;
+    setCollapsed(newState);
+    localStorage.setItem("sidebar_collapsed", String(newState));
+  };
+
   // Obtenemos el menú estructurado según el rol local (Regular o Tutor)
   const menuDocente = getNavigationDocente(esTutor);
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${collapsed ? "sidebar-collapsed" : ""}`}>
 
       {/* SIDEBAR - Estilo Midnight Navy con Badge de Estado de Tutoría */}
       <aside className="sidebar">
@@ -62,36 +73,20 @@ export const DocenteLayout: React.FC<DocenteLayoutProps> = ({
       <div className="content-layout">
         
         {/* TOPBAR - Cabecera Superior Corporativa de Control de Notas/Asistencia */}
-        <header className="topbar">
-          <span className="topbar-title">Ejecución Pedagógica en Aula / Control de Calificaciones</span>
-          
-          <div className="topbar-user">
-            <div className="topbar-info">
-              <div className="topbar-name">Luis Maques</div>
-              <div className="topbar-role">
-                {esTutor ? "Tutor de Paralelo" : "Profesor de Asignatura"}
-              </div>
-            </div>
-            
-            {/* Avatar Cuadrado Estilizado Coherente */}
-            <div 
-              style={{ 
-                width: "40px", 
-                height: "40px", 
-                borderRadius: "8px", 
-                background: "var(--background)", 
-                color: "var(--primary)", 
-                display: "flex", 
-                alignItems: "center", 
-                justifyContent: "center", 
-                fontWeight: 700,
-                fontSize: "14px",
-                border: "1px solid var(--outline-variant)"
-              }}
-            >
-              ED
-            </div>
-          </div>
+        <header className="topbar" style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+          <button 
+            onClick={toggleSidebar} 
+            className="btn-toggle-sidebar" 
+            style={{ 
+              background: "transparent", border: "none", fontSize: "20px", 
+              cursor: "pointer", marginRight: "16px", color: "var(--on-surface)",
+              display: "flex", alignItems: "center" 
+            }}
+          >
+            ☰
+          </button>
+          <div style={{ flex: 1 }}></div>
+          <UserMenu />
         </header>
 
         {/* ÁREA CENTRAL DE TRABAJO (Registro de Notas, Asistencias, Justificaciones, Reportes Curriculares) */}

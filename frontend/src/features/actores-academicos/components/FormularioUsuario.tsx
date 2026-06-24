@@ -1,22 +1,20 @@
-// src/features/actores-academicos/components/FormularioUsuario.tsx
-
 import React, { useEffect } from "react";
 import { useFormularioUsuario } from "../hooks/useFormularioUsuario";
-import { Institucion } from "../../../types/entities/institucion"; 
+import { Institucion } from "../../../types/entities/institucion";
 
 interface Props {
   onSaveSuccess: () => void;
   onCancel: () => void;
   instituciones: Institucion[];
-  parroquiaCatalogos?: Array<{ id: number; nombre: string }>; 
+  usuarioEdit?: any;
 }
 
 export const FormularioUsuario: React.FC<Props> = ({
   onSaveSuccess,
   onCancel,
   instituciones,
+  usuarioEdit,
 }) => {
-  // 1. Extraemos todo de manera limpia desde el Hook (Le pasamos el callback al instanciarlo)
   const {
     formData,
     ubicacionCascada,
@@ -25,10 +23,10 @@ export const FormularioUsuario: React.FC<Props> = ({
     actualizarCuenta,
     resetFormulario,
     enviando,
-    handleSubmit, 
-  } = useFormularioUsuario(onSaveSuccess);
+    handleSubmit,
+    isEditing,
+  } = useFormularioUsuario(onSaveSuccess, usuarioEdit);
 
-  // Roles del Sistema basados exactamente en tus interfaces extendidas
   const ROLES_SISTEMA = [
     { value: "ADMINISTRADOR", label: "Administrador Global / Distrital" },
     { value: "AUTORIDAD", label: "Autoridad (Rector / Director)" },
@@ -36,18 +34,15 @@ export const FormularioUsuario: React.FC<Props> = ({
     { value: "DECE", label: "Consejería DECE" },
   ];
 
-  // Atajos de estado para condicionales limpios
   const rolSeleccionado = formData.cuenta.rol;
   const esAdministrador = rolSeleccionado === "ADMINISTRADOR";
 
-  // Efecto regulador: Si cambia a Administrador, removemos la institución inmediatamente
   useEffect(() => {
     if (esAdministrador) {
       actualizarCampo("institucion", undefined);
     }
   }, [rolSeleccionado]);
 
-  // --- HOJA DE ESTILOS CONSISTENTE ---
   const fieldStyle: React.CSSProperties = {
     width: "100%",
     height: "42px",
@@ -69,26 +64,24 @@ export const FormularioUsuario: React.FC<Props> = ({
 
   return (
     <form
-      onSubmit={handleSubmit} // Vincular directamente el submit del hook que maneja el apiPost
+      onSubmit={handleSubmit}
       style={{
         background: "var(--surface-container-lowest)",
         borderRadius: "10px",
         overflow: "hidden",
       }}
     >
-      {/* ENCABEZADO */}
       <div style={{ padding: "20px", borderBottom: "1px solid var(--outline-variant)", background: "var(--surface-container-lowest)" }}>
         <h2 style={{ margin: 0, color: "var(--primary)", fontSize: "22px", fontWeight: "700" }}>
-          Registrar Usuario (SIGED)
+          {isEditing ? "Editar Usuario" : "Registrar Usuario (SIGED)"}
         </h2>
         <p style={{ marginTop: "6px", color: "var(--on-surface-variant)", fontSize: "14px" }}>
-          Defina el rol del sistema para habilitar o restringir los parámetros institucionales correspondientes.
+          {isEditing ? "Modifique la información del usuario." : "Defina el rol del sistema para habilitar o restringir los parámetros institucionales correspondientes."}
         </p>
       </div>
 
       <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "20px" }}>
         
-        {/* SECCIÓN 1: CONFIGURACIÓN DE CUENTA CENTRALIZADA */}
         <div style={{ background: "var(--surface-container-low)", border: "1px solid var(--outline-variant)", borderRadius: "8px", padding: "20px" }}>
           <h3 style={{ marginTop: 0, marginBottom: "16px", color: "var(--primary)", fontSize: "16px", fontWeight: "700" }}>
             1. Asignación de Credenciales y Rol Crítico
@@ -115,8 +108,8 @@ export const FormularioUsuario: React.FC<Props> = ({
             </div>
 
             <div>
-              <label style={labelStyle}>Contraseña de Acceso</label>
-              <input type="password" style={fieldStyle} value={formData.cuenta.contrasena} onChange={(e) => actualizarCuenta("contrasena", e.target.value)} required />
+              <label style={labelStyle}>{isEditing ? "Nueva Contraseña (dejar vacío para mantener)" : "Contraseña de Acceso"}</label>
+              <input type="password" style={fieldStyle} value={formData.cuenta.contrasena} onChange={(e) => actualizarCuenta("contrasena", e.target.value)} required={!isEditing} />
             </div>
 
             <div>
@@ -126,7 +119,6 @@ export const FormularioUsuario: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* SECCIÓN 2: DATOS PERSONALES */}
         <div style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)", borderRadius: "8px", padding: "20px" }}>
           <h3 style={{ marginTop: 0, marginBottom: "20px", color: "var(--primary)", fontSize: "16px", fontWeight: "700" }}>
             2. Datos Personales del Servidor
@@ -172,7 +164,6 @@ export const FormularioUsuario: React.FC<Props> = ({
               <input type="email" style={fieldStyle} value={formData.correo_personal} onChange={(e) => actualizarCampo("correo_personal", e.target.value)} required />
             </div>
 
-            {/* ASIGNACIÓN DINÁMICA DE ÁMBITO (ADMIN VS INSTITUCIONES) */}
             {esAdministrador ? (
               <div style={{ gridColumn: "1 / -1" }}>
                 <label style={labelStyle}>Rol Administrado / Ámbito Específico (Opcional)</label>
@@ -205,7 +196,6 @@ export const FormularioUsuario: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* UBICACIÓN */}
         <div style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)", borderRadius: "8px", padding: "20px" }}>
           <h3 style={{ marginTop: 0, marginBottom: "20px", color: "var(--primary)" }}>
             Ubicación Geográfica
@@ -254,7 +244,6 @@ export const FormularioUsuario: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* SECCIÓN 4: DIRECCIÓN DOMICILIO */}
         <div style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)", borderRadius: "8px", padding: "20px" }}>
           <h3 style={{ marginTop: 0, marginBottom: "20px", color: "var(--primary)", fontSize: "16px", fontWeight: "700" }}>
             4. Dirección Domiciliaria del Usuario
@@ -297,7 +286,6 @@ export const FormularioUsuario: React.FC<Props> = ({
 
       </div>
 
-      {/* PIE DE FORMULARIO / ACCIONES */}
       <div
         style={{
           display: "flex",
@@ -309,7 +297,7 @@ export const FormularioUsuario: React.FC<Props> = ({
         }}
       >
         <button
-          type="button" // Evita disparar eventos de submit nativos
+          type="button"
           onClick={() => {
             resetFormulario();
             onCancel();
@@ -328,7 +316,7 @@ export const FormularioUsuario: React.FC<Props> = ({
         </button>
 
         <button
-          type="submit" // Ejecuta el hook de manera controlada y asíncrona
+          type="submit"
           disabled={enviando || !rolSeleccionado}
           style={{
             padding: "10px 20px",
@@ -340,7 +328,7 @@ export const FormularioUsuario: React.FC<Props> = ({
             cursor: !rolSeleccionado ? "not-allowed" : "pointer",
           }}
         >
-          {enviando ? "Guardando..." : "Guardar Registro"}
+          {enviando ? "Guardando..." : isEditing ? "Actualizar Usuario" : "Guardar Registro"}
         </button>
       </div>
     </form>

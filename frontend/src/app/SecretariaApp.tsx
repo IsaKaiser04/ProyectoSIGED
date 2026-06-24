@@ -1,15 +1,9 @@
 // src/app/SecretariaApp.tsx
 import { useState } from "react";
 import { SecretariaLayout } from "../layouts/SecretariaLayout";
-
-// ──────────────────────────────────────────────────────────────────────────
-// Importa aquí los componentes o dashboards reales conforme los vayas construyendo,
-// siguiendo el mismo patrón modular del SIGED:
-//
-// import { DocentesDashboard } from '../features/usuarios/components/DocentesDashboard';
-// import { MatrículasPanel } from '../features/matriculas/components/MatriculasPanel';
-// import { EstudiantesFamiliasPanel } from '../features/usuarios/components/EstudiantesFamiliasPanel';
-// ──────────────────────────────────────────────────────────────────────────
+import { MatriculaDashboard } from "../features/matricula/MatriculaDashboard";
+import { PeriodosMatriculaPage } from "../features/matricula/PeriodosMatriculaPage";
+import { RequisitosConfigPage } from "../features/matricula/RequisitosConfigPage";
 
 const InicioSecretaria = () => (
   <div className="content-heading" style={{ padding: "24px" }}>
@@ -50,8 +44,12 @@ export function SecretariaApp() {
         return <EnDesarrollo titulo="Ficha Estudiantil y Representantes Legales" />;
 
       // Procesos de Matrícula (Acción Crítica - Macroproceso 3)
+      case "periodos-matricula":
+        return <PeriodosMatriculaPage />;
+      case "requisitos-config":
+        return <RequisitosConfigPage />;
       case "control-matriculas":
-        return <EnDesarrollo titulo="Control, Validación y Legalización de Matrículas" />;
+        return <MatriculaDashboard />;
 
       // Soporte Informativo (Modo Lectura)
       case "consulta-plan-estudios":

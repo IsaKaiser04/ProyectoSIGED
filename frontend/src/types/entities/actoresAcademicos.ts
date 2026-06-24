@@ -23,3 +23,13 @@ export interface Administrador extends Usuario {
   institucion?: undefined; // El administrador explícitamente no posee institución
   cuenta?: Cuenta;
 }
+
+export interface Docente extends Usuario {
+  correo_institucional: string | null;
+  especialidad: string;
+  fecha_ingreso: string;            // Formato YYYY-MM-DD
+  tipo_contrato: "TIT" | "INV" | "OCA" | "HON" | "EME"; // 💡 Claves reales de Django
+  tipo_dedicacion: "TC" | "TP" | "MT";                  // 💡 Claves reales de Django
+  anios_experiencia?: number;       
+  institucion_nombre?: string;      
+}

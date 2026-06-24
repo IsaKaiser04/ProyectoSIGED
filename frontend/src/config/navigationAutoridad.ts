@@ -36,19 +36,24 @@ export const NAVIGATION_AUTORIDAD: NavGroup[] = [
     ],
   },
   {
-    groupLabel: "Planificación Temporal",
+    groupLabel: "Gestión de Docentes",
     items: [
-      { view: "anios-lectivos", label: "Años Lectivos", icon: "📅" },
-      { view: "periodos-academicos", label: "Periodos Académicos", icon: "🗂️" },
-      { view: "calendario-matricula", label: "Calendario de Matrícula", icon: "📝" },
+      { view: "gestion-docente", label: "Gestión Docente", icon: "👤" },
     ],
   },
   {
     groupLabel: "Distributivo y Carga Horaria",
     items: [
       { view: "distributivo-docente", label: "Distributivo Docente", icon: "🧑‍🏫" },
-      { view: "pca", label: "Planificación Curricular (PCA)", icon: "📄" },
       { view: "carga-horaria", label: "Carga Horaria Semanal", icon: "⏰" },
+    ],
+  },
+  {
+    groupLabel: "Planificación Temporal",
+    items: [
+      { view: "anios-lectivos", label: "Año Lectivo", icon: "📅" },
+      { view: "periodos-academicos", label: "Período Académico", icon: "⏳" },
+      { view: "jornadas", label: "Jornadas Horarias", icon: "🌅" },
     ],
   },
   {

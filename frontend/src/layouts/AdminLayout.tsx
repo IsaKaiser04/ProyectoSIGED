@@ -1,5 +1,15 @@
 // src/layouts/AdminLayout.tsx
-import React from "react";
+import React, { useState } from "react";
+import { ToastContainer } from "../components/Toast";
+import { UserMenu } from "../components/UserMenu";
+
+const VIEW_DESC: Record<string, string> = {
+  inicio: "Panel de control y resumen del sistema.",
+  instituciones: "Administración de instituciones educativas registradas en el sistema.",
+  usuarios: "Administración de usuarios, perfiles institucionales y control de acceso.",
+  ubicaciones: "Catálogo de ubicaciones geográficas del sistema.",
+  seguridad: "Configuración de seguridad y autenticación.",
+};
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -55,8 +65,18 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   currentView,
   onNavigate,
 }) => {
+  const [collapsed, setCollapsed] = useState(() => {
+    return localStorage.getItem("sidebar_collapsed") === "true";
+  });
+
+  const toggleSidebar = () => {
+    const newState = !collapsed;
+    setCollapsed(newState);
+    localStorage.setItem("sidebar_collapsed", String(newState));
+  };
+
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${collapsed ? "sidebar-collapsed" : ""}`}>
       
       {/* SIDEBAR - Estilo Midnight Navy Corregido */}
       <aside className="sidebar">
@@ -96,34 +116,22 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       <div className="content-layout">
         
         {/* TOPBAR - Cabecera Superior Corporativa */}
-        <header className="topbar">
-          <span className="topbar-title">Panel Administrador</span>
-
-          <div className="topbar-user">
-            <div className="topbar-info">
-              <div className="topbar-name">Luis Maques</div>
-              <div className="topbar-role">Gobernanza Global</div>
-            </div>
-            
-            {/* Avatar Cuadrado Estilizado Fiel a la Captura */}
-            <div 
-              style={{ 
-                width: "40px", 
-                height: "40px", 
-                borderRadius: "8px", 
-                background: "var(--background)", 
-                color: "var(--primary)", 
-                display: "flex", 
-                alignItems: "center", 
-                justifyContent: "center", 
-                fontWeight: 700,
-                fontSize: "14px",
-                border: "1px solid var(--outline-variant)"
-              }}
-            >
-              LM
-            </div>
-          </div>
+        <header className="topbar" style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+          <button 
+            onClick={toggleSidebar} 
+            className="btn-toggle-sidebar" 
+            style={{ 
+              background: "transparent", border: "none", fontSize: "20px", 
+              cursor: "pointer", marginRight: "16px", color: "var(--on-surface)",
+              display: "flex", alignItems: "center" 
+            }}
+          >
+            ☰
+          </button>
+          <span style={{ fontSize: "var(--font-body-sm)", color: "var(--on-surface-variant)", flex: 1 }}>
+            {VIEW_DESC[currentView] || ""}
+          </span>
+          <UserMenu />
         </header>
 
         {/* CONTENEDOR DE PÁGINAS DINÁMICAS */}
@@ -132,6 +140,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         </main>
       </div>
 
+      <ToastContainer />
     </div>
   );
 };

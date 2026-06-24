@@ -1,34 +1,45 @@
 // src/app/AppRouter.tsx
 //
-// Punto de entrada raíz de la aplicación. Decide qué panel de rol se monta.
-//
-// HOY (sin login): usa RoleSelector para elegir manualmente.
-// CUANDO HAYA LOGIN: este archivo es el único que se modifica — se reemplaza
-// el estado local `rolActivo` por el rol que venga del token/sesión del
-// backend. AdminApp, AutoridadApp y SecretariaApp no cambian en absoluto.
+// Punto de entrada raíz de la aplicación.
+// Decide si mostrar el login o el panel del rol autenticado.
 
-import { useState } from "react";
+import { useAuth } from "../features/autenticacion/context/AuthContext";
+import { LoginPage } from "../features/autenticacion/pages/LoginPage";
 import { AdminApp } from "./AdminApp";
 import { AutoridadApp } from "./AutoridadApp";
-import { SecretariaApp } from "./SecretariaApp"; // ──► Importamos tu nueva app de secretaría
-import { RoleSelector, RolDisponible } from "./RoleSelector";
+import { SecretariaApp } from "./SecretariaApp";
 import { DeceApp } from "./DeceApp";
 import { DocenteApp } from "./DocenteApp";
 import { EstudianteApp } from "./EstudianteApp";
 
 export function AppRouter() {
-  const [rolActivo, setRolActivo] = useState<RolDisponible>(null);
+  const { isAuthenticated, isLoading, rolFrontend, logout, usuario } = useAuth();
 
-  // Sin rol elegido todavía → mostrar selector
-  if (!rolActivo) {
-    return <RoleSelector onSelectRole={setRolActivo} />;
+  if (isLoading) {
+    return (
+      <div
+        style={{
+          height: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "var(--surface)",
+          color: "var(--on-surface-variant)",
+          fontSize: "16px",
+        }}
+      >
+        Cargando...
+      </div>
+    );
   }
 
-  // Botón flotante para volver al selector sin recargar el navegador
-  // (útil en desarrollo; se elimina cuando haya logout real)
-  const VolverASelector = () => (
+  if (!isAuthenticated || !rolFrontend) {
+    return <LoginPage />;
+  }
+
+  const BotonLogout = () => (
     <button
-      onClick={() => setRolActivo(null)}
+      onClick={logout}
       style={{
         position: "fixed",
         bottom: "16px",
@@ -36,27 +47,28 @@ export function AppRouter() {
         zIndex: 99999,
         padding: "8px 16px",
         borderRadius: "8px",
-        border: "1px solid var(--outline-variant)",
-        background: "var(--surface-container-lowest)",
-        color: "var(--on-surface-variant)",
+        border: "1px solid #ef4444",
+        background: "white",
+        color: "#ef4444",
         fontSize: "12px",
         cursor: "pointer",
         boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
       }}
+      title={`${usuario?.correo_institucional} — Cerrar sesión`}
     >
-      ↩ Cambiar de rol (dev)
+      Cerrar sesión
     </button>
   );
 
   return (
     <>
-      {rolActivo === "admin" && <AdminApp />}
-      {rolActivo === "autoridad" && <AutoridadApp />}
-      {rolActivo === "secretaria" && <SecretariaApp />} {/* ──► Renderiza el módulo operativo de secretaría */}
-      {rolActivo === "dece" && <DeceApp />} {/* ──► Renderiza el módulo operativo de DECE */}
-      {rolActivo === "docente" && <DocenteApp />} {/* ──► Renderiza el módulo operativo de docente */}
-      {rolActivo === "estudiante" && <EstudianteApp />} {/* ──► Renderiza el módulo operativo de estudiante */}
-      <VolverASelector />
+      {rolFrontend === "admin" && <AdminApp />}
+      {rolFrontend === "autoridad" && <AutoridadApp />}
+      {rolFrontend === "secretaria" && <SecretariaApp />}
+      {rolFrontend === "dece" && <DeceApp />}
+      {rolFrontend === "docente" && <DocenteApp />}
+      {rolFrontend === "estudiante" && <EstudianteApp />}
+      <BotonLogout />
     </>
   );
 }

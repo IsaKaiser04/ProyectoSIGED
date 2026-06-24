@@ -1,7 +1,6 @@
-// src/features/usuarios/hooks/useFormularioUsuario.ts
-
 import { useEffect, useMemo, useState } from "react";
-import { apiGet, apiPost, buildModulePath } from "../../../services/apiClient";
+import { apiGet, apiPost, apiPatch, buildModulePath } from "../../../services/apiClient";
+import { showSuccess, showError } from "../../../components/Toast";
 
 import {
   Pais,
@@ -10,35 +9,66 @@ import {
   Parroquia,
 } from "../../../types/entities/ubicacion";
 
-export function useFormularioUsuario(onSaveSuccess?: () => void) {
-  const [formData, setFormData] = useState({
-    nombres: "",
-    apellidos: "",
-    identificacion: "",
-    tipo_identificacion: "CEDULA",
-    fecha_nacimiento: "",
-    celular: "",
-    correo_personal: "",
-    rol_administrado: "", // Solo para ADMINISTRADOR
-    institucion: 0,       // Solo para Autoridades, Secretarias, DECE
+interface UsuarioEditData {
+  id: number;
+  nombres: string;
+  apellidos: string;
+  identificacion: string;
+  tipo_identificacion?: string;
+  fecha_nacimiento?: string;
+  celular?: string;
+  correo_personal?: string;
+  rol_administrado?: string;
+  institucion?: number | null;
+  direccion_domicilio?: {
+    calle_principal?: string;
+    calle_secundaria?: string;
+    numero_casa?: string;
+    referencia?: string;
+    parroquia?: number;
+  };
+  cuenta: {
+    id: number;
+    nombre_usuario: string;
+    correo_institucional: string;
+    rol: string;
+    es_activo?: boolean;
+  };
+}
+
+export function useFormularioUsuario(
+  onSaveSuccess?: () => void,
+  usuarioEdit?: UsuarioEditData | null
+) {
+  const isEditing = !!usuarioEdit;
+
+  const initialFormData = () => ({
+    nombres: usuarioEdit?.nombres ?? "",
+    apellidos: usuarioEdit?.apellidos ?? "",
+    identificacion: usuarioEdit?.identificacion ?? "",
+    tipo_identificacion: usuarioEdit?.tipo_identificacion ?? "CEDULA",
+    fecha_nacimiento: usuarioEdit?.fecha_nacimiento ?? "",
+    celular: usuarioEdit?.celular ?? "",
+    correo_personal: usuarioEdit?.correo_personal ?? "",
+    rol_administrado: usuarioEdit?.rol_administrado ?? "",
+    institucion: usuarioEdit?.institucion ?? 0,
     direccion_domicilio: {
-      calle_principal: "",
-      calle_secundaria: "",
-      numero_casa: "",
-      referencia: "",
-      parroquia: 0
+      calle_principal: usuarioEdit?.direccion_domicilio?.calle_principal ?? "",
+      calle_secundaria: usuarioEdit?.direccion_domicilio?.calle_secundaria ?? "",
+      numero_casa: usuarioEdit?.direccion_domicilio?.numero_casa ?? "",
+      referencia: usuarioEdit?.direccion_domicilio?.referencia ?? "",
+      parroquia: usuarioEdit?.direccion_domicilio?.parroquia ?? 0
     },
     cuenta: {
-      nombre_usuario: "",
+      nombre_usuario: usuarioEdit?.cuenta?.nombre_usuario ?? "",
       contrasena: "",
-      correo_institucional: "",
-      rol: "" // Valores esperados por la UI: "ADMINISTRADOR", "AUTORIDAD", "SECRETARIA", "DECE"
+      correo_institucional: usuarioEdit?.cuenta?.correo_institucional ?? "",
+      rol: usuarioEdit?.cuenta?.rol ?? ""
     }
   });
 
-  // =====================================================
-  // ESTADOS PARA CATÁLOGOS Y CASCADA DOMICILIARIA
-  // =====================================================
+  const [formData, setFormData] = useState(initialFormData());
+
   const [paises, setPaises] = useState<Pais[]>([]);
   const [provincias, setProvincias] = useState<Provincia[]>([]);
   const [cantones, setCantones] = useState<Canton[]>([]);
@@ -47,11 +77,20 @@ export function useFormularioUsuario(onSaveSuccess?: () => void) {
   const [paisId, setPaisId] = useState("");
   const [provinciaId, setProvinciaId] = useState("");
   const [cantonId, setCantonId] = useState("");
-  const [parroquiaId, setParroquiaId] = useState("");
+  const [parroquiaId, setParroquiaId] = useState(
+    usuarioEdit?.direccion_domicilio?.parroquia
+      ? String(usuarioEdit.direccion_domicilio.parroquia)
+      : ""
+  );
 
   const [enviando, setEnviando] = useState(false);
 
-  // Cargar catálogos completos al montar el formulario
+  useEffect(() => {
+    if (isEditing) {
+      setFormData(initialFormData());
+    }
+  }, [usuarioEdit]);
+
   useEffect(() => {
     const cargarUbicaciones = async () => {
       try {
@@ -66,16 +105,30 @@ export function useFormularioUsuario(onSaveSuccess?: () => void) {
         setProvincias(provinciasData);
         setCantones(cantonesData);
         setParroquias(parroquiasData);
+
+        if (isEditing && usuarioEdit?.direccion_domicilio?.parroquia) {
+          const parrId = usuarioEdit.direccion_domicilio.parroquia;
+          const parr = parroquiasData.find(p => p.id === parrId);
+          if (parr) {
+            const cant = cantonesData.find(c => c.id === parr.canton);
+            if (cant) {
+              const cantProvId = (cant as any).provincia || cant.provincia_detalle?.id;
+              const prov = provinciasData.find(p => p.id === cantProvId);
+              if (prov) {
+                setPaisId(String(prov.pais_detalle?.id ?? ""));
+                setProvinciaId(String(prov.id));
+                setCantonId(String(cant.id));
+              }
+            }
+          }
+        }
       } catch (error) {
-        console.error("Error cargando catálogos geográficos en usuario:", error);
+        console.error("Error cargando catálogos geográficos:", error);
       }
     };
     cargarUbicaciones();
-  }, []);
+  }, [usuarioEdit]);
 
-  // =====================================================
-  // FILTROS REACTIVOS (useMemo)
-  // =====================================================
   const provinciasFiltradas = useMemo(() => {
     if (!paisId) return [];
     return provincias.filter((p) => String(p.pais_detalle?.id) === paisId);
@@ -91,7 +144,6 @@ export function useFormularioUsuario(onSaveSuccess?: () => void) {
     return parroquias.filter((p) => String(p.canton) === cantonId);
   }, [cantonId, parroquias]);
 
-  // Sincronizar reseteos de cascada cuando el nodo superior cambia
   useEffect(() => {
     setProvinciaId("");
     setCantonId("");
@@ -110,16 +162,12 @@ export function useFormularioUsuario(onSaveSuccess?: () => void) {
     actualizarDireccion("parroquia", 0);
   }, [cantonId]);
 
-  // Sincronizar el ID de la parroquia seleccionado en la cascada hacia el formData
   useEffect(() => {
     if (parroquiaId) {
       actualizarDireccion("parroquia", Number(parroquiaId));
     }
   }, [parroquiaId]);
 
-  // =====================================================
-  // MANEJADORES DE ESTADO MUTABLE
-  // =====================================================
   const actualizarCampo = (campo: string, valor: any) => {
     setFormData(prev => ({ ...prev, [campo]: valor }));
   };
@@ -158,94 +206,93 @@ export function useFormularioUsuario(onSaveSuccess?: () => void) {
     setParroquiaId("");
   };
 
-  // =====================================================
-  // GUARDAR REGISTROS (RUTEO DINÁMICO POR ROL Y REGLAS DE SERIALIZACIÓN)
-  // =====================================================
+  const buildPayload = () => {
+    const rolSeleccionado = formData.cuenta.rol;
+
+    const payload: any = {
+      nombres: formData.nombres,
+      apellidos: formData.apellidos,
+      identificacion: formData.identificacion,
+      tipo_identificacion: formData.tipo_identificacion,
+      fecha_nacimiento: formData.fecha_nacimiento,
+      celular: formData.celular || null,
+      correo_personal: formData.correo_personal,
+      direccion_domicilio: {
+        calle_principal: formData.direccion_domicilio.calle_principal,
+        calle_secundaria: formData.direccion_domicilio.calle_secundaria,
+        numero_casa: formData.direccion_domicilio.numero_casa,
+        referencia: formData.direccion_domicilio.referencia,
+        parroquia: Number(parroquiaId)
+      },
+      cuenta: {
+        nombre_usuario: formData.cuenta.nombre_usuario,
+        correo_institucional: formData.cuenta.correo_institucional,
+        rol: rolSeleccionado
+      }
+    };
+
+    if (formData.cuenta.contrasena) {
+      payload.cuenta.contrasena = formData.cuenta.contrasena;
+    }
+
+    if (rolSeleccionado === "ADMINISTRADOR") {
+      payload.rol_administrado = formData.rol_administrado || null;
+    } else {
+      payload.institucion = Number(formData.institucion);
+    }
+
+    return payload;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const rolSeleccionado = formData.cuenta.rol;
 
     if (!rolSeleccionado) {
-      alert("Por favor, seleccione un rol para el usuario.");
+      showError("Por favor, seleccione un rol para el usuario.");
       return;
-    }
-
-    let endpointPath = "";
-    switch (rolSeleccionado) {
-      case "ADMINISTRADOR":
-        endpointPath = "administradores";
-        break;
-      case "AUTORIDAD":
-        endpointPath = "autoridades";
-        break;
-      case "SECRETARIA":
-        endpointPath = "secretarias";
-        break;
-      case "DECE":
-        endpointPath = "deces";
-        break;
-      default:
-        alert("Rol no soportado en este formulario.");
-        return;
     }
 
     try {
       setEnviando(true);
+      const payload = buildPayload();
 
-      // ──► ARMAR EL PAYLOAD RESPETANDO LA VALIDACIÓN ESTRICTA DE DJANGO
-      const payload: any = {
-        nombres: formData.nombres,
-        apellidos: formData.apellidos,
-        identificacion: formData.identificacion,
-        tipo_identificacion: formData.tipo_identificacion,
-        fecha_nacimiento: formData.fecha_nacimiento,
-        celular: formData.celular || null,
-        correo_personal: formData.correo_personal,
-
-        // direccion_domicilio = DireccionSerializer(required=False) en el backend:
-        // se crea una Direccion NUEVA con estos datos en cada registro.
-        direccion_domicilio: {
-          calle_principal: formData.direccion_domicilio.calle_principal,
-          calle_secundaria: formData.direccion_domicilio.calle_secundaria,
-          numero_casa: formData.direccion_domicilio.numero_casa,
-          referencia: formData.direccion_domicilio.referencia,
-          parroquia: Number(parroquiaId)
-        },
-
-        cuenta: {
-          nombre_usuario: formData.cuenta.nombre_usuario,
-          contrasena: formData.cuenta.contrasena,
-          correo_institucional: formData.cuenta.correo_institucional,
-          rol: rolSeleccionado
-        }
-      };
-
-      // institucion = PrimaryKeyRelatedField en el backend: solo el ID (número).
-      if (rolSeleccionado === "ADMINISTRADOR") {
-        payload.rol_administrado = formData.rol_administrado || null;
+      if (isEditing && usuarioEdit) {
+        await apiPatch(
+          buildModulePath("actoresAcademicos", rolToEndpoint(rolSeleccionado)) + `${usuarioEdit.id}/`,
+          payload
+        );
+        showSuccess("Usuario actualizado correctamente.");
       } else {
-        payload.institucion = Number(formData.institucion);
+        await apiPost(
+          buildModulePath("actoresAcademicos", rolToEndpoint(rolSeleccionado)),
+          payload
+        );
+        showSuccess(`${rolSeleccionado} registrado correctamente.`);
       }
 
-      console.log("Payload enviado a Django:", payload);
-
-      await apiPost(
-        buildModulePath("actoresAcademicos", endpointPath),
-        payload
-      );
-
-      alert(`${rolSeleccionado} registrado correctamente.`);
       resetFormulario();
       onSaveSuccess?.();
 
-    } catch (error) {
-      console.error("Error al registrar usuario:", error);
-      alert("Error al registrar usuario en el servidor.");
+    } catch (error: any) {
+      console.error("Error al guardar usuario:", error);
+      const msg = error?.data ? JSON.stringify(error.data) : "Error al guardar usuario en el servidor.";
+      showError(msg);
     } finally {
       setEnviando(false);
     }
   };
+
+  function rolToEndpoint(rol: string): string {
+    switch (rol) {
+      case "ADMINISTRADOR": return "administradores";
+      case "AUTORIDAD": return "autoridades";
+      case "SECRETARIA": return "secretarias";
+      case "DECE": return "deces";
+      default: return "";
+    }
+  }
 
   return {
     formData,
@@ -269,5 +316,6 @@ export function useFormularioUsuario(onSaveSuccess?: () => void) {
     },
     enviando,
     handleSubmit,
+    isEditing,
   };
 }
