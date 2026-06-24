@@ -49,29 +49,6 @@ const btnSecundario: React.CSSProperties = {
   fontSize: "var(--font-body-sm)"
 };
 
-const btnAccion: React.CSSProperties = {
-  background: "#2563eb",
-  color: "#fff",
-  border: "none",
-  borderRadius: 6,
-  padding: "6px 14px",
-  cursor: "pointer",
-  fontSize: 12,
-  fontWeight: 600
-};
-
-const btnEliminar: React.CSSProperties = {
-  background: "#dc2626",
-  color: "#fff",
-  border: "none",
-  borderRadius: 6,
-  padding: "6px 14px",
-  cursor: "pointer",
-  fontSize: 12,
-  fontWeight: 600,
-  marginLeft: 8
-};
-
 const container: React.CSSProperties = {
   background: "var(--surface-container-lowest)",
   border: "1px solid var(--outline-variant)",
@@ -134,6 +111,7 @@ export const GestionJornadas: React.FC = () => {
   const [editando, setEditando] = useState<any | null>(null);
   const [notif, setNotif] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const [form, setForm] = useState({ nombre: "", hora_inicio: "", hora_fin: "" });
+  const [errorForm, setErrorForm] = useState("");
 
   const show = (msg: string, type: "success" | "error") => {
     setNotif({ msg, type });
@@ -165,6 +143,7 @@ export const GestionJornadas: React.FC = () => {
   const abrirCrear = () => {
     setEditando(null);
     setForm({ nombre: "", hora_inicio: "", hora_fin: "" });
+    setErrorForm("");
     setShowForm(true);
   };
 
@@ -175,12 +154,15 @@ export const GestionJornadas: React.FC = () => {
       hora_inicio: j.hora_inicio,
       hora_fin: j.hora_fin
     });
+    setErrorForm("");
     setShowForm(true);
   };
 
   const handleGuardar = async () => {
+    setErrorForm("");
+
     if (!form.nombre || !form.hora_inicio || !form.hora_fin) {
-      show("Todos los campos son obligatorios", "error");
+      setErrorForm("Debe completar todos los datos del formulario antes de guardar.");
       return;
     }
     if (form.hora_inicio >= form.hora_fin) {
@@ -282,14 +264,12 @@ export const GestionJornadas: React.FC = () => {
                   <td style={{ ...td, fontWeight: 600 }}>{j.nombre}</td>
                   <td style={td}>{j.hora_inicio}</td>
                   <td style={td}>{j.hora_fin}</td>
-                  <td style={td}>
-                    <button onClick={() => abrirEditar(j)} style={btnAccion}>
-                      Editar
-                    </button>
-                    <button onClick={() => handleEliminar(j.id)} style={btnEliminar}>
-                      Eliminar
-                    </button>
-                  </td>
+                   <td style={td}>
+                     <button type="button" onClick={() => abrirEditar(j)} title="Editar"
+                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>✏️</button>
+                    <button type="button" onClick={() => handleEliminar(j.id)} title="Eliminar"
+                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>🔴</button>
+                   </td>
                 </tr>
               ))
             )}
@@ -331,6 +311,23 @@ export const GestionJornadas: React.FC = () => {
                 />
               </div>
             </div>
+            {errorForm && (
+              <div
+                style={{
+                  padding: "12px 16px",
+                  marginBottom: 16,
+                  borderRadius: 8,
+                  background: "#fef2f2",
+                  color: "#dc2626",
+                  fontSize: "14px",
+                  fontWeight: 500,
+                  border: "1px solid #fecaca",
+                  textAlign: "center",
+                }}
+              >
+                {errorForm}
+              </div>
+            )}
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
               <button onClick={() => setShowForm(false)} style={btnSecundario}>
                 Cancelar

@@ -183,8 +183,8 @@ const GestionAnioLectivo: React.FC = () => {
                   </button>
                 </td>
                 <td style={td}>
-                  <button onClick={() => abrirEditar(a)} title="Editar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '4px' }}>✏️</button>
-                  <button onClick={() => handleEliminar(a.id)} title="Eliminar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '4px' }}>🗑️</button>
+                  <button type="button" onClick={() => abrirEditar(a)} title="Editar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>✏️</button>
+                  <button type="button" onClick={() => handleEliminar(a.id)} title="Eliminar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>🔴</button>
                 </td>
               </tr>
             ))}

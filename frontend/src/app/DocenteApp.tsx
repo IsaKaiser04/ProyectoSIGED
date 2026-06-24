@@ -8,6 +8,8 @@ import { DocenteLayout } from "../layouts/DocenteLayout";
 // import { NotasRegistroPanel } from '../features/evaluacion/components/NotasRegistroPanel';
 import { VinculacionCurricularPage } from "../features/vinculacion-curricular";
 import { AsistenciaPage } from "../features/asistencia";
+import { PcaHorariosDocente } from "../features/planificacion-curricular/components/PcaHorariosDocente";
+import { RegistroNotasBase } from "../features/evaluacion/RegistroNotasBase";
 // ──────────────────────────────────────────────────────────────────────────
 
 const InicioDocente = () => (
@@ -51,13 +53,13 @@ export function DocenteApp() {
 
       // Evaluación y Seguimiento
       case "registro-notas":
-        return <EnDesarrollo titulo="Cuadro de Calificaciones y Promedios Parciales/Finales" />;
+        return <RegistroNotasBase />;
       case "control-asistencia":
         return <AsistenciaPage />;
 
       // Planificación (Lectura)
       case "pca-horarios":
-        return <EnDesarrollo titulo="Consulta de Planificación Curricular Anual (PCA) y Carga Horaria" />;
+        return <PcaHorariosDocente />;
 
       // Vinculación Curricular — Subida de PCA
       case "vinculacion-curricular":

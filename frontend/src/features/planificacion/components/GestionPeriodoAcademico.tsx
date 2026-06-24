@@ -261,8 +261,8 @@ const GestionPeriodoAcademico: React.FC = () => {
                 <td style={td}>{p.fechaInicio}</td>
                 <td style={td}>{p.fechaFin}</td>
                 <td style={td}>
-                  <button onClick={() => abrirEditar(p)} style={btnAccion}>Editar</button>
-                  <button onClick={() => handleEliminar(p.id)} style={btnEliminar}>Eliminar</button>
+                  <button type="button" onClick={() => abrirEditar(p)} title="Editar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>✏️</button>
+                  <button type="button" onClick={() => handleEliminar(p.id)} title="Eliminar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>🔴</button>
                 </td>
               </tr>
             ))}

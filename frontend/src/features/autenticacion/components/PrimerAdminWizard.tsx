@@ -30,6 +30,11 @@ export function PrimerAdminWizard({ onCompletado }: Props) {
     setError("");
     setExito("");
 
+    if (tipoIdentificacion === "CEDULA" && (!/^\d{10}$/.test(identificacion))) {
+      setError("La cédula debe tener exactamente 10 dígitos numéricos.");
+      return;
+    }
+
     if (contrasena !== confirmarContrasena) {
       setError("Las contraseñas no coinciden.");
       return;

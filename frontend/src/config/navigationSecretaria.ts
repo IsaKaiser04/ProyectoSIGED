@@ -33,7 +33,7 @@ export const NAVIGATION_SECRETARIA: NavGroup[] = [
   {
     groupLabel: "Población Estudiantil",
     items: [
-      { view: "estudiantes-representantes", label: "Estudiantes y Familias", icon: "👥" },
+      { view: "estudiantes-representantes", label: "Estudiantes Registrados", icon: "👥" },
     ],
   },
   {

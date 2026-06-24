@@ -29,7 +29,7 @@ function MatriculaDashboard() {
   const paraleloMap = Object.fromEntries(paralelos.map(p => [p.id, p]));
 
   const matriculasFiltradas = matriculas.filter(m =>
-    m.estado !== 'Legalizada' && (!filtroEstado || m.estado === filtroEstado)
+    !filtroEstado ? m.estado !== 'Legalizada' : m.estado === filtroEstado
   );
 
   const handleRevisar = (id: number) => {

@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from "react";
-import { apiGet, apiPost } from "../../../services/apiClient";
+import { apiGet, apiPost, apiUpload } from "../../../services/apiClient";
 import { MatriculaRequisito } from "../../../types/entities/matricula";
 import { obtenerPeriodosMatricula } from "../services/matriculaApi";
 
@@ -23,6 +23,8 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
   // Requisitos dinámicos del backend
   const [requisitosDelSistema, setRequisitosDelSistema] = useState<MatriculaRequisito[]>([]);
   const [usarRequisitosMock, setUsarRequisitosMock] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const [formData, setFormData] = useState<any>({
     representante_nombres: "",
@@ -148,7 +150,7 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
           formDataPdf.append("matricula_requisito", reqIdStr);
           formDataPdf.append("archivo", archivo as File);
           try {
-            await apiPost("/matricula/requisitos/", formDataPdf);
+            await apiUpload("/matricula/requisitos/", formDataPdf);
           } catch (errorPdf) {
             console.error("Error al subir PDF, continuando...", errorPdf);
           }
@@ -156,12 +158,11 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
       }
 
       if (usarRequisitosMock) {
-        alert("Solicitud creada. NOTA: Los PDFs se guardarán correctamente cuando se configuren los requisitos en el sistema.");
+        setSuccessMessage("Solicitud creada. Los PDFs se guardarán correctamente cuando se configuren los requisitos en el sistema.");
       } else {
-        alert("Solicitud de matrícula y documentos creados correctamente.");
+        setSuccessMessage("Solicitud de matrícula y documentos creados correctamente.");
       }
-      
-      onSaveSuccess(matriculaCreada);
+      setShowSuccessModal(true);
     } catch (error: any) {
       console.error("Error al crear matrícula:", error);
       alert("Error al registrar la matrícula. Verifique la conexión con el servidor.");
@@ -325,6 +326,43 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
           )}
         </div>
       </div>
+
+      {/* Modal de confirmación de registro de matrícula */}
+      {showSuccessModal && (
+        <div
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
+            display: "flex", justifyContent: "center", alignItems: "center", zIndex: 9999,
+          }}
+          onClick={() => { setShowSuccessModal(false); onSaveSuccess(); }}
+        >
+          <div
+            style={{
+              background: "#fff", borderRadius: 16, padding: 32, width: 420, maxWidth: "90vw",
+              textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+            <h3 style={{ margin: "0 0 8px", color: "#166534", fontSize: 20 }}>
+              ¡Solicitud Registrada!
+            </h3>
+            <p style={{ fontSize: 14, color: "var(--on-surface-variant)", lineHeight: 1.5, margin: "0 0 24px" }}>
+              {successMessage}
+            </p>
+            <button
+              onClick={() => { setShowSuccessModal(false); onSaveSuccess(); }}
+              style={{
+                width: "100%", padding: "12px", borderRadius: 8, border: "none",
+                background: "var(--secondary)", color: "#fff", fontSize: 15, fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

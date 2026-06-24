@@ -63,6 +63,7 @@ const SubPlanes: React.FC = () => {
   const [editando, setEditando] = useState<PlanEstudio | null>(null);
   const [notif, setNotif] = useState<{msg: string; type: 'success' | 'error'} | null>(null);
   const [form, setForm] = useState({ nombre: '', esActivo: true, descripcion: '', duracionAnios: 1 });
+  const [errorForm, setErrorForm] = useState("");
   const show = (msg: string, type: 'success' | 'error') => { setNotif({ msg, type }); setTimeout(() => setNotif(null), 4000); };
 
   const cargar = async () => {
@@ -75,6 +76,7 @@ const SubPlanes: React.FC = () => {
   const abrirCrear = () => {
     setEditando(null);
     setForm({ nombre: '', esActivo: true, descripcion: '', duracionAnios: 1 });
+    setErrorForm("");
     setShowForm(true);
   };
 
@@ -86,10 +88,12 @@ const SubPlanes: React.FC = () => {
       descripcion: p.descripcion || '',
       duracionAnios: p.duracionAnios,
     });
+    setErrorForm("");
     setShowForm(true);
   };
 
   const handleGuardar = async () => {
+    setErrorForm("");
     try {
       if (editando) {
         await planificacionApi.updatePlanEstudio(editando.id, form);
@@ -102,7 +106,15 @@ const SubPlanes: React.FC = () => {
       setEditando(null);
       setForm({ nombre: '', esActivo: true, descripcion: '', duracionAnios: 1 });
       await cargar();
-    } catch { show(editando ? 'Error al actualizar plan de estudio' : 'Error al crear plan de estudio', 'error'); }
+    } catch (e: any) { setErrorForm(e?.data ? (typeof e.data === 'string' ? e.data : JSON.stringify(e.data)) : (e?.message || 'Error al guardar')); }
+  };
+
+  const handleToggleActivo = async (item: PlanEstudio) => {
+    try {
+      await planificacionApi.updatePlanEstudio(item.id, { esActivo: !item.esActivo });
+      show(item.esActivo ? 'Plan de estudio desactivado exitosamente' : 'Plan de estudio activado exitosamente', 'success');
+      await cargar();
+    } catch { show('Error al cambiar estado del plan de estudio', 'error'); }
   };
 
   const handleEliminar = async (id: number) => {
@@ -150,8 +162,8 @@ const SubPlanes: React.FC = () => {
                 </td>
                 <td style={tdStyle}>{d.descripcion || '—'}</td>
                 <td style={tdStyle}>
-                  <button onClick={() => abrirEditar(d)} title="Editar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '4px' }}>✏️</button>
-                  <button onClick={() => handleEliminar(d.id)} title="Eliminar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '4px' }}>🗑️</button>
+                  <button type="button" onClick={() => abrirEditar(d)} title="Editar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>✏️</button>
+                  <button type="button" onClick={() => handleToggleActivo(d)} title={d.esActivo ? 'Desactivar' : 'Activar'} style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>{d.esActivo ? '🔴' : '🟢'}</button>
                 </td>
               </tr>
             ))}
@@ -186,6 +198,11 @@ const SubPlanes: React.FC = () => {
                 <span style={{ fontSize: 'var(--font-body-sm)' }}>Activo</span>
               </label>
             </div>
+            {errorForm && (
+              <div style={{ padding: '12px 16px', marginBottom: 16, borderRadius: 8, background: '#fef2f2', color: '#dc2626', fontSize: '14px', fontWeight: 500, border: '1px solid #fecaca', textAlign: 'center' }}>
+                {errorForm}
+              </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
               <button onClick={() => setShowForm(false)} style={btnSecundario}>Cancelar</button>
               <button onClick={handleGuardar} style={btnPrimario}>Guardar</button>
@@ -204,6 +221,7 @@ const SubNiveles: React.FC = () => {
   const [editando, setEditando] = useState<EducacionNivel | null>(null);
   const [notif, setNotif] = useState<{msg: string; type: 'success' | 'error'} | null>(null);
   const [form, setForm] = useState({ nombre: '', codigo: '', periodoPedagogicoMinutos: 0, periodoPedagogicoSemanaMinimo: 0 });
+  const [errorForm, setErrorForm] = useState("");
   const show = (msg: string, type: 'success' | 'error') => { setNotif({ msg, type }); setTimeout(() => setNotif(null), 4000); };
 
   const cargar = async () => {
@@ -216,6 +234,7 @@ const SubNiveles: React.FC = () => {
   const abrirCrear = () => {
     setEditando(null);
     setForm({ nombre: '', codigo: '', periodoPedagogicoMinutos: 0, periodoPedagogicoSemanaMinimo: 0 });
+    setErrorForm("");
     setShowForm(true);
   };
 
@@ -227,10 +246,12 @@ const SubNiveles: React.FC = () => {
       periodoPedagogicoMinutos: n.periodoPedagogicoMinutos,
       periodoPedagogicoSemanaMinimo: n.periodoPedagogicoSemanaMinimo,
     });
+    setErrorForm("");
     setShowForm(true);
   };
 
   const handleGuardar = async () => {
+    setErrorForm("");
     try {
       if (editando) {
         await planificacionApi.updateNivel(editando.id, form);
@@ -243,7 +264,7 @@ const SubNiveles: React.FC = () => {
       setEditando(null);
       setForm({ nombre: '', codigo: '', periodoPedagogicoMinutos: 0, periodoPedagogicoSemanaMinimo: 0 });
       await cargar();
-    } catch { show(editando ? 'Error al actualizar nivel' : 'Error al crear nivel', 'error'); }
+    } catch (e: any) { setErrorForm(e?.data ? (typeof e.data === 'string' ? e.data : JSON.stringify(e.data)) : (e?.message || 'Error al guardar')); }
   };
 
   const handleEliminar = async (id: number) => {
@@ -285,8 +306,8 @@ const SubNiveles: React.FC = () => {
                 <td style={tdStyle}>{d.periodoPedagogicoSemanaMinimo}</td>
                 <td style={tdStyle}>{d.periodoPedagogicoMinutos}</td>
                 <td style={tdStyle}>
-                  <button onClick={() => abrirEditar(d)} title="Editar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '4px' }}>✏️</button>
-                  <button onClick={() => handleEliminar(d.id)} title="Eliminar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '4px' }}>🗑️</button>
+                  <button type="button" onClick={() => abrirEditar(d)} title="Editar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>✏️</button>
+                  <button type="button" onClick={() => handleEliminar(d.id)} title="Eliminar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>🔴</button>
                 </td>
               </tr>
             ))}
@@ -324,6 +345,11 @@ const SubNiveles: React.FC = () => {
               </div>
 
             </div>
+            {errorForm && (
+              <div style={{ padding: '12px 16px', marginBottom: 16, borderRadius: 8, background: '#fef2f2', color: '#dc2626', fontSize: '14px', fontWeight: 500, border: '1px solid #fecaca', textAlign: 'center' }}>
+                {errorForm}
+              </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
               <button onClick={() => setShowForm(false)} style={btnSecundario}>Cancelar</button>
               <button onClick={handleGuardar} style={btnPrimario}>Guardar</button>
@@ -343,6 +369,7 @@ const SubSubNiveles: React.FC = () => {
   const [editando, setEditando] = useState<EducacionSubNivel | null>(null);
   const [notif, setNotif] = useState<{msg: string; type: 'success' | 'error'} | null>(null);
   const [form, setForm] = useState({ nombre: '', codigo: '', periodoPedagogicoSemanaMinimo: 0, nivel: 0 });
+  const [errorForm, setErrorForm] = useState("");
   const show = (msg: string, type: 'success' | 'error') => { setNotif({ msg, type }); setTimeout(() => setNotif(null), 4000); };
 
   const cargar = async () => {
@@ -361,6 +388,7 @@ const SubSubNiveles: React.FC = () => {
   const abrirCrear = () => {
     setEditando(null);
     setForm({ nombre: '', codigo: '', periodoPedagogicoSemanaMinimo: 0, nivel: 0 });
+    setErrorForm("");
     setShowForm(true);
   };
 
@@ -372,11 +400,13 @@ const SubSubNiveles: React.FC = () => {
       periodoPedagogicoSemanaMinimo: s.periodoPedagogicoSemanaMinimo,
       nivel: s.nivel,
     });
+    setErrorForm("");
     setShowForm(true);
   };
 
   const handleGuardar = async () => {
-    if (!form.nivel) { show('Seleccione un nivel', 'error'); return; }
+    setErrorForm("");
+    if (!form.nivel) { setErrorForm('Seleccione un nivel'); return; }
     try {
       if (editando) {
         await planificacionApi.updateSubNivel(editando.id, form);
@@ -389,7 +419,7 @@ const SubSubNiveles: React.FC = () => {
       setEditando(null);
       setForm({ nombre: '', codigo: '', periodoPedagogicoSemanaMinimo: 0, nivel: 0 });
       await cargar();
-    } catch { show(editando ? 'Error al actualizar subnivel' : 'Error al crear subnivel', 'error'); }
+    } catch (e: any) { setErrorForm(e?.data ? (typeof e.data === 'string' ? e.data : JSON.stringify(e.data)) : (e?.message || 'Error al guardar')); }
   };
 
   const handleEliminar = async (id: number) => {
@@ -417,7 +447,7 @@ const SubSubNiveles: React.FC = () => {
           <thead><tr>
             <th style={thStyle}>Código</th>
             <th style={thStyle}>Nombre</th>
-            <th style={thStyle}>Min/semana</th>
+            <th style={thStyle}>Periodos/Semana</th>
             <th style={thStyle}>Nivel</th>
             <th style={thStyle}>Acciones</th>
           </tr></thead>
@@ -433,8 +463,8 @@ const SubSubNiveles: React.FC = () => {
                 <td style={tdStyle}>{d.periodoPedagogicoSemanaMinimo}</td>
                 <td style={tdStyle}>{getNivelNombre(d.nivel)}</td>
                 <td style={tdStyle}>
-                  <button onClick={() => abrirEditar(d)} title="Editar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '4px' }}>✏️</button>
-                  <button onClick={() => handleEliminar(d.id)} title="Eliminar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '4px' }}>🗑️</button>
+                  <button type="button" onClick={() => abrirEditar(d)} title="Editar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>✏️</button>
+                  <button type="button" onClick={() => handleEliminar(d.id)} title="Eliminar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>🔴</button>
                 </td>
               </tr>
             ))}
@@ -474,6 +504,11 @@ const SubSubNiveles: React.FC = () => {
                 </select>
               </div>
             </div>
+            {errorForm && (
+              <div style={{ padding: '12px 16px', marginBottom: 16, borderRadius: 8, background: '#fef2f2', color: '#dc2626', fontSize: '14px', fontWeight: 500, border: '1px solid #fecaca', textAlign: 'center' }}>
+                {errorForm}
+              </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
               <button onClick={() => setShowForm(false)} style={btnSecundario}>Cancelar</button>
               <button onClick={handleGuardar} style={btnPrimario}>Guardar</button>

@@ -166,7 +166,7 @@ const SubGrados: React.FC = () => {
             <th style={th}>Plan de Estudio</th>
             <th style={th}>Nivel</th>
             <th style={th}>Subnivel</th>
-            <th style={th}>Horas Semanales</th>
+            <th style={th}>Periodos Semanales</th>
             <th style={th}>Estado Malla</th>
             <th style={th}>Acciones</th>
           </tr></thead>
@@ -195,8 +195,8 @@ const SubGrados: React.FC = () => {
                     </span>
                   </td>
                   <td style={td}>
-                    <button onClick={() => abrirEditar(g)} title="Editar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '4px' }}>✏️</button>
-                    <button onClick={() => handleEliminar(g.id)} title="Eliminar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '4px' }}>🗑️</button>
+                    <button type="button" onClick={() => abrirEditar(g)} title="Editar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>✏️</button>
+                    <button type="button" onClick={() => handleEliminar(g.id)} title="Eliminar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>🔴</button>
                   </td>
                 </tr>
               );
@@ -366,7 +366,7 @@ const SubAsignaturas: React.FC = () => {
           <thead><tr>
             <th style={th}>Nombre</th>
             <th style={th}>Grado</th>
-            <th style={th}>Min/semana</th>
+            <th style={th}>Periodos/Semana</th>
             <th style={th}>Acciones</th>
           </tr></thead>
           <tbody>
@@ -378,8 +378,8 @@ const SubAsignaturas: React.FC = () => {
                 <td style={td}>{getGradoNombre(a.grado)}</td>
                 <td style={td}>{a.periodoPedagogicoSemanaMinimo}</td>
                 <td style={td}>
-                  <button onClick={() => abrirEditar(a)} style={btnAccion}>Editar</button>
-                  <button onClick={() => handleEliminar(a.id)} style={btnEliminar}>Eliminar</button>
+                  <button type="button" onClick={() => abrirEditar(a)} title="Editar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>✏️</button>
+                  <button type="button" onClick={() => handleEliminar(a.id)} title="Eliminar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>🔴</button>
                 </td>
               </tr>
             ))}

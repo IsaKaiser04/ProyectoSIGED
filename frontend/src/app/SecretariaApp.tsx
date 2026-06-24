@@ -4,6 +4,8 @@ import { SecretariaLayout } from "../layouts/SecretariaLayout";
 import { MatriculaDashboard } from "../features/matricula/MatriculaDashboard";
 import { PeriodosMatriculaPage } from "../features/matricula/PeriodosMatriculaPage";
 import { RequisitosConfigPage } from "../features/matricula/RequisitosConfigPage";
+import { DocentesMateriasListado } from "../features/matricula/components/DocentesMateriasListado";
+import { EstudiantesListado } from "../features/matricula/components/EstudiantesListado";
 
 const InicioSecretaria = () => (
   <div className="content-heading" style={{ padding: "24px" }}>
@@ -35,13 +37,13 @@ export function SecretariaApp() {
 
       // Gestión de Personal
       case "docentes":
-        return <EnDesarrollo titulo="Gestión e Historial de Docentes" />;
+        return <DocentesMateriasListado />;
       case "asignacion-tutores":
         return <EnDesarrollo titulo="Asignación de Roles Locales y Tutores" />;
 
       // Población Estudiantil
       case "estudiantes-representantes":
-        return <EnDesarrollo titulo="Ficha Estudiantil y Representantes Legales" />;
+        return <EstudiantesListado />;
 
       // Procesos de Matrícula (Acción Crítica - Macroproceso 3)
       case "periodos-matricula":

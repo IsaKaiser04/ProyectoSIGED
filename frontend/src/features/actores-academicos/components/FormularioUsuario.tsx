@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useFormularioUsuario } from "../hooks/useFormularioUsuario";
 import { Institucion } from "../../../types/entities/institucion";
 
@@ -26,6 +26,8 @@ export const FormularioUsuario: React.FC<Props> = ({
     handleSubmit,
     isEditing,
   } = useFormularioUsuario(onSaveSuccess, usuarioEdit);
+
+  const [mostrarContrasena, setMostrarContrasena] = useState(false);
 
   const ROLES_SISTEMA = [
     { value: "ADMINISTRADOR", label: "Administrador Global / Distrital" },
@@ -109,7 +111,45 @@ export const FormularioUsuario: React.FC<Props> = ({
 
             <div>
               <label style={labelStyle}>{isEditing ? "Nueva Contraseña (dejar vacío para mantener)" : "Contraseña de Acceso"}</label>
-              <input type="password" style={fieldStyle} value={formData.cuenta.contrasena} onChange={(e) => actualizarCuenta("contrasena", e.target.value)} required={!isEditing} />
+              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                <input
+                  type={mostrarContrasena ? "text" : "password"}
+                  style={{ ...fieldStyle, paddingRight: "40px" }}
+                  value={formData.cuenta.contrasena}
+                  onChange={(e) => actualizarCuenta("contrasena", e.target.value)}
+                  required={!isEditing}
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setMostrarContrasena(!mostrarContrasena)}
+                  style={{
+                    position: "absolute",
+                    right: "8px",
+                    background: "none",
+                    border: "none",
+                    padding: "6px",
+                    cursor: "pointer",
+                    color: "#94a3b8",
+                    display: "flex",
+                    alignItems: "center",
+                    borderRadius: "4px",
+                  }}
+                >
+                  {mostrarContrasena ? (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" />
+                      <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
 
             <div>
