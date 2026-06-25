@@ -1,4 +1,5 @@
 from django.db import models
+from apps.calificaciones.models.calificacionesMejoraTipo import CalificacionMejoraTipo
 
 
 class CalificacionMejora(models.Model):
@@ -12,10 +13,10 @@ class CalificacionMejora(models.Model):
         on_delete=models.CASCADE,
         related_name='mejoras',
     )
-    calificacion_mejora_tipo = models.ForeignKey(
-        'CalificacionMejoraTipo',
-        on_delete=models.PROTECT,
-        related_name='mejoras',
+    tipo = models.CharField(
+        max_length=20,
+        choices=CalificacionMejoraTipo.choices,
+        default=CalificacionMejoraTipo.MEJORA,
     )
 
     def __str__(self):

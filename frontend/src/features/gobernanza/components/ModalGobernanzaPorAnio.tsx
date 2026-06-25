@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import "../../../styles/calificaciones.css";
 import type { Gobernanza } from "../../../types/entities/gobernanza";
 import {
   obtenerGobernanzasPorAnio,
@@ -114,8 +115,8 @@ export const ModalGobernanzaPorAnio: React.FC<Props> = ({
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 9999 }}>
-      <div style={{ background: "white", borderRadius: "12px", padding: "24px", width: "700px", maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto" }}>
+    <div className="glassmorphic-modal-overlay">
+      <div className="glassmorphic-card" style={{ width: "700px", maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
           <h3 style={{ margin: 0, color: "var(--primary)" }}>
             Gobernanza Escolar — {anioLectivoNombre}
