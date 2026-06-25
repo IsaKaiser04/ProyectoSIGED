@@ -141,7 +141,7 @@ export default function DistributivoDocentePage() {
       await cargarDatos();
       setVista("lista");
     } catch (err: any) {
-      setError(err?.response?.data ? JSON.stringify(err.response.data) : "Error al guardar");
+      setError(err?.data ? (typeof err.data === "string" ? err.data : JSON.stringify(err.data)) : "Error al guardar");
     }
   };
 
@@ -167,7 +167,7 @@ export default function DistributivoDocentePage() {
       setAsignaturas(asigs);
       setAsignaturaForm({ asignatura_ofertada: "", paralelo: "", observacion: "" });
     } catch (err: any) {
-      setError(err?.response?.data ? JSON.stringify(err.response.data) : "Error al agregar asignatura");
+      setError(err?.data ? (typeof err.data === "string" ? err.data : JSON.stringify(err.data)) : "Error al agregar asignatura");
     }
   };
 
@@ -205,7 +205,7 @@ export default function DistributivoDocentePage() {
         observacion: ""
       }));
     } catch (err: any) {
-      setError(err?.response?.data ? JSON.stringify(err.response.data) : "Error al agregar horario");
+      setError(err?.data ? (typeof err.data === "string" ? err.data : JSON.stringify(err.data)) : "Error al agregar horario");
     }
   };
 

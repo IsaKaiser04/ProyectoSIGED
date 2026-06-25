@@ -59,5 +59,31 @@ class DistributivoAsignaturaCreateSerializer(serializers.ModelSerializer):
             instance.clean()
         except ValidationError as e:
             raise serializers.ValidationError(e.message_dict)
+
+        asignatura = attrs.get('asignatura_ofertada')
+        paralelo = attrs.get('paralelo')
+        distributivo = attrs.get('distributivo')
+
+        if asignatura and paralelo and distributivo:
+            conflictos = DistributivoAsignatura.objects.filter(
+                asignatura_ofertada=asignatura,
+                paralelo=paralelo
+            )
+            if self.instance:
+                conflictos = conflictos.exclude(pk=self.instance.pk)
+
+            conflictos = conflictos.exclude(distributivo=distributivo)
+
+            if conflictos.exists():
+                existente = conflictos.first()
+                docente_nombre = (
+                    f"{existente.distributivo.docente.nombres} {existente.distributivo.docente.apellidos}"
+                    if existente.distributivo and existente.distributivo.docente
+                    else "otro docente"
+                )
+                raise serializers.ValidationError(
+                    f"La asignatura ya está asignada al paralelo {paralelo.nombre} con el docente {docente_nombre}."
+                )
+
         return attrs
 

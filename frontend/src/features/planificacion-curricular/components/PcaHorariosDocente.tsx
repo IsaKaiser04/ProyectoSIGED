@@ -1,7 +1,13 @@
 import { useState, useEffect } from "react";
 import { obtenerMisAsignaturas } from "../../vinculacion-curricular/services/vinculacionApi";
-import { horariosPorAsignatura } from "../services/horariosApi";
+import { horariosPorAsignatura, miHorario } from "../services/horariosApi";
 import type { DistributivoAsignaturaConPca } from "../../../types/entities/distributivo";
+
+const DIAS = ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES"];
+const DIAS_LABEL: Record<string, string> = {
+  LUNES: "Lunes", MARTES: "Martes", MIERCOLES: "Mi\u00e9rcoles",
+  JUEVES: "Jueves", VIERNES: "Viernes"
+};
 
 const badge = (estado: string | null): React.CSSProperties => {
   const colors: Record<string, string> = {
@@ -19,6 +25,7 @@ const badge = (estado: string | null): React.CSSProperties => {
 export const PcaHorariosDocente: React.FC = () => {
   const [asignaturas, setAsignaturas] = useState<DistributivoAsignaturaConPca[]>([]);
   const [horarios, setHorarios] = useState<Record<number, any[]>>({});
+  const [horarioSemanal, setHorarioSemanal] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const cargar = async () => {
@@ -26,6 +33,7 @@ export const PcaHorariosDocente: React.FC = () => {
     try {
       const data = await obtenerMisAsignaturas();
       setAsignaturas(data || []);
+
       const hMap: Record<number, any[]> = {};
       for (const a of data || []) {
         if (a.id) {
@@ -37,6 +45,13 @@ export const PcaHorariosDocente: React.FC = () => {
         }
       }
       setHorarios(hMap);
+
+      try {
+        const semanal = await miHorario();
+        setHorarioSemanal(semanal || []);
+      } catch {
+        setHorarioSemanal([]);
+      }
     } catch {
       setAsignaturas([]);
     } finally {
@@ -48,6 +63,18 @@ export const PcaHorariosDocente: React.FC = () => {
 
   const aprobadas = asignaturas.filter((a) => a.pca_estado === "APROBADO");
   const pendientes = asignaturas.filter((a) => a.pca_estado !== "APROBADO");
+
+  const getSlots = (dia: string) =>
+    horarioSemanal
+      .filter((h: any) => h.dia_semana === dia)
+      .sort((a: any, b: any) => (a.orden || 0) - (b.orden || 0));
+
+  const allSlots = horarioSemanal.reduce((acc: any[], h: any) => {
+    if (!acc.find((s: any) => s.hora_inicio === h.hora_inicio && s.hora_fin === h.hora_fin)) {
+      acc.push({ hora_inicio: h.hora_inicio, hora_fin: h.hora_fin, orden: h.orden });
+    }
+    return acc;
+  }, []).sort((a: any, b: any) => (a.orden || 0) - (b.orden || 0));
 
   if (loading) {
     return (
@@ -62,7 +89,7 @@ export const PcaHorariosDocente: React.FC = () => {
       <div>
         <h3 style={{ margin: 0, color: "var(--primary)" }}>PCA y Horarios</h3>
         <p style={{ margin: "4px 0 0", fontSize: "14px", color: "var(--on-surface-variant)" }}>
-          Consulta tu planificación curricular y horario de clases
+          Consulta tu planificaci&oacute;n curricular y horario de clases
         </p>
       </div>
 
@@ -77,6 +104,42 @@ export const PcaHorariosDocente: React.FC = () => {
         </div>
       )}
 
+      {horarioSemanal.length > 0 && (
+        <div style={{ background: "white", borderRadius: "8px", border: "1px solid var(--outline-variant)", overflow: "hidden" }}>
+          <div style={{ padding: "12px 16px", background: "var(--surface-container-low)", fontWeight: 700, fontSize: "14px" }}>
+            Mi Horario Semanal
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: `80px repeat(${DIAS.length}, 1fr)`, gap: "1px", background: "var(--outline-variant)" }}>
+            <div style={{ background: "var(--surface-container-low)", padding: "6px", fontWeight: 600, fontSize: "10px", textAlign: "center" }}>Hora</div>
+            {DIAS.map(dia => (
+              <div key={dia} style={{ background: "var(--surface-container-low)", padding: "6px", fontWeight: 600, fontSize: "10px", textAlign: "center" }}>
+                {DIAS_LABEL[dia]}
+              </div>
+            ))}
+            {allSlots.map((slot: any) => (
+              <>
+                <div key={`h-${slot.hora_inicio}`} style={{ background: "white", padding: "6px", fontSize: "10px", textAlign: "center", fontWeight: 600, borderTop: "1px solid var(--outline-variant)" }}>
+                  {slot.hora_inicio?.slice(0, 5) || ""}
+                </div>
+                {DIAS.map(dia => {
+                  const h = getSlots(dia).find((s: any) => s.hora_inicio === slot.hora_inicio);
+                  return (
+                    <div key={`${dia}-${slot.hora_inicio}`} style={{ background: "white", padding: "4px", minHeight: "50px", borderTop: "1px solid var(--outline-variant)", fontSize: "10px" }}>
+                      {h ? (
+                        <div style={{ padding: "3px 4px", borderRadius: "4px", background: "#dbeafe", color: "#1e40af" }}>
+                          <div style={{ fontWeight: 600 }}>{h.asignatura_nombre}</div>
+                          <div style={{ fontSize: "9px", marginTop: "1px" }}>{h.grado_nombre} - {h.paralelo_nombre}</div>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Asignaturas con PCA aprobado + horario */}
       {aprobadas.length > 0 && (
         <div
@@ -86,7 +149,7 @@ export const PcaHorariosDocente: React.FC = () => {
           }}
         >
           <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--outline-variant)", fontWeight: 700, fontSize: 15, color: "var(--on-surface)" }}>
-            Mis Horarios (PCA Aprobado)
+            Mis Asignaturas (PCA Aprobado)
           </div>
           {aprobadas.map((a) => (
             <div

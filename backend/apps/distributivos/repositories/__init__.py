@@ -1,3 +1,4 @@
+from .bloque_horario_repository import BloqueHorarioRepository
 from .distributivo_asignatura_repository import DistributivoAsignaturaRepository
 from .distributivo_repository import DistributivoRepository
 from .horario_repository import HorarioRepository

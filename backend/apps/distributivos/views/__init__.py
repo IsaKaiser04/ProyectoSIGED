@@ -1,3 +1,4 @@
+from .bloque_horario_view import BloqueHorarioViewSet
 from .distributivo_asignatura_view import DistributivoAsignaturaViewSet
 from .distributivo_view import DistributivoViewSet
 from .horario_view import HorarioViewSet

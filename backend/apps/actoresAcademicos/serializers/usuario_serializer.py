@@ -21,6 +21,16 @@ class UsuarioSerializer(serializers.Serializer):
                 raise serializers.ValidationError("La cédula debe tener exactamente 10 dígitos numéricos.")
         return value
 
+    def validate_celular(self, value):
+        if value:
+            import re
+            solo_digitos = re.sub(r'\D', '', value)
+            if not re.match(r'^0\d{9}$', solo_digitos):
+                raise serializers.ValidationError(
+                    "El número de celular debe tener 10 dígitos y comenzar con 0 (ej: 0991234567)."
+                )
+        return value
+
     def crear_direccion(self, direccion_data):
         if direccion_data:
             return Direccion.objects.create(**direccion_data)

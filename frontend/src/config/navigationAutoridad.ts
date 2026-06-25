@@ -46,6 +46,7 @@ export const NAVIGATION_AUTORIDAD: NavGroup[] = [
     items: [
       { view: "distributivo-docente", label: "Distributivo Docente", icon: "🧑‍🏫" },
       { view: "carga-horaria", label: "Carga Horaria Semanal", icon: "⏰" },
+      { view: "horarios-paralelos", label: "Horarios por Paralelo", icon: "📅" },
       { view: "pca", label: "Planificación Curricular (PCA)", icon: "📋" },
     ],
   },

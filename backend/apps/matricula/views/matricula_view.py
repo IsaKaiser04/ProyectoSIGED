@@ -24,7 +24,7 @@ class MatriculaViewSet(viewsets.ViewSet):
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
         return Response(data, status=status.HTTP_201_CREATED)
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'], url_path='registro-completo')
     def registro_completo(self, request):
         data, errors = MatriculaService.crear_con_requisitos(request.data)
         if errors:

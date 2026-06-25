@@ -1,3 +1,8 @@
+from .bloque_horario_serializer import (
+    BloqueHorarioListSerializer,
+    BloqueHorarioDetailSerializer,
+    BloqueHorarioCreateSerializer,
+)
 from .distributivo_asignatura_serializer import (
     DistributivoAsignaturaListSerializer,
     DistributivoAsignaturaDetailSerializer,
@@ -12,6 +17,8 @@ from .horario_serializer import (
     HorarioListSerializer,
     HorarioDetailSerializer,
     HorarioCreateSerializer,
+    HorarioDocenteSerializer,
+    HorarioParaleloSerializer,
 )
 from .jornada_hora_serializer import (
     JornadaHoraListSerializer,
