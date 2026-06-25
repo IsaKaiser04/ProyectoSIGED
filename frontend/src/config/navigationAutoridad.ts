@@ -75,7 +75,7 @@ export const NAVIGATION_AUTORIDAD: NavGroup[] = [
   {
     groupLabel: "Supervisión y Gobernanza",
     items: [
-      { view: "seguimiento-eva", label: "Seguimiento EVA", icon: "💻" },
+      { view: "aulas-virtuales", label: "Aulas Virtuales", icon: "💻" },
       { view: "documentacion-gobernanza", label: "Documentación (PEI/CC/PGR)", icon: "📁" },
     ],
   },

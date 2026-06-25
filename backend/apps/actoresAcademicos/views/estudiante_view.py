@@ -11,7 +11,7 @@ from django.db.models import Q
 class EstudianteListCreateView(InstitucionFilterMixin, generics.ListCreateAPIView):
     queryset = Estudiante.objects.select_related('direccion_domicilio', 'cuenta').all()
     serializer_class = EstudianteSerializer
-    permission_classes = [EsAdminGlobalOAutoridad]
+    permission_classes = [EsAdminGlobalOAutoridad | EsDocente]
 
     def get_queryset(self):
         qs = super().get_queryset()

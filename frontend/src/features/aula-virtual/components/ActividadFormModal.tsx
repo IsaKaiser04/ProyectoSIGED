@@ -52,64 +52,100 @@ export function ActividadFormModal({ abierto, editando, onCerrar, onGuardar }: P
   const esEdicion = !!editando;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-      {/* Glassmorphic Card Premium con micro-animaciones */}
-      <div className="glassmorphic-card w-full max-w-md mx-4 group">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e2e8f0]">
-          <h3 className="text-lg font-bold text-[#00192d]">
-            {esEdicion ? "Editar Actividad" : "Nueva Actividad"}
+    <div className="glassmorphic-modal-overlay">
+      <div className="glassmorphic-card" style={{ width: "100%", maxWidth: "480px", margin: "16px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: "1px solid var(--outline-variant)" }}>
+          <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--primary)" }}>
+            {esEdicion ? "Editar actividad" : "Nueva actividad"}
           </h3>
-          <button onClick={onCerrar} className="text-[#94a3b8] hover:text-[#00192d]">
-            <X className="w-5 h-5" />
+          <button onClick={onCerrar} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--on-surface-variant)", padding: "4px" }}>
+            <X size={20} />
           </button>
         </div>
         <form onSubmit={handleSubmit}>
-          <div className="px-6 py-5 space-y-4">
+          <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
             <div>
-              <label className="block text-sm font-medium text-[#00192d] mb-1">Nombre</label>
+              <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "var(--on-surface)", marginBottom: "6px" }}>
+                Nombre
+              </label>
               <input
                 type="text"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
-                placeholder="Ej: TAREA 1: ENSAYO CRÍTICO"
-                className="w-full px-3 py-2 rounded-lg border border-[#e2e8f0] text-sm text-[#00192d] placeholder-[#94a3b8] focus:outline-none focus:border-[#0066ff]"
+                placeholder="Ej: Tarea 1: Ensayo crítico"
+                style={{
+                  width: "100%", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--outline-variant)",
+                  fontSize: "14px", color: "var(--on-surface)", background: "var(--surface)",
+                  outline: "none",
+                }}
+                onFocus={(e) => e.currentTarget.style.borderColor = "var(--secondary)"}
+                onBlur={(e) => e.currentTarget.style.borderColor = "var(--outline-variant)"}
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#00192d] mb-1">Descripción</label>
+              <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "var(--on-surface)", marginBottom: "6px" }}>
+                Descripción
+              </label>
               <textarea
                 value={descripcion}
                 onChange={(e) => setDescripcion(e.target.value)}
                 rows={3}
                 placeholder="Instrucciones o detalles de la actividad"
-                className="w-full px-3 py-2 rounded-lg border border-[#e2e8f0] text-sm text-[#00192d] placeholder-[#94a3b8] focus:outline-none focus:border-[#0066ff] resize-none"
+                style={{
+                  width: "100%", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--outline-variant)",
+                  fontSize: "14px", color: "var(--on-surface)", background: "var(--surface)",
+                  outline: "none", resize: "none", fontFamily: "inherit",
+                }}
+                onFocus={(e) => e.currentTarget.style.borderColor = "var(--secondary)"}
+                onBlur={(e) => e.currentTarget.style.borderColor = "var(--outline-variant)"}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#00192d] mb-1">Fecha Límite</label>
+              <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "var(--on-surface)", marginBottom: "6px" }}>
+                Fecha límite
+              </label>
               <input
                 type="date"
                 value={fechaFin}
                 onChange={(e) => setFechaFin(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-[#e2e8f0] text-sm text-[#00192d] focus:outline-none focus:border-[#0066ff]"
+                style={{
+                  width: "100%", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--outline-variant)",
+                  fontSize: "14px", color: "var(--on-surface)", background: "var(--surface)",
+                  outline: "none",
+                }}
+                onFocus={(e) => e.currentTarget.style.borderColor = "var(--secondary)"}
+                onBlur={(e) => e.currentTarget.style.borderColor = "var(--outline-variant)"}
               />
             </div>
           </div>
-          <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#e2e8f0] bg-[#f8fafc] rounded-b-xl">
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", padding: "16px 24px", borderTop: "1px solid var(--outline-variant)", background: "var(--surface-container-low)", borderRadius: "0 0 20px 20px" }}>
             <button
               type="button"
               onClick={onCerrar}
-              className="px-4 py-2 rounded-lg text-sm font-medium text-[#64748b] hover:bg-[#e2e8f0] transition-colors"
+              style={{
+                padding: "10px 20px", borderRadius: "8px", border: "1px solid var(--outline-variant)",
+                fontSize: "13px", fontWeight: 600, color: "var(--on-surface-variant)", background: "var(--surface)",
+                cursor: "pointer", transition: "background 0.2s ease",
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-container-low)"}
+              onMouseLeave={(e) => e.currentTarget.style.background = "var(--surface)"}
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={enviando || !nombre.trim()}
-              className="px-5 py-2 rounded-lg text-sm font-bold text-white bg-[#0066ff] hover:bg-[#0052cc] transition-colors shadow-sm disabled:opacity-50"
+              style={{
+                padding: "10px 24px", borderRadius: "8px", border: "none",
+                fontSize: "13px", fontWeight: 700, color: "var(--on-secondary)",
+                background: "var(--secondary)", cursor: "pointer",
+                transition: "opacity 0.2s ease", opacity: enviando || !nombre.trim() ? 0.6 : 1,
+              }}
+              onMouseEnter={(e) => { if (!enviando && nombre.trim()) e.currentTarget.style.opacity = "0.9"; }}
+              onMouseLeave={(e) => { if (!enviando && nombre.trim()) e.currentTarget.style.opacity = "1"; }}
             >
-              {enviando ? "Guardando..." : esEdicion ? "Actualizar" : "Crear"}
+              {enviando ? "Guardando…" : esEdicion ? "Actualizar" : "Crear"}
             </button>
           </div>
         </form>

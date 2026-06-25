@@ -88,6 +88,11 @@ export function createCalificacion(payload: CalificacionPayload) {
   );
 }
 
+// --- DISTRIBUTIVOS ASIGNATURA ---
+export function getDistributivosAsignaturas(signal?: AbortSignal) {
+  return apiGet<any[]>("/distributivos/distributivos-asignaturas/", { signal });
+}
+
 // --- ACTIVIDADES (Aula Virtual) ---
 export function listActividadesPorCursoYAsignatura(
   cursoId: number,
@@ -96,6 +101,16 @@ export function listActividadesPorCursoYAsignatura(
 ) {
   return apiGet<Actividad[]>(
     apiEndpoints.calificaciones.actividades.byCursoAsignatura(cursoId, asignaturaId),
+    { signal }
+  );
+}
+
+export function listActividadesPorDistributivoAsignatura(
+  distributivoAsignaturaId: number,
+  signal?: AbortSignal
+) {
+  return apiGet<Actividad[]>(
+    `${apiEndpoints.calificaciones.actividades.collection}?distributivo_asignatura=${distributivoAsignaturaId}`,
     { signal }
   );
 }

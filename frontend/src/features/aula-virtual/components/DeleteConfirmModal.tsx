@@ -17,34 +17,50 @@ export function DeleteConfirmModal({ abierto, actividad, onCerrar, onConfirmar }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-      {/* Glassmorphic Card Premium con micro-animaciones */}
-      <div className="glassmorphic-card w-full max-w-sm mx-4 group">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e2e8f0]">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-[#ba1a1a]" />
-            <h3 className="text-lg font-bold text-[#00192d]">Eliminar Actividad</h3>
+    <div className="glassmorphic-modal-overlay">
+      <div className="glassmorphic-card" style={{ width: "100%", maxWidth: "400px", margin: "16px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: "1px solid var(--outline-variant)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <AlertTriangle size={20} style={{ color: "var(--error)" }} />
+            <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--primary)" }}>
+              Eliminar actividad
+            </h3>
           </div>
-          <button onClick={onCerrar} className="text-[#94a3b8] hover:text-[#00192d]">
-            <X className="w-5 h-5" />
+          <button onClick={onCerrar} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--on-surface-variant)", padding: "4px" }}>
+            <X size={20} />
           </button>
         </div>
-        <div className="px-6 py-5">
-          <p className="text-sm text-[#64748b]">
-            ¿Está seguro de eliminar la actividad <strong className="text-[#00192d]">{actividad.nombre}</strong>?
+        <div style={{ padding: "20px 24px" }}>
+          <p style={{ fontSize: "14px", color: "var(--on-surface)", lineHeight: 1.6 }}>
+            ¿Está seguro de eliminar la actividad <strong>{actividad.nombre}</strong>?
           </p>
-          <p className="text-xs text-[#94a3b8] mt-2">Esta acción no se puede deshacer.</p>
+          <p style={{ fontSize: "12px", color: "var(--on-surface-variant)", marginTop: "8px" }}>
+            Esta acción no se puede deshacer.
+          </p>
         </div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#e2e8f0] bg-[#f8fafc] rounded-b-xl">
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", padding: "16px 24px", borderTop: "1px solid var(--outline-variant)", background: "var(--surface-container-low)", borderRadius: "0 0 20px 20px" }}>
           <button
             onClick={onCerrar}
-            className="px-4 py-2 rounded-lg text-sm font-medium text-[#64748b] hover:bg-[#e2e8f0] transition-colors"
+            style={{
+              padding: "10px 20px", borderRadius: "8px", border: "1px solid var(--outline-variant)",
+              fontSize: "13px", fontWeight: 600, color: "var(--on-surface-variant)", background: "var(--surface)",
+              cursor: "pointer", transition: "background 0.2s ease",
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-container-low)"}
+            onMouseLeave={(e) => e.currentTarget.style.background = "var(--surface)"}
           >
             Cancelar
           </button>
           <button
             onClick={handleDelete}
-            className="px-5 py-2 rounded-lg text-sm font-bold text-white bg-[#ba1a1a] hover:bg-[#991515] transition-colors shadow-sm"
+            style={{
+              padding: "10px 24px", borderRadius: "8px", border: "none",
+              fontSize: "13px", fontWeight: 700, color: "#fff",
+              background: "var(--error)", cursor: "pointer",
+              transition: "opacity 0.2s ease",
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.opacity = "0.9"}
+            onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
           >
             Eliminar
           </button>

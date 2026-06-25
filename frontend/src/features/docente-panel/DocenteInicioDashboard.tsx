@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Users, BookOpen, Bell, CalendarClock, FileText, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Users, BookOpen, Bell, CalendarClock, FileText, AlertTriangle, CheckCircle2, GraduationCap, Hash, Clock, CalendarDays, Mail, Briefcase } from "lucide-react";
 import { apiGet } from "../../services/apiClient";
 import { apiEndpoints } from "../../services/apiEndpoints";
 
@@ -79,24 +79,91 @@ function DialogCard({
   );
 }
 
+function GlassInfoCard({
+  icon: Icon,
+  label,
+  value,
+  iconBg,
+  iconBorder,
+  iconColor,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  iconBg: string;
+  iconBorder: string;
+  iconColor: string;
+}) {
+  return (
+    <div
+      style={{
+        background: "var(--surface-container-lowest)",
+        border: "1px solid var(--outline-variant)",
+        borderRadius: 12,
+        padding: "12px 14px",
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+      }}
+    >
+      <div
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 10,
+          background: iconBg,
+          border: `1px solid ${iconBorder}`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        <Icon size={15} color={iconColor} />
+      </div>
+      <div>
+        <div
+          style={{
+            fontSize: 10,
+            fontWeight: 800,
+            color: "var(--on-surface-variant)",
+            textTransform: "uppercase",
+            letterSpacing: 0.4,
+          }}
+        >
+          {label}
+        </div>
+        <div
+          style={{
+            fontSize: 13,
+            fontWeight: 800,
+            color: "var(--on-surface)",
+            marginTop: 1,
+          }}
+        >
+          {value}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function percent(n: number) {
   if (!Number.isFinite(n)) return "0%";
   return `${Math.round(n)}%`;
 }
 
 export function DocenteInicioDashboard() {
-  // Este panel depende del aula virtual / calificaciones / asistencia.
-  // Para mantenerlo acoplado, usamos los endpoints ya definidos.
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Parámetros mínimos: año lectivo activo + curso/asignatura.
   const [anoLectivoActivoId, setAnoLectivoActivoId] = useState<number | null>(null);
   const [cursoId, setCursoId] = useState<number | null>(null);
   const [asignaturaId, setAsignaturaId] = useState<number | null>(null);
 
-  // Datos (métricas)
   const [totalActividades, setTotalActividades] = useState(0);
   const [actividadesPendientes, setActividadesPendientes] = useState(0);
 
@@ -113,70 +180,76 @@ export function DocenteInicioDashboard() {
         setLoading(true);
         setError(null);
 
-        // 1) Año lectivo activo
-        const anoActivoRes = await apiGet<any>(`${apiEndpoints.calificaciones.anosLectivos.collection}activo/`, {
+        // 1) Obtener las asignaturas del docente actual autenticado
+        const misAsignaturasRes = await apiGet<any[]>("/distributivos/distributivos-asignaturas/mis_asignaturas/", {
           signal: controller.signal,
         });
-        const anoId = anoActivoRes?.id ?? null;
-        setAnoLectivoActivoId(anoId);
-        if (!anoId) {
-          setError("No existe un año lectivo activo.");
+
+        if (!misAsignaturasRes || misAsignaturasRes.length === 0) {
+          setError("No tienes asignaturas asignadas para el período activo.");
           return;
         }
 
-        // 2) Cursos del año
-        const cursosRes = await apiGet<any[]>(apiEndpoints.calificaciones.cursos.byAnoLectivo(anoId), {
-          signal: controller.signal,
-        });
-        const cursoSeleccionado = cursosRes?.[0]?.id ?? null;
-        setCursoId(cursoSeleccionado);
-
-        if (!cursoSeleccionado) {
-          setError("No se encontraron cursos asignados para el año activo.");
-          return;
-        }
-
-        // 3) Asignaturas del curso
-        const asignaturasRes = await apiGet<any[]>(apiEndpoints.calificaciones.asignaturas.byCurso(cursoSeleccionado), {
-          signal: controller.signal,
-        });
-        const asigSeleccionada = asignaturasRes?.[0]?.id ?? null;
+        // Usamos la primera asignatura asignada al docente
+        const primeraAsignatura = misAsignaturasRes[0];
+        const distributivoAsignaturaId = primeraAsignatura.id;
+        const asigSeleccionada = primeraAsignatura.asignatura_ofertada ?? null;
         setAsignaturaId(asigSeleccionada);
 
-        if (!asigSeleccionada) {
-          setError("No se encontraron asignaturas para el curso seleccionado.");
+        // Obtenemos el paralelo
+        const paralelo = primeraAsignatura.paralelo;
+        const cursoIdVal = null;
+        setCursoId(cursoIdVal);
+
+        // Obtenemos el año lectivo desde el distributivo
+        const distributivoId = primeraAsignatura.distributivo;
+        if (!distributivoId) {
+          setError("No se encontró el distributivo para la asignatura.");
           return;
         }
 
-        // 4) Actividades (usamos endpoint de calificacionesDocenteService para actividades)
+        // Consultamos el distributivo para obtener el año lectivo
+        const distributivoRes = await apiGet<any>(`/distributivos/distributivos/${distributivoId}/`, {
+          signal: controller.signal,
+        });
+        const anoId = distributivoRes?.anio_lectivo?.id ?? distributivoRes?.anio_lectivo ?? null;
+
+        if (!anoId) {
+          setError("No se pudo determinar el año lectivo.");
+          return;
+        }
+        setAnoLectivoActivoId(anoId);
+
+        // 3) Obtener actividades de la asignatura usando el distributivo_asignatura
         const actividadesRes = await apiGet<any[]>(
-          apiEndpoints.calificaciones.actividades.byCursoAsignatura(cursoSeleccionado, asigSeleccionada),
+          `/calificaciones/asignatura-evaluacion/?distributivo_asignatura=${distributivoAsignaturaId}`,
           { signal: controller.signal }
         );
         setTotalActividades(actividadesRes.length);
 
-        // Pendientes: si el backend trae estado/entrega_estado/etc.
+        // Pendientes
         const pendientes = actividadesRes.filter((a: any) => {
           const est = String(a.estado ?? a.status ?? "").toUpperCase();
           return est.includes("PEND") || est.includes("ABIERTA") || est.includes("ACTIVA");
         }).length;
         setActividadesPendientes(pendientes);
 
-        // 5) Estudiantes + libro calificaciones (para riesgo)
-        // Estudiantes del año y curso
-        const estudiantesRes = await apiGet<any[]>(
-          apiEndpoints.calificaciones.estudiantes.byAnoAndCurso(anoId, cursoSeleccionado),
-          { signal: controller.signal }
-        );
-        setTotalEstudiantes(estudiantesRes.length);
+        // 4) Estudiantes del paralelo
+        if (paralelo) {
+          const estudiantesRes = await apiGet<any[]>(
+            `/actoresAcademicos/estudiantes/?paralelo_id=${paralelo}`,
+            { signal: controller.signal }
+          );
+          setTotalEstudiantes(estudiantesRes.length);
+        }
 
-        // Libro calificaciones por filtros
+        // 5) Calificaciones - usamos filtros por distributivo_asignatura
         const calificacionesRes = await apiGet<any[]>(
-          apiEndpoints.calificaciones.libroCalificaciones.byFilters(anoId, cursoSeleccionado, asigSeleccionada),
+          `/calificaciones/calificaciones/?distributivo_asignatura=${distributivoAsignaturaId}`,
           { signal: controller.signal }
         );
 
-        // Riesgo heurístico: promedio de trimestres < 7 (si el modelo lo trae)
+        // Riesgo heurístico: promedio de trimestres < 7
         const riesgo = calificacionesRes.filter((c: any) => {
           const t1 = Number(c?.primer_trimestre?.ef ?? c?.primer_trimestre?.es ?? 0);
           const t2 = Number(c?.segundo_trimestre?.ef ?? c?.segundo_trimestre?.es ?? 0);
@@ -187,14 +260,8 @@ export function DocenteInicioDashboard() {
         }).length;
         setEstudiantesEnRiesgo(riesgo);
 
-        // 6) Asistencia semanal
-        // Endpoint ya existe en AsistenciaPage: obtenerMatrizAsistencia(distributivoAsignaturaId, fecha)
-        // Para este panel, usamos un distributivo asignatura id si el backend lo expone desde el asignatura.
-        // Como no está garantizado, intentamos obtener un valor desde un campo típico.
-        // (Si no existe, dejamos 0.)
+        // 5) Asistencia semanal usando el distributivo_asignatura correcto
         const fecha = new Date().toISOString().slice(0, 10);
-        // Intento de id de distributivo: usando asignaturaId como fallback
-        const distributivoAsignaturaId = (asigSeleccionada as any) ?? asigSeleccionada;
 
         try {
           const matriz = await apiGet<any>(
@@ -223,6 +290,9 @@ export function DocenteInicioDashboard() {
           setAsistenciaSemanaPorcentaje(0);
         }
       } catch (e: any) {
+        if (e?.name === "AbortError" || e?.message?.includes("aborted")) {
+          return;
+        }
         setError(e?.message ?? "Error cargando el panel.");
       } finally {
         setLoading(false);
@@ -258,6 +328,91 @@ export function DocenteInicioDashboard() {
   return (
     <div className="feature-page" aria-label="Panel de inicio docente">
       <div style={{ padding: 24 }}>
+        {/* Información del docente — vista preliminar visual */}
+        <div
+          style={{
+            position: "relative",
+            borderRadius: 16,
+            padding: "24px 28px",
+            marginBottom: 20,
+            overflow: "hidden",
+            background: "var(--surface-container-lowest)",
+            border: "1px solid var(--outline-variant)",
+            boxShadow: "0 8px 32px -8px rgba(0,0,0,0.06)",
+          }}
+        >
+          {/* orbes decorativos de fondo con blur */}
+          <div
+            style={{
+              position: "absolute",
+              top: -60,
+              right: -40,
+              width: 200,
+              height: 200,
+              borderRadius: "50%",
+              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+              filter: "blur(50px)",
+              pointerEvents: "none",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              bottom: -50,
+              left: "25%",
+              width: 160,
+              height: 160,
+              borderRadius: "50%",
+              background: "color-mix(in srgb, var(--secondary) 6%, transparent)",
+              filter: "blur(40px)",
+              pointerEvents: "none",
+            }}
+          />
+
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "var(--on-surface)" }}>
+                  Juan Carlos Mendoza López
+                </h2>
+                <p style={{ marginTop: 4, color: "var(--on-surface-variant)", fontSize: 13, fontWeight: 600 }}>
+                  Año Lectivo 2025 — 2026 · Planta Docente
+                </p>
+              </div>
+              <div
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: 8,
+                  background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+                  fontSize: 12,
+                  fontWeight: 900,
+                  color: "var(--primary)",
+                }}
+              >
+                Panel Docente
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(165px, 1fr))",
+                gap: 10,
+                marginTop: 18,
+              }}
+            >
+              <GlassInfoCard icon={Hash} label="Identificación" value="0999999999" iconBg="#eff6ff" iconBorder="#93c5fd" iconColor="#1d4ed8" />
+              <GlassInfoCard icon={GraduationCap} label="Especialidad" value="Ciencias Exactas" iconBg="#f0fdf4" iconBorder="#86efac" iconColor="#16a34a" />
+              <GlassInfoCard icon={FileText} label="Tipo Contrato" value="Titular" iconBg="#fef3c7" iconBorder="#fcd34d" iconColor="#b45309" />
+              <GlassInfoCard icon={Clock} label="Dedicación" value="Tiempo Completo" iconBg="#fdf2f8" iconBorder="#f9a8d4" iconColor="#be185d" />
+              <GlassInfoCard icon={Mail} label="Correo" value="juan.mendoza@inst.edu" iconBg="#f5f3ff" iconBorder="#c4b5fd" iconColor="#6d28d9" />
+              <GlassInfoCard icon={CalendarDays} label="Fecha Ingreso" value="2019-09-01" iconBg="#fff7ed" iconBorder="#fdba74" iconColor="#c2410c" />
+              <GlassInfoCard icon={Briefcase} label="Experiencia" value="6 años" iconBg="#ecfeff" iconBorder="#67e8f9" iconColor="#0e7490" />
+            </div>
+          </div>
+        </div>
+
         <div className="content-heading" style={{ padding: 0 }}>
           <h2>Muro de Aulas Virtuales — Mis Asignaturas</h2>
           <p style={{ marginTop: 8, color: "var(--on-surface-variant)" }}>
@@ -386,21 +541,21 @@ export function DocenteInicioDashboard() {
                       {loading
                         ? "Cargando…"
                         : actividadesPendientes > 0
-                          ? `Tienes ${actividadesPendientes} actividades con estado pendiente. Entra a “Aulas virtuales” para calificar/gestionar.`
+                          ? `Tienes ${actividadesPendientes} actividades con estado pendiente. Entra a "Aulas virtuales" para calificar/gestionar.`
                           : "No hay actividades pendientes detectadas."}
                     </li>
                     <li style={{ marginTop: 6 }}>
                       {loading
                         ? "Cargando…"
                         : estudiantesEnRiesgo > 0
-                          ? `Detectados ${estudiantesEnRiesgo} estudiantes en riesgo. Revisa “Registro de calificaciones”.`
+                          ? `Detectados ${estudiantesEnRiesgo} estudiantes en riesgo. Revisa "Registro de calificaciones".`
                           : "Sin estudiantes en riesgo según el promedio calculado."}
                     </li>
                     <li style={{ marginTop: 6 }}>
                       {loading
                         ? "Cargando…"
                         : asistenciaSemanaPorcentaje < 70
-                          ? "La asistencia está baja; revisa incidencias y retroalimenta a los estudiantes." 
+                          ? "La asistencia está baja; revisa incidencias y retroalimenta a los estudiantes."
                           : "Asistencia dentro de rango saludable."}
                     </li>
                   </ul>
@@ -463,4 +618,3 @@ export function DocenteInicioDashboard() {
     </div>
   );
 }
-

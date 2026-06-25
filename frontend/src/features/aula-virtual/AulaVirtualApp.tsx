@@ -1,17 +1,15 @@
 import { useState } from "react";
-import { Send, Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Calendar, FileText, Users } from "lucide-react";
 import type { Actividad, ActividadPayload } from "../../types/entities";
 import { useActividades } from "./hooks/useActividades";
 import { ActividadFormModal } from "./components/ActividadFormModal";
 import { DeleteConfirmModal } from "./components/DeleteConfirmModal";
 
-const AZUL = "#0066ff";
-
 export function AulaVirtualApp() {
   const [cursoId] = useState(1);
   const [asignaturaId] = useState(1);
 
-  const { actividades, loading, crear, actualizar, eliminar } = useActividades(cursoId, asignaturaId);
+  const { actividades, loading, crear, actualizar, eliminar, distributivoAsignaturaId } = useActividades(cursoId, asignaturaId);
 
   const [activaId, setActivaId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -22,15 +20,17 @@ export function AulaVirtualApp() {
 
   const handleGuardar = async (payload: ActividadPayload, id?: number) => {
     if (id) await actualizar(id, payload);
-    else await crear(payload);
+    else if (distributivoAsignaturaId) {
+      await crear({ ...payload, distributivo_asignatura: distributivoAsignaturaId });
+    }
   };
 
   const badgeColor = (nombre: string) => {
     const up = nombre.toUpperCase();
-    if (up.includes("TAREA")) return "#0066ff";
-    if (up.includes("FORO")) return "#f59e0b";
-    if (up.includes("CUESTIONARIO")) return "#10b981";
-    return "#64748b";
+    if (up.includes("TAREA")) return "var(--info-text)";
+    if (up.includes("FORO")) return "var(--warning-text)";
+    if (up.includes("CUESTIONARIO")) return "var(--secondary)";
+    return "var(--on-surface-variant)";
   };
 
   const badgeLabel = (nombre: string) => {
@@ -50,175 +50,199 @@ export function AulaVirtualApp() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] font-['Inter',sans-serif] bg-[#f4f7f6]">
+    <div className="page-content" style={{ display: "flex", gap: "24px", height: "100%" }}>
       {/* ─── Columna Izquierda: Actividades ─── */}
-      <aside className="w-[320px] shrink-0 bg-white border-r border-[#e2e8f0] flex flex-col">
-        <div className="px-5 py-5 border-b border-[#e2e8f0]">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-bold tracking-wider" style={{ color: AZUL }}>
-              ACTIVIDADES EN EL EVA
+      <aside style={{ width: "340px", minWidth: "340px", display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div className="glassmorphic-card" style={{ padding: "20px 24px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <h2 style={{ fontSize: "13px", fontWeight: 700, letterSpacing: "0.05em", color: "var(--secondary)", textTransform: "uppercase" }}>
+              Actividades
             </h2>
             <span
-              className="text-[11px] font-bold px-2 py-0.5 rounded"
-              style={{ color: AZUL, border: `1px solid ${AZUL}` }}
+              style={{
+                fontSize: "11px", fontWeight: 700, padding: "2px 10px", borderRadius: "6px",
+                color: "var(--on-secondary)", backgroundColor: "var(--secondary)",
+              }}
             >
-              {actividades.length} REGISTRADAS
+              {actividades.length}
             </span>
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto p-4 space-y-3">
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="w-6 h-6 border-2 border-[#0066ff] border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : actividades.length === 0 ? (
-            <p className="text-xs text-[#94a3b8] text-center py-8">
-              No hay actividades registradas.
-            </p>
-          ) : (
-            actividades.map((a) => {
-              const esActiva = a.id === activaId;
-              const color = badgeColor(a.nombre);
-              return (
-                <button
-                  key={a.id}
-                  onClick={() => setActivaId(a.id)}
-                  className="w-full text-left rounded-lg border bg-white p-4 transition-all duration-200 hover:shadow-sm group"
-                  style={{
-                    borderColor: esActiva ? AZUL : "#e2e8f0",
-                    borderWidth: esActiva ? 2 : 1,
-                  }}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span
-                        className="w-7 h-7 rounded flex items-center justify-center text-[10px] font-bold text-white shrink-0"
-                        style={{ backgroundColor: color }}
-                      >
-                        {badgeInitial(a.nombre)}
-                      </span>
-                      <span className="text-[10px] font-bold tracking-wider" style={{ color }}>
-                        {badgeLabel(a.nombre)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <span className="text-[10px] text-[#94a3b8] font-['JetBrains_Mono',monospace]">
-                        {a.fecha_fin ? `LÍMITE: ${a.fecha_fin}` : "SIN FECHA"}
-                      </span>
-                      {esActiva && (
-                        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-1">
+        <div className="glassmorphic-card" style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", padding: 0 }}>
+          <div style={{ overflow: "auto", flex: 1, padding: "12px" }}>
+            {loading ? (
+              <div style={{ display: "flex", justifyContent: "center", padding: "40px 0" }}>
+                <div style={{ width: "24px", height: "24px", border: "3px solid var(--outline-variant)", borderTopColor: "var(--secondary)", borderRadius: "50%", animation: "spin 0.6s linear infinite" }} />
+              </div>
+            ) : actividades.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px 16px" }}>
+                <FileText size={36} style={{ color: "var(--on-surface-variant)", opacity: 0.4, marginBottom: "12px" }} />
+                <p style={{ fontSize: "14px", fontWeight: 500, color: "var(--on-surface-variant)" }}>
+                  No hay actividades registradas
+                </p>
+                <p style={{ fontSize: "12px", color: "var(--on-surface-variant)", opacity: 0.7, marginTop: "4px" }}>
+                  Cree una nueva actividad para comenzar
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {actividades.map((a) => {
+                  const esActiva = a.id === activaId;
+                  return (
+                    <button
+                      key={a.id}
+                      onClick={() => setActivaId(a.id)}
+                      style={{
+                        width: "100%", textAlign: "left", cursor: "pointer",
+                        padding: "14px 16px", borderRadius: "12px", border: `1px solid ${esActiva ? "var(--secondary)" : "var(--outline-variant)"}`,
+                        background: esActiva ? "var(--secondary-container)" : "transparent",
+                        transition: "all 0.2s ease",
+                      }}
+                      onMouseEnter={(e) => { if (!esActiva) e.currentTarget.style.borderColor = "var(--secondary)"; }}
+                      onMouseLeave={(e) => { if (!esActiva) e.currentTarget.style.borderColor = "var(--outline-variant)"; }}
+                    >
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
                           <span
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditActividad(a);
-                              setShowForm(true);
+                            style={{
+                              width: "26px", height: "26px", borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center",
+                              fontSize: "10px", fontWeight: 700, color: "#fff", backgroundColor: badgeColor(a.nombre), flexShrink: 0,
                             }}
-                            className="p-1 rounded hover:bg-[#f1f5f9] cursor-pointer"
                           >
-                            <Pencil className="w-3 h-3 text-[#64748b]" />
+                            {badgeInitial(a.nombre)}
                           </span>
-                          <span
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteActividad(a);
-                            }}
-                            className="p-1 rounded hover:bg-[#fee2e2] cursor-pointer"
-                          >
-                            <Trash2 className="w-3 h-3 text-[#ba1a1a]" />
+                          <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.05em", color: badgeColor(a.nombre) }}>
+                            {badgeLabel(a.nombre)}
                           </span>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                  <p className="text-xs font-semibold text-[#00192d] mt-2 leading-relaxed">
-                    {a.nombre}
-                  </p>
-                </button>
-              );
-            })
-          )}
+                        {esActiva && (
+                          <div style={{ display: "flex", gap: "2px", flexShrink: 0 }}>
+                            <span
+                              onClick={(e) => { e.stopPropagation(); setEditActividad(a); setShowForm(true); }}
+                              style={{ padding: "4px", borderRadius: "6px", cursor: "pointer", color: "var(--on-surface-variant)" }}
+                              onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-container-low)"}
+                              onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                            >
+                              <Pencil size={14} />
+                            </span>
+                            <span
+                              onClick={(e) => { e.stopPropagation(); setDeleteActividad(a); }}
+                              style={{ padding: "4px", borderRadius: "6px", cursor: "pointer", color: "var(--error)" }}
+                              onMouseEnter={(e) => e.currentTarget.style.background = "var(--error-container)"}
+                              onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                            >
+                              <Trash2 size={14} />
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--on-surface)", marginTop: "8px", lineHeight: 1.4 }}>
+                        {a.nombre}
+                      </p>
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "8px", fontSize: "11px", color: "var(--on-surface-variant)" }}>
+                        {a.fecha_fin && (
+                          <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                            <Calendar size={12} /> Límite: {a.fecha_fin}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="p-4 border-t border-[#e2e8f0]">
-          <button
-            onClick={() => {
-              setEditActividad(null);
-              setShowForm(true);
-            }}
-            className="w-full py-3 rounded-lg text-sm font-bold text-white transition-all duration-200 hover:brightness-110 shadow-sm flex items-center justify-center gap-2"
-            style={{ backgroundColor: AZUL }}
-          >
-            <Plus className="w-4 h-4" /> CREAR NUEVA ACTIVIDAD
-          </button>
-        </div>
+        <button
+          onClick={() => { setEditActividad(null); setShowForm(true); }}
+          style={{
+            width: "100%", padding: "14px 20px", borderRadius: "12px", border: "none",
+            background: "var(--secondary)", color: "var(--on-secondary)",
+            fontSize: "13px", fontWeight: 700, letterSpacing: "0.03em",
+            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+            transition: "opacity 0.2s ease",
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.opacity = "0.9"}
+          onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
+        >
+          <Plus size={16} /> CREAR ACTIVIDAD
+        </button>
       </aside>
 
-      {/* ─── Columna Derecha: Calificaciones ─── */}
-      <main className="flex-1 flex flex-col min-w-0 p-6 gap-5">
+      {/* ─── Columna Derecha: Detalle ─── */}
+      <main style={{ flex: 1, display: "flex", flexDirection: "column", gap: "16px", minWidth: 0 }}>
         {actividad ? (
           <>
-            {/* Cabecera */}
-            <div className="bg-white rounded-xl border p-5" style={{ borderColor: `${AZUL}40` }}>
-              <div className="flex items-start justify-between mb-3">
+            <div className="glassmorphic-card" style={{ padding: "24px" }}>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "16px" }}>
                 <div>
-                  <span className="text-[11px] font-bold tracking-wider" style={{ color: AZUL }}>
-                    AULA VIRTUAL RECURSO CALIFICABLE
+                  <span style={{ fontSize: "11px", fontWeight: 600, letterSpacing: "0.08em", color: "var(--secondary)", textTransform: "uppercase" }}>
+                    Recurso Calificable
                   </span>
-                  <h2 className="text-lg font-bold text-[#00192d] mt-1">
+                  <h2 style={{ fontSize: "20px", fontWeight: 700, color: "var(--primary)", marginTop: "4px" }}>
                     {actividad.nombre}
                   </h2>
-                  <p className="text-xs text-[#64748b] mt-0.5">
-                    CARGA DE CALIFICACIONES QUIMESTRALES INTEGRADAS EN TIEMPO REAL
+                  <p style={{ fontSize: "12px", color: "var(--on-surface-variant)", marginTop: "2px" }}>
+                    Calificaciones integradas en tiempo real
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="text-[11px] font-bold tracking-wider" style={{ color: AZUL }}>
-                    VALOR MÁXIMO
+                <div style={{ textAlign: "right" }}>
+                  <p style={{ fontSize: "11px", fontWeight: 600, letterSpacing: "0.05em", color: "var(--secondary)", textTransform: "uppercase" }}>
+                    Valor Máximo
                   </p>
-                  <p className="text-xl font-bold font-['JetBrains_Mono',monospace]" style={{ color: AZUL }}>
-                    10.00 PUNTOS
+                  <p style={{ fontSize: "22px", fontWeight: 700, color: "var(--secondary)", fontFamily: "'JetBrains Mono', 'Inter', monospace" }}>
+                    10.00 pts
                   </p>
                 </div>
               </div>
               {actividad.descripcion && (
-                <p className="text-xs text-[#64748b] mt-2 pt-3 border-t border-[#e2e8f0]">
+                <p style={{ fontSize: "13px", color: "var(--on-surface-variant)", paddingTop: "12px", borderTop: "1px solid var(--outline-variant)", lineHeight: 1.6 }}>
                   {actividad.descripcion}
                 </p>
               )}
             </div>
 
-            {/* Tabla / Estado vacío */}
-            <div className="bg-white rounded-xl border border-[#e2e8f0] overflow-hidden flex-1">
-              <div className="overflow-x-auto h-full">
-                <table className="w-full text-sm">
+            <div className="glassmorphic-card" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", padding: 0 }}>
+              <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--outline-variant)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <Users size={16} style={{ color: "var(--secondary)" }} />
+                  <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--on-surface-variant)", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                    Estudiantes Matriculados
+                  </span>
+                </div>
+                <span style={{ fontSize: "11px", padding: "2px 10px", borderRadius: "6px", background: "var(--surface-container-low)", color: "var(--on-surface-variant)" }}>
+                  0 estudiantes
+                </span>
+              </div>
+              <div style={{ overflow: "auto", flex: 1 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
                   <thead>
-                    <tr style={{ backgroundColor: "#f1f5f9" }}>
-                      <th className="p-3 text-left font-semibold text-xs text-[#00192d] uppercase tracking-wider w-[220px]">
-                        ALUMNO
+                    <tr style={{ borderBottom: "1px solid var(--outline-variant)" }}>
+                      <th style={{ padding: "12px 20px", textAlign: "left", fontSize: "11px", fontWeight: 600, color: "var(--on-surface-variant)", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                        Alumno
                       </th>
-                      <th className="p-3 text-center font-semibold text-xs text-[#00192d] uppercase tracking-wider w-[160px]">
-                        ESTADO DE ENTREGA
+                      <th style={{ padding: "12px 20px", textAlign: "center", fontSize: "11px", fontWeight: 600, color: "var(--on-surface-variant)", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                        Estado
                       </th>
-                      <th className="p-3 text-center font-semibold text-xs text-[#00192d] uppercase tracking-wider w-[140px]">
-                        NOTA CUANTITATIVA
+                      <th style={{ padding: "12px 20px", textAlign: "center", fontSize: "11px", fontWeight: 600, color: "var(--on-surface-variant)", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                        Nota
                       </th>
-                      <th className="p-3 text-center font-semibold text-xs text-[#00192d] uppercase tracking-wider">
-                        RETROALIMENTACIÓN ACADÉMICA
-                      </th>
-                      <th className="p-3 text-center font-semibold text-xs text-[#00192d] uppercase tracking-wider w-[120px]">
-                        ACCIONES
+                      <th style={{ padding: "12px 20px", textAlign: "center", fontSize: "11px", fontWeight: 600, color: "var(--on-surface-variant)", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                        Retroalimentación
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
-                      <td colSpan={5} className="p-8 text-center">
-                        <p className="text-sm text-[#94a3b8]">
-                          No hay estudiantes registrados para esta actividad.
+                      <td colSpan={4} style={{ padding: "40px 20px", textAlign: "center" }}>
+                        <Users size={28} style={{ color: "var(--on-surface-variant)", opacity: 0.3, marginBottom: "8px" }} />
+                        <p style={{ fontSize: "13px", color: "var(--on-surface-variant)" }}>
+                          No hay estudiantes matriculados en esta actividad
                         </p>
-                        <p className="text-xs text-[#94a3b8] mt-1">
-                          Los alumnos se cargarán automáticamente al asociar la actividad con un curso.
+                        <p style={{ fontSize: "12px", color: "var(--on-surface-variant)", opacity: 0.6, marginTop: "4px" }}>
+                          Los alumnos se cargarán al asociar la actividad con un curso
                         </p>
                       </td>
                     </tr>
@@ -228,21 +252,22 @@ export function AulaVirtualApp() {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center bg-white rounded-xl border border-[#e2e8f0]">
-            <p className="text-sm text-[#94a3b8]">
-              Seleccione o cree una actividad para comenzar.
-            </p>
+          <div className="glassmorphic-card" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ textAlign: "center" }}>
+              <FileText size={40} style={{ color: "var(--on-surface-variant)", opacity: 0.3, marginBottom: "12px" }} />
+              <p style={{ fontSize: "14px", fontWeight: 500, color: "var(--on-surface-variant)" }}>
+                Seleccione o cree una actividad
+              </p>
+            </div>
           </div>
         )}
 
-        {/* Watermark */}
-        <div className="text-right">
-          <p className="text-sm font-bold tracking-widest" style={{ color: AZUL }}>EVA</p>
-          <p className="text-[10px] text-[#94a3b8] -mt-0.5">UNIVERSIDAD NACIONAL DE LOJA</p>
+        <div style={{ textAlign: "right" }}>
+          <p style={{ fontSize: "13px", fontWeight: 700, letterSpacing: "0.1em", color: "var(--secondary)" }}>EVA</p>
+          <p style={{ fontSize: "10px", color: "var(--on-surface-variant)", opacity: 0.6, marginTop: "-2px" }}>Entorno Virtual de Aprendizaje</p>
         </div>
       </main>
 
-      {/* Modales */}
       <ActividadFormModal
         abierto={showForm}
         editando={editActividad}
