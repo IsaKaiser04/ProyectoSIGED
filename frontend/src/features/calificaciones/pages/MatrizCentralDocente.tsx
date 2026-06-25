@@ -405,6 +405,7 @@ export function CalificacionesDocentePage() {
   const [asignaturaId, setAsignaturaId] = useState<number>(0);
 
   const [loading, setLoading] = useState(true);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>("todos");
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -450,13 +451,19 @@ export function CalificacionesDocentePage() {
 
   /* ── Carga de estudiantes y calificaciones ── */
   useEffect(() => {
-    if (!anoId || !cursoId) return;
+    // Solo cargar si tenemos IDs válidos (mayores que 0)
+    if (!anoId || anoId === 0 || !cursoId || cursoId === 0) return;
+
     setLoading(true);
     Promise.all([
       listEstudiantesPorAnoYCurso(anoId, cursoId),
       getLibroCalificaciones(anoId, cursoId, asignaturaId || 0),
     ])
-      .then(([ests, cals]) => { setEstudiantes(ests); setCalificaciones(cals); })
+      .then(([ests, cals]) => {
+        setEstudiantes(ests);
+        setCalificaciones(cals);
+        setDataLoaded(true);
+      })
       .catch(() => mostrarToast("error", "Error al cargar datos académicos"))
       .finally(() => setLoading(false));
   }, [anoId, cursoId, asignaturaId]);

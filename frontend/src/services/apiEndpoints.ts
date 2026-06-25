@@ -16,8 +16,9 @@ export const apiEndpoints = {
         `/planificacion/asignaturas-ofertadas/?anio_lectivo_id=${anoLectivoId}`,
     },
     estudiantes: {
+      // Nuevo endpoint para Registro de Notas del Docente
       byAnoAndCurso: (anoLectivoId: number, cursoId: number) =>
-        `/actoresAcademicos/estudiantes/?anio_lectivo_id=${anoLectivoId}&curso_id=${cursoId}`,
+        `/actoresAcademicos/estudiantes/para-registro-notas/?anio_lectivo_id=${anoLectivoId}&curso_id=${cursoId}`,
     },
     libroCalificaciones: {
       collection: "/calificaciones/calificaciones/",
