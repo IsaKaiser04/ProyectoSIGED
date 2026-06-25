@@ -49,68 +49,51 @@ export const EstudiantesListado: React.FC = () => {
       try {
         const institucionId = usuario?.institucion_id;
 
-        // 0. Cargar paralelos para resolver grado y paralelo de matrículas existentes
+        // 1. Cargar paralelos para resolver grado y nombre del paralelo
         const paralelosApi = await apiGet<any[]>("/planificacion/paralelos/").catch(() => []);
         const paraleloMap = new Map(paralelosApi.map((p: any) => [p.id, p]));
 
-        // 1. Obtener estudiantes con perfil Estudiante en la BD
+        // 2. Obtener estudiantes con perfil de usuario ya creado en el sistema
         let estudiantesApi = await apiGet<EstudianteData[]>("/actoresAcademicos/estudiantes/").catch(() => []);
         if (institucionId) {
-          estudiantesApi = (estudiantesApi || []).filter(
-            (e) => e.institucion === institucionId
-          );
+          estudiantesApi = (estudiantesApi || []).filter((e) => e.institucion === institucionId);
         }
 
-        // 2. Obtener matrículas legalizadas para complementar
+        // 3. Obtener SOLO matrículas Legalizadas del servidor (sin localStorage)
         const matriculas = await apiGet<MatriculaConEstudiante[]>("/matricula/matriculas/").catch(() => []);
         let legalizadas = (matriculas || []).filter((m) => m.estado === "Legalizada");
         if (institucionId) {
           legalizadas = legalizadas.filter((m) => m.institucion === institucionId);
         }
 
-        // 3. Mezclar: estudiantes con perfil + aspirantes de legalizadas sin perfil
+        // 4. Complementar con aspirantes legalizados que aún no tienen perfil creado
         const idsPerfil = new Set(estudiantesApi.map((e) => e.id));
-
-        const deMatriculas: EstudianteData[] = [];
-        const vistos = new Set<string>();
-        const procesarMatricula = (m: any) => {
-          if (m.estudiante_id && idsPerfil.has(m.estudiante_id)) return;
-          const nombres = m.asp_nombres || m.estudiante_nombre?.split(" ")[0] || "—";
-          const apellidos = m.asp_apellidos || m.estudiante_nombre?.split(" ").slice(1).join(" ") || "—";
-          const key = `${nombres} ${apellidos}|${m.paralelo_id || ""}`;
-          if (vistos.has(key)) return;
-          vistos.add(key);
-          const p = paraleloMap.get(Number(m.paralelo_id));
-          deMatriculas.push({
-            id: -(m.id),
-            nombres,
-            apellidos,
-            correo_personal: m.asp_correo_personal || m.correo_personal || "",
-            celular: m.asp_celular || m.celular || "",
-            institucion: institucionId ?? null,
-            grado: m.grado_nombre || p?.gradoOfertadoGradoNombre || p?.gradoOfertadoNombre || "",
-            paralelo: m.paralelo_nombre || p?.nombre || "",
+        const deMatriculas: EstudianteData[] = legalizadas
+          .filter((m) => !(m.estudiante_id && idsPerfil.has(m.estudiante_id)))
+          .map((m) => {
+            const p = paraleloMap.get(Number(m.paralelo));
+            return {
+              id: -(m.id),
+              nombres: m.asp_nombres || "—",
+              apellidos: m.asp_apellidos || "—",
+              correo_personal: m.asp_correo_personal || "",
+              celular: "",
+              institucion: institucionId ?? null,
+              grado: p?.gradoOfertadoGradoNombre || p?.gradoOfertadoNombre || "",
+              paralelo: m.paralelo_nombre || p?.nombre || "",
+            };
           });
-        };
-        for (const m of legalizadas) procesarMatricula(m);
-
-        // 4. También leer matrículas legalizadas desde localStorage
-        try {
-          const raw = localStorage.getItem("siged_matriculas_v2");
-          if (raw) {
-            const locales = JSON.parse(raw);
-            for (const m of locales) {
-              if (m.estado === "Legalizada") procesarMatricula(m);
-            }
-          }
-        } catch {}
 
         setEstudiantes([...estudiantesApi, ...deMatriculas]);
-      } catch { setEstudiantes([]); }
-      finally { setLoading(false); }
+      } catch {
+        setEstudiantes([]);
+      } finally {
+        setLoading(false);
+      }
     };
     cargar();
   }, [usuario?.institucion_id, refrescar]);
+
 
   const filtrados = estudiantes.filter(
     (e) =>

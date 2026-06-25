@@ -3,6 +3,10 @@ import { useState } from "react";
 import { EstudianteLayout } from "../layouts/EstudianteLayout";
 import HorarioEscolarPage from "../features/estudiante/components/HorarioEscolarPage";
 
+// ──────────────────────────────────────────────────────────────────────────
+import { CalificacionesEstudiantePage, AulaVirtualEstudiantePage } from "../features/calificaciones";
+// ──────────────────────────────────────────────────────────────────────────
+
 const InicioEstudiante = () => (
   <div className="content-heading" style={{ padding: "24px" }}>
     <h2>Panel de Control Académico</h2>
@@ -35,7 +39,7 @@ export function EstudianteApp() {
       // Académico
       case "mis-notes":
       case "mis-notas":
-        return <EnDesarrollo titulo="Historial Detallado de Calificaciones y Promedios por Trimestre" />;
+        return <CalificacionesEstudiantePage />;
       case "mi-asistencia":
         return <EnDesarrollo titulo="Reporte Semanal de Asistencia, Atrasos e Justificaciones" />;
       case "horario-escolar":
@@ -43,7 +47,7 @@ export function EstudianteApp() {
 
       // Entorno Virtual (EVA)
       case "aulas-virtuales":
-        return <EnDesarrollo titulo="Aulas Virtuales — Descarga de Recursos y Entrega de Tareas" />;
+        return <AulaVirtualEstudiantePage />;
 
       // Institucional
       case "manuales-usuario":

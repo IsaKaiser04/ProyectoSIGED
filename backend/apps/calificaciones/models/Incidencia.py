@@ -1,4 +1,5 @@
 from django.db import models
+from apps.calificaciones.models.incidenciaTipo import IncidenciaTipo
 
 
 class Incidencia(models.Model):
@@ -8,10 +9,10 @@ class Incidencia(models.Model):
     notificar = models.BooleanField(default=False)
     fecha_registro = models.DateTimeField(auto_now_add=True)
 
-    incidencia_tipo = models.ForeignKey(
-        'IncidenciaTipo',
-        on_delete=models.PROTECT,
-        related_name='incidencias',
+    tipo = models.CharField(
+        max_length=20,
+        choices=IncidenciaTipo.choices,
+        default=IncidenciaTipo.COMPORTAMIENTO,
     )
     calificaciones = models.ManyToManyField(
         'Calificacion',

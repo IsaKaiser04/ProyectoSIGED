@@ -17,6 +17,19 @@ class Calificacion(models.Model):
         on_delete=models.CASCADE,
         related_name='calificaciones',
     )
+    matricula = models.ForeignKey(
+        'matricula.Matricula',
+        on_delete=models.PROTECT,
+        related_name='calificaciones',
+    )
 
     def __str__(self):
         return str(self.valor)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['asignatura_evaluacion', 'matricula'],
+                name='unique_calificacion_por_evaluacion_matricula',
+            )
+        ]

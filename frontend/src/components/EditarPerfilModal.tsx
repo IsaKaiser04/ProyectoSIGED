@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../features/autenticacion/context/AuthContext";
 import { apiPatch } from "../services/apiClient";
+import "../styles/calificaciones.css";
 
 interface Props {
   onClose: () => void;
@@ -42,9 +43,8 @@ export const EditarPerfilModal: React.FC<Props> = ({ onClose }) => {
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 99999 }}
-      onClick={onClose}>
-      <div style={{ background: "white", borderRadius: "12px", padding: "24px", width: "480px", maxWidth: "90vw" }}
+    <div className="glassmorphic-modal-overlay" onClick={onClose}>
+      <div className="glassmorphic-card" style={{ padding: "24px", width: "480px", maxWidth: "90vw" }}
         onClick={e => e.stopPropagation()}>
         <h3 style={{ margin: "0 0 4px", color: "var(--primary)" }}>Editar Perfil</h3>
         <p style={{ fontSize: "13px", color: "var(--on-surface-variant)", marginBottom: "20px" }}>
