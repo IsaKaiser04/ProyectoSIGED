@@ -63,3 +63,18 @@ class AnioLectivoViewSet(viewsets.ViewSet):
         auth = getattr(request, 'auth', None)
         institucion_id = auth.get('institucion_id') if auth else None
         return Response(AnioLectivoService.get_periodos(pk, institucion_id))
+
+    @action(detail=True, methods=['post'])
+    def activar(self, request, pk=None):
+        auth = getattr(request, 'auth', None)
+        institucion_id = auth.get('institucion_id') if auth else None
+        data, error = AnioLectivoService.activate(pk, institucion_id)
+        if error:
+            return Response(error, status=error.get('status', status.HTTP_400_BAD_REQUEST))
+        return Response(data)
+
+    @action(detail=False, methods=['get'])
+    def exists_activo(self, request):
+        auth = getattr(request, 'auth', None)
+        institucion_id = auth.get('institucion_id') if auth else None
+        return Response({'exists': AnioLectivoService.activate_exists(institucion_id)})

@@ -3,95 +3,8 @@ import { useGobernanzas } from "./hooks/useGobernanza";
 import { eliminarGobernanza } from "./services/gobernanzaApi";
 import { FormularioGobernanza } from "./components/FormularioGobernanza";
 import { PanelFiltrosGobernanza } from "./components/PanelFiltrosGobernanza";
+import { showSuccess, showError } from '../../components/Toast';
 import type { Gobernanza } from "../../types/entities/gobernanza";
-
-const toastStyles = `
-@keyframes slideInRight {
-  from { transform: translateX(120%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}`;
-
-const ToastStyleInjector = () => {
-  useEffect(() => {
-    const style = document.createElement("style");
-    style.textContent = toastStyles;
-    document.head.appendChild(style);
-    return () => { style.remove(); };
-  }, []);
-  return null;
-};
-
-// --- Toast notification component ---
-interface NotificacionInfo {
-  type: "success" | "error" | "warning" | "info";
-  title: string;
-  message: string;
-  field?: string;
-  action?: { label: string; handler: () => void };
-}
-
-const colorMap: Record<string, string> = {
-  success: "var(--secondary)",
-  error: "var(--error)",
-  warning: "#f59e0b",
-  info: "var(--primary)",
-};
-
-const iconMap: Record<string, string> = {
-  success: "✓",
-  error: "✗",
-  warning: "⚠",
-  info: "ℹ",
-};
-
-const Toast: React.FC<{ notificacion: NotificacionInfo; onDismiss: () => void }> = ({ notificacion, onDismiss }) => {
-  const bg = colorMap[notificacion.type] || colorMap.info;
-  const icon = iconMap[notificacion.type] || iconMap.info;
-  return (
-    <div
-      style={{
-        position: "fixed",
-        top: "20px",
-        right: "20px",
-        zIndex: 99999,
-        minWidth: "300px",
-        maxWidth: "420px",
-        padding: "14px 16px",
-        borderRadius: "10px",
-        background: bg,
-        color: "white",
-        boxShadow: "0 6px 20px rgba(0,0,0,0.2)",
-        display: "flex",
-        alignItems: "flex-start",
-        gap: "10px",
-        animation: "slideInRight 0.3s ease",
-        fontSize: "13px",
-      }}
-    >
-      <span style={{ fontSize: "16px", lineHeight: 1.4, flexShrink: 0 }}>{icon}</span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <strong style={{ display: "block", marginBottom: "2px", fontSize: "13px" }}>{notificacion.title}</strong>
-        <span style={{ opacity: 0.95, fontSize: "12px", display: "block" }}>{notificacion.message}</span>
-      </div>
-      <button
-        onClick={onDismiss}
-        style={{
-          background: "transparent",
-          border: "none",
-          color: "white",
-          cursor: "pointer",
-          fontSize: "16px",
-          lineHeight: 1,
-          padding: 0,
-          opacity: 0.8,
-          flexShrink: 0,
-        }}
-      >
-        &times;
-      </button>
-    </div>
-  );
-};
 
 // --- ConfirmModal component ---
 const ConfirmModal: React.FC<{
@@ -188,15 +101,8 @@ export const GobernanzaDashboard: React.FC<DashboardProps> = ({ readOnly = false
   const [showForm, setShowForm] = useState(false);
   const [gobernanzaEdit, setGobernanzaEdit] = useState<Gobernanza | null>(null);
   const [filtroTipo, setFiltroTipo] = useState("");
-  const [notificacion, setNotificacion] = useState<NotificacionInfo | null>(null);
   const [eliminarId, setEliminarId] = useState<number | null>(null);
   const [eliminando, setEliminando] = useState(false);
-
-  const mostrarNotificacion = (info: NotificacionInfo) => {
-    setNotificacion(null);
-    setTimeout(() => setNotificacion(info), 10);
-    setTimeout(() => setNotificacion(null), 3500);
-  };
 
   const gobernanzasFiltradas = gobernanzas.filter((g) => {
     const tipoMatch = filtroTipo === "" || g.gobernanzaTipo === filtroTipo;
@@ -211,11 +117,11 @@ export const GobernanzaDashboard: React.FC<DashboardProps> = ({ readOnly = false
       setEliminando(true);
       await eliminarGobernanza(eliminarId);
       setEliminarId(null);
-      mostrarNotificacion({ type: "success", title: "Eliminado", message: "Documento eliminado correctamente." });
+      showSuccess("Documento eliminado correctamente.");
       refrescarTablas();
     } catch (error) {
       console.error(error);
-      mostrarNotificacion({ type: "error", title: "Error", message: "Error al eliminar el documento." });
+      showError("Error al eliminar el documento.");
     } finally {
       setEliminando(false);
     }
@@ -238,21 +144,16 @@ export const GobernanzaDashboard: React.FC<DashboardProps> = ({ readOnly = false
 
   const handleSaveSuccess = (msg: string) => {
     cerrarFormulario();
-    mostrarNotificacion({ type: "success", title: "Guardado", message: msg || "Documento guardado correctamente." });
+    showSuccess(msg || "Documento guardado correctamente.");
     refrescarTablas();
   };
 
   const handleSaveError = (error: { titulo: string; mensaje: string; campo?: string }) => {
-    mostrarNotificacion({ type: "error", title: error.titulo, message: error.mensaje });
+    showError(error.mensaje);
   };
 
   return (
     <div className="dashboard-content" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-      <ToastStyleInjector />
-      {notificacion && (
-        <Toast notificacion={notificacion} onDismiss={() => setNotificacion(null)} />
-      )}
-
       <div
         className="card-header"
         style={{

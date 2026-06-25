@@ -91,4 +91,5 @@ export interface Paralelo {
   jornada: 'MATUTINA' | 'VESPERTINA' | 'NOCTURNA' | null;
   gradoOfertado: number;
   docenteTutor: number | null;
+  docenteTutorNombre?: string | null;
 }

@@ -7,6 +7,8 @@ import {
   actualizarJornada,
   eliminarJornada
 } from "../../planificacion-curricular/services/jornadasApi";
+import { ConfirmDeleteModal } from '../../../components/ConfirmDeleteModal';
+import { showSuccess, showError } from '../../../components/Toast';
 
 const labelStyle: React.CSSProperties = {
   display: "block",
@@ -93,15 +95,11 @@ const modalBox: React.CSSProperties = {
   overflowY: "auto"
 };
 
-const notifStyle = (type: "success" | "error"): React.CSSProperties => ({
-  padding: "12px 20px",
-  borderRadius: 8,
-  fontWeight: 600,
-  fontSize: "var(--font-body-sm)",
-  background: type === "success" ? "#dcfce7" : "#fee2e2",
-  color: type === "success" ? "#166534" : "#991b1b",
-  border: `1px solid ${type === "success" ? "#86efac" : "#fecaca"}`
-});
+const req: React.CSSProperties = { color: 'red', marginLeft: 2 };
+const errorFieldStyle: React.CSSProperties = {
+  color: '#dc2626', fontSize: '12px', marginTop: 4,
+  display: 'flex', alignItems: 'center', gap: 4,
+};
 
 export const GestionJornadas: React.FC = () => {
   const { usuario } = useAuth();
@@ -109,13 +107,25 @@ export const GestionJornadas: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState<any | null>(null);
-  const [notif, setNotif] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const [form, setForm] = useState({ nombre: "", hora_inicio: "", hora_fin: "" });
-  const [errorForm, setErrorForm] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; nombre: string } | null>(null);
 
-  const show = (msg: string, type: "success" | "error") => {
-    setNotif({ msg, type });
-    setTimeout(() => setNotif(null), 4000);
+  const setField = (field: string, value: any) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+    setErrors(prev => { const copy = { ...prev }; delete copy[field]; return copy; });
+  };
+
+  const validate = (): boolean => {
+    const errs: Record<string, string> = {};
+    if (!form.nombre.trim()) errs.nombre = '⚠️ Este campo es obligatorio';
+    if (!form.hora_inicio) errs.hora_inicio = '⚠️ Este campo es obligatorio';
+    if (!form.hora_fin) errs.hora_fin = '⚠️ Este campo es obligatorio';
+    if (form.hora_inicio && form.hora_fin && form.hora_inicio >= form.hora_fin) {
+      errs.hora_fin = '⚠️ Debe ser mayor a la hora de inicio';
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
   };
 
   const cargar = async () => {
@@ -143,7 +153,7 @@ export const GestionJornadas: React.FC = () => {
   const abrirCrear = () => {
     setEditando(null);
     setForm({ nombre: "", hora_inicio: "", hora_fin: "" });
-    setErrorForm("");
+    setErrors({});
     setShowForm(true);
   };
 
@@ -154,21 +164,12 @@ export const GestionJornadas: React.FC = () => {
       hora_inicio: j.hora_inicio,
       hora_fin: j.hora_fin
     });
-    setErrorForm("");
+    setErrors({});
     setShowForm(true);
   };
 
   const handleGuardar = async () => {
-    setErrorForm("");
-
-    if (!form.nombre || !form.hora_inicio || !form.hora_fin) {
-      setErrorForm("Debe completar todos los datos del formulario antes de guardar.");
-      return;
-    }
-    if (form.hora_inicio >= form.hora_fin) {
-      show("La hora fin debe ser mayor a la hora de inicio", "error");
-      return;
-    }
+    if (!validate()) return;
 
     try {
       const payload = {
@@ -178,10 +179,10 @@ export const GestionJornadas: React.FC = () => {
 
       if (editando) {
         await actualizarJornada(editando.id, payload);
-        show("Jornada actualizada exitosamente", "success");
+        showSuccess("Jornada actualizada exitosamente");
       } else {
         await crearJornada(payload);
-        show("Jornada creada exitosamente", "success");
+        showSuccess("Jornada creada exitosamente");
       }
 
       setShowForm(false);
@@ -189,29 +190,32 @@ export const GestionJornadas: React.FC = () => {
       setForm({ nombre: "", hora_inicio: "", hora_fin: "" });
       await cargar();
     } catch (e: any) {
-      show(
-        e?.data
-          ? JSON.stringify(e.data)
-          : e?.message || "Error al guardar la jornada",
-        "error"
-      );
+      const data = e?.data;
+      if (typeof data === 'object') {
+        const errs: Record<string, string> = {};
+        Object.entries(data).forEach(([k, v]) => { errs[k] = `⚠️ ${v}`; });
+        setErrors(errs);
+      } else {
+        showError(data ? JSON.stringify(data) : e?.message || "Error al guardar la jornada");
+      }
     }
   };
 
-  const handleEliminar = async (id: number) => {
-    if (
-      !window.confirm(
-        "¿Está seguro de que desea eliminar esta jornada? Esta acción no se puede deshacer."
-      )
-    ) {
-      return;
-    }
+  const handleEliminar = (id: number) => {
+    const j = data.find(item => item.id === id);
+    setDeleteTarget({ id, nombre: j?.nombre || '' });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await eliminarJornada(id);
-      show("Jornada eliminada exitosamente", "success");
+      await planificacionApi.deleteJornada(deleteTarget.id);
+      showSuccess('Jornada eliminada exitosamente');
+      setDeleteTarget(null);
       await cargar();
-    } catch (err: any) {
-      show("Error al eliminar la jornada.", "error");
+    } catch {
+      showError('Error al eliminar la jornada.');
+      setDeleteTarget(null);
     }
   };
 
@@ -223,8 +227,6 @@ export const GestionJornadas: React.FC = () => {
           Gestión de jornadas y horarios laborales de la institución
         </p>
       </div>
-
-      {notif && <div style={notifStyle(notif.type)}>{notif.msg}</div>}
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <p style={{ margin: 0, fontSize: "var(--font-body-sm)", color: "var(--on-surface-variant)" }}>
@@ -284,50 +286,28 @@ export const GestionJornadas: React.FC = () => {
               {editando ? "Editar Jornada" : "Nueva Jornada"}
             </h3>
             <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>Nombre de Jornada</label>
-              <input
-                style={fieldStyle}
+              <label style={labelStyle}>Nombre de Jornada<span style={req}>*</span></label>
+              <input style={{ ...fieldStyle, borderColor: errors.nombre ? '#dc2626' : undefined }}
                 value={form.nombre}
-                onChange={(e) => setForm({ ...form, nombre: e.target.value })}
-              />
+                onChange={e => setField('nombre', e.target.value)} />
+              {errors.nombre && <div style={errorFieldStyle}>{errors.nombre}</div>}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
               <div>
-                <label style={labelStyle}>Hora de Inicio</label>
-                <input
-                  style={fieldStyle}
-                  type="time"
-                  value={form.hora_inicio}
-                  onChange={(e) => setForm({ ...form, hora_inicio: e.target.value })}
-                />
+                <label style={labelStyle}>Hora de Inicio<span style={req}>*</span></label>
+                <input style={{ ...fieldStyle, borderColor: errors.hora_inicio ? '#dc2626' : undefined }}
+                  type="time" value={form.hora_inicio}
+                  onChange={e => setField('hora_inicio', e.target.value)} />
+                {errors.hora_inicio && <div style={errorFieldStyle}>{errors.hora_inicio}</div>}
               </div>
               <div>
-                <label style={labelStyle}>Hora de Fin</label>
-                <input
-                  style={fieldStyle}
-                  type="time"
-                  value={form.hora_fin}
-                  onChange={(e) => setForm({ ...form, hora_fin: e.target.value })}
-                />
+                <label style={labelStyle}>Hora de Fin<span style={req}>*</span></label>
+                <input style={{ ...fieldStyle, borderColor: errors.hora_fin ? '#dc2626' : undefined }}
+                  type="time" value={form.hora_fin}
+                  onChange={e => setField('hora_fin', e.target.value)} />
+                {errors.hora_fin && <div style={errorFieldStyle}>{errors.hora_fin}</div>}
               </div>
             </div>
-            {errorForm && (
-              <div
-                style={{
-                  padding: "12px 16px",
-                  marginBottom: 16,
-                  borderRadius: 8,
-                  background: "#fef2f2",
-                  color: "#dc2626",
-                  fontSize: "14px",
-                  fontWeight: 500,
-                  border: "1px solid #fecaca",
-                  textAlign: "center",
-                }}
-              >
-                {errorForm}
-              </div>
-            )}
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
               <button onClick={() => setShowForm(false)} style={btnSecundario}>
                 Cancelar
@@ -339,6 +319,12 @@ export const GestionJornadas: React.FC = () => {
           </div>
         </div>
       )}
+      <ConfirmDeleteModal
+        open={!!deleteTarget}
+        nombre={deleteTarget?.nombre || ''}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 };

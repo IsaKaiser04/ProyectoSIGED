@@ -21,18 +21,6 @@ class Paralelo(models.Model):
         related_name='paralelos_tutor'
     )
 
-    def clean(self):
-        from django.core.exceptions import ValidationError
-        super().clean()
-        if self.docenteTutor:
-            queryset = Paralelo.objects.filter(docenteTutor=self.docenteTutor)
-            if self.pk:
-                queryset = queryset.exclude(pk=self.pk)
-            if queryset.exists():
-                raise ValidationError({
-                    'docenteTutor': 'Este docente ya es tutor de otro paralelo.'
-                })
-
     def __str__(self):
         return self.nombre
 

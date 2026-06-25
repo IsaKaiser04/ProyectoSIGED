@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { planificacionApi } from '../services/planificacionApi';
 import type { Grado, Asignatura, PlanEstudio, EducacionNivel, EducacionSubNivel } from '../../../types/entities/planificacion';
+import { ConfirmDeleteModal } from '../../../components/ConfirmDeleteModal';
+import { showSuccess, showError } from '../../../components/Toast';
 
 const labelStyle: React.CSSProperties = {
   display: 'block', marginBottom: 6, fontWeight: 600, fontSize: 'var(--font-body-sm)', color: 'var(--on-surface)',
@@ -49,13 +51,11 @@ const modalBox: React.CSSProperties = {
   border: '1px solid var(--outline-variant)',
   boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
 };
-const notifStyle = (type: 'success' | 'error'): React.CSSProperties => ({
-  padding: '12px 20px', borderRadius: 8, fontWeight: 600, fontSize: 'var(--font-body-sm)',
-  background: type === 'success' ? '#dcfce7' : '#fee2e2',
-  color: type === 'success' ? '#166534' : '#991b1b',
-  border: `1px solid ${type === 'success' ? '#86efac' : '#fecaca'}`,
-});
-
+const req: React.CSSProperties = { color: 'red', marginLeft: 2 };
+const errorFieldStyle: React.CSSProperties = {
+  color: '#dc2626', fontSize: '12px', marginTop: 4,
+  display: 'flex', alignItems: 'center', gap: 4,
+};
 // ============================================================
 // Sub-tab: Grados
 // ============================================================
@@ -67,12 +67,23 @@ const SubGrados: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState<Grado | null>(null);
-  const [notif, setNotif] = useState<{msg: string; type: 'success' | 'error'} | null>(null);
   const [form, setForm] = useState({ nombre: '', planEstudio: 0, educacionNivel: 0, educacionSubNivel: 0 });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; nombre: string } | null>(null);
 
-  const show = (msg: string, type: 'success' | 'error') => {
-    setNotif({ msg, type });
-    setTimeout(() => setNotif(null), 4000);
+  const setField = (field: string, value: any) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+    setErrors(prev => { const copy = { ...prev }; delete copy[field]; return copy; });
+  };
+
+  const validate = (): boolean => {
+    const errs: Record<string, string> = {};
+    if (!form.nombre.trim()) errs.nombre = '⚠️ Este campo es obligatorio';
+    if (!form.planEstudio) errs.planEstudio = '⚠️ Debe seleccionar un plan de estudio';
+    if (!form.educacionNivel) errs.educacionNivel = '⚠️ Debe seleccionar un nivel';
+    if (!form.educacionSubNivel) errs.educacionSubNivel = '⚠️ Debe seleccionar un subnivel';
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
   };
 
   const cargar = async () => {
@@ -93,6 +104,7 @@ const SubGrados: React.FC = () => {
   const abrirCrear = () => {
     setEditando(null);
     setForm({ nombre: '', planEstudio: 0, educacionNivel: 0, educacionSubNivel: 0 });
+    setErrors({});
     setShowForm(true);
   };
 
@@ -104,36 +116,42 @@ const SubGrados: React.FC = () => {
       educacionNivel: g.educacionNivel,
       educacionSubNivel: g.educacionSubNivel,
     });
+    setErrors({});
     setShowForm(true);
   };
 
   const handleGuardar = async () => {
-    if (!form.nombre || !form.planEstudio || !form.educacionNivel || !form.educacionSubNivel) {
-      show('Todos los campos son obligatorios', 'error'); return;
-    }
+    if (!validate()) return;
     try {
       if (editando) {
         await planificacionApi.updateGrado(editando.id, form as any);
-        show('Grado actualizado exitosamente', 'success');
+        showSuccess('Grado actualizado exitosamente');
       } else {
         await planificacionApi.createGrado(form as any);
-        show('Grado creado exitosamente', 'success');
+        showSuccess('Grado creado exitosamente');
       }
       setShowForm(false);
       setEditando(null);
       setForm({ nombre: '', planEstudio: 0, educacionNivel: 0, educacionSubNivel: 0 });
       await cargar();
-    } catch { show(editando ? 'Error al actualizar grado' : 'Error al crear grado', 'error'); }
+    } catch { showError(editando ? 'Error al actualizar grado' : 'Error al crear grado'); }
   };
 
   const handleEliminar = async (id: number) => {
-    if (!window.confirm('¿Está seguro de que desea eliminar este grado? Esta acción no se puede deshacer.')) return;
+    const grado = data.find(g => g.id === id);
+    setDeleteTarget({ id, nombre: grado?.nombre || '' });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await planificacionApi.deleteGrado(id);
-      show('Grado eliminado exitosamente', 'success');
+      await planificacionApi.deleteGrado(deleteTarget.id);
+      showSuccess('Grado eliminado exitosamente');
+      setDeleteTarget(null);
       await cargar();
-    } catch (err) {
-      show('Error al eliminar el grado. Asegúrese de que no tenga materias o paralelos asociados.', 'error');
+    } catch {
+      showError('Error al eliminar el grado.');
+      setDeleteTarget(null);
     }
   };
 
@@ -154,7 +172,6 @@ const SubGrados: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {notif && <div style={notifStyle(notif.type)}>{notif.msg}</div>}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <p style={{ margin: 0, fontSize: 'var(--font-body-sm)', color: 'var(--on-surface-variant)' }}>{data.length} grado(s)</p>
         <button onClick={abrirCrear} style={btnPrimario}>+ Nuevo Grado</button>
@@ -212,34 +229,38 @@ const SubGrados: React.FC = () => {
               {editando ? 'Editar Grado' : 'Nuevo Grado'}
             </h3>
             <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>Nombre</label>
+              <label style={labelStyle}>Nombre<span style={req}>*</span></label>
               <input style={fieldStyle} placeholder="Ej: Primer Grado" maxLength={100} value={form.nombre}
-                onChange={e => setForm({ ...form, nombre: e.target.value })} />
+                onChange={e => setField('nombre', e.target.value)} />
+              {errors.nombre && <div style={errorFieldStyle}>{errors.nombre}</div>}
             </div>
             <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>Plan de Estudio</label>
+              <label style={labelStyle}>Plan de Estudio<span style={req}>*</span></label>
               <select style={selectStyle} value={form.planEstudio}
-                onChange={e => setForm({ ...form, planEstudio: Number(e.target.value) })}>
+                onChange={e => setField('planEstudio', Number(e.target.value))}>
                 <option value={0}>-- Seleccione --</option>
                 {planes.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
               </select>
+              {errors.planEstudio && <div style={errorFieldStyle}>{errors.planEstudio}</div>}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
               <div>
-                <label style={labelStyle}>Nivel</label>
+                <label style={labelStyle}>Nivel<span style={req}>*</span></label>
                 <select style={selectStyle} value={form.educacionNivel}
-                  onChange={e => setForm({ ...form, educacionNivel: Number(e.target.value) })}>
+                  onChange={e => setField('educacionNivel', Number(e.target.value))}>
                   <option value={0}>-- Seleccione --</option>
                   {niveles.map(n => <option key={n.id} value={n.id}>{n.nombre}</option>)}
                 </select>
+                {errors.educacionNivel && <div style={errorFieldStyle}>{errors.educacionNivel}</div>}
               </div>
               <div>
-                <label style={labelStyle}>Subnivel</label>
+                <label style={labelStyle}>Subnivel<span style={req}>*</span></label>
                 <select style={selectStyle} value={form.educacionSubNivel}
-                  onChange={e => setForm({ ...form, educacionSubNivel: Number(e.target.value) })}>
+                  onChange={e => setField('educacionSubNivel', Number(e.target.value))}>
                   <option value={0}>-- Seleccione --</option>
                   {subniveles.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
                 </select>
+                {errors.educacionSubNivel && <div style={errorFieldStyle}>{errors.educacionSubNivel}</div>}
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
@@ -249,6 +270,12 @@ const SubGrados: React.FC = () => {
           </div>
         </div>
       )}
+      <ConfirmDeleteModal
+        open={!!deleteTarget}
+        nombre={deleteTarget?.nombre || ''}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 };
@@ -262,13 +289,30 @@ const SubAsignaturas: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState<Asignatura | null>(null);
-  const [notif, setNotif] = useState<{msg: string; type: 'success' | 'error'} | null>(null);
   const [form, setForm] = useState({ nombre: '', periodoPedagogicoSemanaMinimo: 0, grado: 0 });
   const [eliminarId, setEliminarId] = useState<number | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const show = (msg: string, type: 'success' | 'error') => {
-    setNotif({ msg, type });
-    setTimeout(() => setNotif(null), 4000);
+  const setField = (field: string, value: any) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+    setErrors(prev => { const copy = { ...prev }; delete copy[field]; return copy; });
+  };
+
+  const validate = (): boolean => {
+    const errs: Record<string, string> = {};
+    if (!form.nombre.trim()) errs.nombre = '⚠️ Este campo es obligatorio';
+    else {
+      const duplicada = data.some(a =>
+        a.nombre.toLowerCase() === form.nombre.trim().toLowerCase() &&
+        a.grado === form.grado &&
+        (!editando || a.id !== editando.id)
+      );
+      if (duplicada) errs.nombre = '⚠️ Ya existe una asignatura con este nombre en el grado seleccionado';
+    }
+    if (!form.grado) errs.grado = '⚠️ Debe seleccionar un grado';
+    if (form.periodoPedagogicoSemanaMinimo < 1 || form.periodoPedagogicoSemanaMinimo > 15) errs.periodoPedagogicoSemanaMinimo = '⚠️ Entre 1 y 15 clases por semana';
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
   };
 
   const cargar = async () => {
@@ -287,6 +331,7 @@ const SubAsignaturas: React.FC = () => {
   const abrirCrear = () => {
     setEditando(null);
     setForm({ nombre: '', periodoPedagogicoSemanaMinimo: 0, grado: 0 });
+    setErrors({});
     setShowForm(true);
   };
 
@@ -297,26 +342,25 @@ const SubAsignaturas: React.FC = () => {
       periodoPedagogicoSemanaMinimo: a.periodoPedagogicoSemanaMinimo,
       grado: a.grado,
     });
+    setErrors({});
     setShowForm(true);
   };
 
   const handleGuardar = async () => {
-    if (!form.nombre || !form.grado) {
-      show('Nombre y grado son obligatorios', 'error'); return;
-    }
+    if (!validate()) return;
     try {
       if (editando) {
         await planificacionApi.updateAsignatura(editando.id, form as any);
-        show('Asignatura actualizada exitosamente', 'success');
+        showSuccess('Asignatura actualizada exitosamente');
       } else {
         await planificacionApi.createAsignatura(form as any);
-        show('Asignatura creada exitosamente', 'success');
+        showSuccess('Asignatura creada exitosamente');
       }
       setShowForm(false);
       setEditando(null);
       setForm({ nombre: '', periodoPedagogicoSemanaMinimo: 0, grado: 0 });
       await cargar();
-    } catch { show(editando ? 'Error al actualizar asignatura' : 'Error al crear asignatura', 'error'); }
+    } catch { showError(editando ? 'Error al actualizar asignatura' : 'Error al crear asignatura'); }
   };
 
   const handleEliminar = async (id: number) => {
@@ -327,11 +371,11 @@ const SubAsignaturas: React.FC = () => {
     if (eliminarId === null) return;
     try {
       await planificacionApi.deleteAsignatura(eliminarId);
-      show('Asignatura eliminada exitosamente', 'success');
+      showSuccess('Asignatura eliminada exitosamente');
       setEliminarId(null);
       await cargar();
     } catch (err) {
-      show('Error al eliminar la asignatura.', 'error');
+      showError('Error al eliminar la asignatura.');
       setEliminarId(null);
     }
   };
@@ -356,7 +400,6 @@ const SubAsignaturas: React.FC = () => {
           </div>
         </div>
       )}
-      {notif && <div style={notifStyle(notif.type)}>{notif.msg}</div>}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <p style={{ margin: 0, fontSize: 'var(--font-body-sm)', color: 'var(--on-surface-variant)' }}>{data.length} asignatura(s)</p>
         <button onClick={abrirCrear} style={btnPrimario}>+ Nueva Asignatura</button>
@@ -394,22 +437,29 @@ const SubAsignaturas: React.FC = () => {
               {editando ? 'Editar Asignatura' : 'Nueva Asignatura'}
             </h3>
             <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>Nombre</label>
-              <input style={fieldStyle} placeholder="Ej: Matemáticas" maxLength={100} value={form.nombre}
-                onChange={e => setForm({ ...form, nombre: e.target.value })} />
+              <label style={labelStyle}>Nombre<span style={req}>*</span></label>
+              <input style={{ ...fieldStyle, borderColor: errors.nombre ? '#dc2626' : undefined }} placeholder="Ej: Matemáticas" maxLength={100} value={form.nombre}
+                onChange={e => setField('nombre', e.target.value)} />
+              {errors.nombre && <div style={errorFieldStyle}>{errors.nombre}</div>}
             </div>
             <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>Grado</label>
-              <select style={selectStyle} value={form.grado}
-                onChange={e => setForm({ ...form, grado: Number(e.target.value) })}>
+              <label style={labelStyle}>Grado<span style={req}>*</span></label>
+              <select style={{ ...selectStyle, borderColor: errors.grado ? '#dc2626' : undefined }} value={form.grado}
+                onChange={e => setField('grado', Number(e.target.value))}>
                 <option value={0}>-- Seleccione --</option>
                 {grados.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
               </select>
+              {errors.grado && <div style={errorFieldStyle}>{errors.grado}</div>}
             </div>
             <div style={{ marginBottom: 24 }}>
-              <label style={labelStyle}>Minutos pedagógicos por semana</label>
-              <input style={fieldStyle} type="number" min={0} max={1200} value={form.periodoPedagogicoSemanaMinimo}
-                onChange={e => setForm({ ...form, periodoPedagogicoSemanaMinimo: Number(e.target.value) })} />
+              <label style={labelStyle}>Minutos pedagógicos por semana<span style={req}>*</span></label>
+              <input style={{ ...fieldStyle, borderColor: errors.periodoPedagogicoSemanaMinimo ? '#dc2626' : undefined }} type="number" min={0} max={1200} value={form.periodoPedagogicoSemanaMinimo}
+                onChange={e => {
+                  const v = e.target.value;
+                  if (v === '') { setField('periodoPedagogicoSemanaMinimo', ''); return; }
+                  setField('periodoPedagogicoSemanaMinimo', v.replace(/^0+(?=\d)/, ''));
+                }} />
+              {errors.periodoPedagogicoSemanaMinimo && <div style={errorFieldStyle}>{errors.periodoPedagogicoSemanaMinimo}</div>}
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
               <button onClick={() => setShowForm(false)} style={btnSecundario}>Cancelar</button>

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { planificacionApi } from '../services/planificacionApi';
 import type { PlanEstudio, EducacionNivel, EducacionSubNivel } from '../../../types/entities/planificacion';
 import { useAuth } from '../../autenticacion/context/AuthContext';
+import { ConfirmDeleteModal } from '../../../components/ConfirmDeleteModal';
+import { showSuccess, showError, showWarning } from '../../../components/Toast';
 
 const labelStyle: React.CSSProperties = {
   display: 'block', marginBottom: 6, fontWeight: 600, fontSize: 'var(--font-body-sm)', color: 'var(--on-surface)',
@@ -48,12 +50,22 @@ const modalBox: React.CSSProperties = {
   background: '#e0e0e0', padding: 28, borderRadius: 12,
   width: 520, maxHeight: '90vh', overflowY: 'auto',
 };
-const notifStyle = (type: 'success' | 'error'): React.CSSProperties => ({
-  padding: '12px 20px', borderRadius: 8, fontWeight: 600, fontSize: 'var(--font-body-sm)',
-  background: type === 'success' ? '#dcfce7' : '#fee2e2',
-  color: type === 'success' ? '#166534' : '#991b1b',
-  border: `1px solid ${type === 'success' ? '#86efac' : '#fecaca'}`,
+const req: React.CSSProperties = { color: 'red', marginLeft: 2 };
+const toggleTrack = (on: boolean): React.CSSProperties => ({
+  width: 48, height: 24, borderRadius: 12, position: 'relative' as const,
+  cursor: 'pointer', transition: 'all 0.2s',
+  background: on ? '#22c55e' : '#9ca3af', display: 'inline-block',
 });
+const toggleThumb: React.CSSProperties = {
+  width: 20, height: 20, borderRadius: '50%', background: '#fff',
+  position: 'absolute', top: 2, transition: 'left 0.2s',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+};
+const errorFieldStyle: React.CSSProperties = {
+  color: '#dc2626', fontSize: '12px', marginTop: 4,
+  display: 'flex', alignItems: 'center', gap: 4,
+};
+
 
 const SubPlanes: React.FC = () => {
   const { usuario } = useAuth();
@@ -61,10 +73,13 @@ const SubPlanes: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState<PlanEstudio | null>(null);
-  const [notif, setNotif] = useState<{msg: string; type: 'success' | 'error'} | null>(null);
-  const [form, setForm] = useState({ nombre: '', esActivo: true, descripcion: '', duracionAnios: 1 });
-  const [errorForm, setErrorForm] = useState("");
-  const show = (msg: string, type: 'success' | 'error') => { setNotif({ msg, type }); setTimeout(() => setNotif(null), 4000); };
+  const [form, setForm] = useState({ nombre: '', esActivo: true, descripcion: '', duracionAnios: '' });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; nombre: string; type: 'plan' | 'nivel' | 'subnivel' } | null>(null);
+  const setField = (field: string, value: any) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+    setErrors(prev => { const copy = { ...prev }; delete copy[field]; return copy; });
+  };
 
   const cargar = async () => {
     setLoading(true);
@@ -73,10 +88,22 @@ const SubPlanes: React.FC = () => {
   };
   useEffect(() => { cargar(); }, []);
 
+  const validate = (): boolean => {
+    const errs: Record<string, string> = {};
+    if (!form.nombre.trim()) errs.nombre = '⚠️ Este campo es obligatorio';
+    if (!form.duracionAnios) errs.duracionAnios = '⚠️ La duración es obligatoria';
+    else {
+      const d = Number(form.duracionAnios);
+      if (d < 1 || d > 10) errs.duracionAnios = '⚠️ Mínimo 1 año, máximo 10 años';
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const abrirCrear = () => {
     setEditando(null);
-    setForm({ nombre: '', esActivo: true, descripcion: '', duracionAnios: 1 });
-    setErrorForm("");
+    setForm({ nombre: '', esActivo: true, descripcion: '', duracionAnios: '' });
+    setErrors({});
     setShowForm(true);
   };
 
@@ -86,51 +113,68 @@ const SubPlanes: React.FC = () => {
       nombre: p.nombre,
       esActivo: p.esActivo,
       descripcion: p.descripcion || '',
-      duracionAnios: p.duracionAnios,
+      duracionAnios: String(p.duracionAnios),
     });
-    setErrorForm("");
+    setErrors({});
     setShowForm(true);
   };
 
   const handleGuardar = async () => {
-    setErrorForm("");
+    if (!validate()) return;
     try {
+      const payload = { ...form, duracionAnios: Number(form.duracionAnios) };
       if (editando) {
-        await planificacionApi.updatePlanEstudio(editando.id, form);
-        show('Plan de estudio actualizado exitosamente', 'success');
+        await planificacionApi.updatePlanEstudio(editando.id, payload);
+        showSuccess('Plan de estudio actualizado exitosamente');
       } else {
-        await planificacionApi.createPlanEstudio({ ...form, institucion: usuario?.institucion_id } as any);
-        show('Plan de estudio creado exitosamente', 'success');
+        await planificacionApi.createPlanEstudio({ ...payload, institucion: usuario?.institucion_id } as any);
+        showSuccess('Plan de estudio creado exitosamente');
       }
       setShowForm(false);
       setEditando(null);
-      setForm({ nombre: '', esActivo: true, descripcion: '', duracionAnios: 1 });
+      setForm({ nombre: '', esActivo: true, descripcion: '', duracionAnios: '' });
       await cargar();
-    } catch (e: any) { setErrorForm(e?.data ? (typeof e.data === 'string' ? e.data : JSON.stringify(e.data)) : (e?.message || 'Error al guardar')); }
+    } catch (e: any) {
+      const data = e?.data;
+      if (typeof data === 'object') {
+        const errs: Record<string, string> = {};
+        Object.entries(data).forEach(([k, v]) => { errs[k] = `⚠️ ${v}`; });
+        setErrors(errs);
+      } else {
+        setErrors({ general: `⚠️ ${typeof data === 'string' ? data : (e?.message || 'Error al guardar')}` });
+      }
+    }
   };
 
   const handleToggleActivo = async (item: PlanEstudio) => {
     try {
       await planificacionApi.updatePlanEstudio(item.id, { esActivo: !item.esActivo });
-      show(item.esActivo ? 'Plan de estudio desactivado exitosamente' : 'Plan de estudio activado exitosamente', 'success');
+      const accion = item.esActivo ? 'desactivado' : 'activado';
+      showSuccess(`"${item.nombre}" ${accion} exitosamente`);
       await cargar();
-    } catch { show('Error al cambiar estado del plan de estudio', 'error'); }
+    } catch { showError(`Error al cambiar estado de "${item.nombre}"`); }
   };
 
-  const handleEliminar = async (id: number) => {
-    if (!window.confirm('¿Está seguro de que desea eliminar este plan de estudio? Esta acción no se puede deshacer.')) return;
+  const handleEliminar = (id: number) => {
+    const plan = data.find(item => item.id === id);
+    setDeleteTarget({ id, nombre: plan?.nombre || '', type: 'plan' });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await planificacionApi.deletePlanEstudio(id);
-      show('Plan de estudio eliminado exitosamente', 'success');
+      await planificacionApi.deletePlanEstudio(deleteTarget.id);
+      showSuccess('Plan de estudio eliminado exitosamente');
+      setDeleteTarget(null);
       await cargar();
-    } catch (err) {
-      show('Error al eliminar el plan de estudio. Asegúrese de que no tenga grados o asignaturas vinculadas.', 'error');
+    } catch {
+      showError('Error al eliminar. Verifique que no tenga datos asociados.');
+      setDeleteTarget(null);
     }
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {notif && <div style={notifStyle(notif.type)}>{notif.msg}</div>}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <p style={{ margin: 0, fontSize: 'var(--font-body-sm)', color: 'var(--on-surface-variant)' }}>{data.length} plan(es) de estudio</p>
         <button onClick={abrirCrear} style={btnPrimario}>+ Nuevo Plan</button>
@@ -153,17 +197,15 @@ const SubPlanes: React.FC = () => {
               <tr key={d.id}>
                 <td style={{ ...tdStyle, fontWeight: 600 }}>{d.nombre}</td>
                 <td style={tdStyle}>{d.duracionAnios} año(s)</td>
-                <td style={tdStyle}>
-                  <span style={{
-                    padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600,
-                    background: d.esActivo ? '#dcfce7' : '#fee2e2',
-                    color: d.esActivo ? '#166534' : '#991b1b',
-                  }}>{d.esActivo ? 'SÍ' : 'NO'}</span>
+                <td style={tdStyle} onClick={() => handleToggleActivo(d)}>
+                  <div style={toggleTrack(d.esActivo)} title={d.esActivo ? 'Activo' : 'Inactivo'}>
+                    <div style={{ ...toggleThumb, left: d.esActivo ? 26 : 2 }} />
+                  </div>
                 </td>
                 <td style={tdStyle}>{d.descripcion || '—'}</td>
                 <td style={tdStyle}>
                   <button type="button" onClick={() => abrirEditar(d)} title="Editar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>✏️</button>
-                  <button type="button" onClick={() => handleToggleActivo(d)} title={d.esActivo ? 'Desactivar' : 'Activar'} style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>{d.esActivo ? '🔴' : '🟢'}</button>
+                  <button type="button" onClick={() => d.esActivo ? showWarning(`"${d.nombre}" está activo. Desactívelo antes de eliminar.`) : handleEliminar(d.id)} title={d.esActivo ? 'Desactive para eliminar' : 'Eliminar'} style={{ background: 'transparent', border: 'none', cursor: d.esActivo ? 'not-allowed' : 'pointer', marginRight: '6px', fontSize: '15px', opacity: d.esActivo ? 0.3 : 1 }}>🗑️</button>
                 </td>
               </tr>
             ))}
@@ -177,30 +219,41 @@ const SubPlanes: React.FC = () => {
               {editando ? 'Editar Plan de Estudio' : 'Nuevo Plan de Estudio'}
             </h3>
             <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>Nombre</label>
+              <label style={labelStyle}>Nombre<span style={req}>*</span></label>
               <input style={fieldStyle} placeholder="Ej: Plan Bachillerato 2025" maxLength={100} value={form.nombre}
-                onChange={e => setForm({ ...form, nombre: e.target.value })} />
+                onChange={e => setField('nombre', e.target.value)} />
+              {errors.nombre && <div style={errorFieldStyle}>{errors.nombre}</div>}
             </div>
             <div style={{ marginBottom: 16 }}>
               <label style={labelStyle}>Duración (años)</label>
-              <input style={fieldStyle} type="number" min={1} max={12} value={form.duracionAnios}
-                onChange={e => setForm({ ...form, duracionAnios: Number(e.target.value) })} />
+              <input style={{ ...fieldStyle, borderColor: errors.duracionAnios ? '#dc2626' : undefined }}
+                type="text" inputMode="numeric" placeholder="Ej: 3"
+                value={form.duracionAnios}
+                onChange={e => {
+                  const v = e.target.value;
+                  if (v === '') { setField('duracionAnios', ''); return; }
+                  setField('duracionAnios', v.replace(/^0+(?=\d)/, '').replace(/\D/g, ''));
+                }} />
+              {errors.duracionAnios && <div style={errorFieldStyle}>{errors.duracionAnios}</div>}
             </div>
             <div style={{ marginBottom: 16 }}>
               <label style={labelStyle}>Descripción</label>
               <textarea style={{ ...fieldStyle, height: 80, padding: 12, resize: 'vertical' }} maxLength={500} value={form.descripcion}
-                onChange={e => setForm({ ...form, descripcion: e.target.value })} />
+                onChange={e => setField('descripcion', e.target.value)} />
             </div>
             <div style={{ marginBottom: 24 }}>
-              <label>
-                <input type="checkbox" checked={form.esActivo}
-                  onChange={e => setForm({ ...form, esActivo: e.target.checked })} />{' '}
-                <span style={{ fontSize: 'var(--font-body-sm)' }}>Activo</span>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                <div style={toggleTrack(form.esActivo)} onClick={() => setField('esActivo', !form.esActivo)}>
+                  <div style={{ ...toggleThumb, left: form.esActivo ? 26 : 2 }} />
+                </div>
+                <span style={{ fontSize: 'var(--font-body-sm)', fontWeight: 600, color: form.esActivo ? '#166534' : '#6b7280' }}>
+                  {form.esActivo ? 'Activo' : 'Inactivo'}
+                </span>
               </label>
             </div>
-            {errorForm && (
+            {errors.general && (
               <div style={{ padding: '12px 16px', marginBottom: 16, borderRadius: 8, background: '#fef2f2', color: '#dc2626', fontSize: '14px', fontWeight: 500, border: '1px solid #fecaca', textAlign: 'center' }}>
-                {errorForm}
+                {errors.general}
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
@@ -210,6 +263,12 @@ const SubPlanes: React.FC = () => {
           </div>
         </div>
       )}
+      <ConfirmDeleteModal
+        open={!!deleteTarget}
+        nombre={deleteTarget?.nombre || ''}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 };
@@ -219,10 +278,13 @@ const SubNiveles: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState<EducacionNivel | null>(null);
-  const [notif, setNotif] = useState<{msg: string; type: 'success' | 'error'} | null>(null);
   const [form, setForm] = useState({ nombre: '', codigo: '', periodoPedagogicoMinutos: 0, periodoPedagogicoSemanaMinimo: 0 });
-  const [errorForm, setErrorForm] = useState("");
-  const show = (msg: string, type: 'success' | 'error') => { setNotif({ msg, type }); setTimeout(() => setNotif(null), 4000); };
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; nombre: string; type: 'plan' | 'nivel' | 'subnivel' } | null>(null);
+  const setField = (field: string, value: any) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+    setErrors(prev => { const copy = { ...prev }; delete copy[field]; return copy; });
+  };
 
   const cargar = async () => {
     setLoading(true);
@@ -231,10 +293,21 @@ const SubNiveles: React.FC = () => {
   };
   useEffect(() => { cargar(); }, []);
 
+  const validate = (): boolean => {
+    const errs: Record<string, string> = {};
+    if (!form.codigo.trim()) errs.codigo = '⚠️ Código único requerido (ej: BASICA)';
+    else if (!/^[A-Z_]+$/.test(form.codigo)) errs.codigo = '⚠️ Use mayúsculas y guiones bajos, sin espacios';
+    if (!form.nombre.trim()) errs.nombre = '⚠️ Este campo es obligatorio';
+    if (form.periodoPedagogicoMinutos < 15 || form.periodoPedagogicoMinutos > 60) errs.periodoPedagogicoMinutos = '⚠️ Entre 15 y 60 minutos por clase';
+    if (form.periodoPedagogicoSemanaMinimo < 1) errs.periodoPedagogicoSemanaMinimo = '⚠️ Al menos 1 período semanal';
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const abrirCrear = () => {
     setEditando(null);
     setForm({ nombre: '', codigo: '', periodoPedagogicoMinutos: 0, periodoPedagogicoSemanaMinimo: 0 });
-    setErrorForm("");
+    setErrors({});
     setShowForm(true);
   };
 
@@ -246,41 +319,56 @@ const SubNiveles: React.FC = () => {
       periodoPedagogicoMinutos: n.periodoPedagogicoMinutos,
       periodoPedagogicoSemanaMinimo: n.periodoPedagogicoSemanaMinimo,
     });
-    setErrorForm("");
+    setErrors({});
     setShowForm(true);
   };
 
   const handleGuardar = async () => {
-    setErrorForm("");
+    if (!validate()) return;
     try {
       if (editando) {
         await planificacionApi.updateNivel(editando.id, form);
-        show('Nivel actualizado exitosamente', 'success');
+        showSuccess('Nivel actualizado exitosamente');
       } else {
         await planificacionApi.createNivel(form);
-        show('Nivel creado exitosamente', 'success');
+        showSuccess('Nivel creado exitosamente');
       }
       setShowForm(false);
       setEditando(null);
       setForm({ nombre: '', codigo: '', periodoPedagogicoMinutos: 0, periodoPedagogicoSemanaMinimo: 0 });
       await cargar();
-    } catch (e: any) { setErrorForm(e?.data ? (typeof e.data === 'string' ? e.data : JSON.stringify(e.data)) : (e?.message || 'Error al guardar')); }
+    } catch (e: any) {
+      const data = e?.data;
+      if (typeof data === 'object') {
+        const errs: Record<string, string> = {};
+        Object.entries(data).forEach(([k, v]) => { errs[k] = `⚠️ ${v}`; });
+        setErrors(errs);
+      } else {
+        setErrors({ general: `⚠️ ${typeof data === 'string' ? data : (e?.message || 'Error al guardar')}` });
+      }
+    }
   };
 
-  const handleEliminar = async (id: number) => {
-    if (!window.confirm('¿Está seguro de que desea eliminar este nivel educativo? Esta acción no se puede deshacer.')) return;
+  const handleEliminar = (id: number) => {
+    const nivel = data.find(n => n.id === id);
+    setDeleteTarget({ id, nombre: nivel?.nombre || '', type: 'nivel' });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await planificacionApi.deleteNivel(id);
-      show('Nivel eliminado exitosamente', 'success');
+      await planificacionApi.deleteNivel(deleteTarget.id);
+      showSuccess('Nivel educativo eliminado exitosamente');
+      setDeleteTarget(null);
       await cargar();
-    } catch (err) {
-      show('Error al eliminar el nivel. Asegúrese de que no tenga subniveles o grados asociados.', 'error');
+    } catch {
+      showError('Error al eliminar. Verifique que no tenga datos asociados.');
+      setDeleteTarget(null);
     }
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {notif && <div style={notifStyle(notif.type)}>{notif.msg}</div>}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <p style={{ margin: 0, fontSize: 'var(--font-body-sm)', color: 'var(--on-surface-variant)' }}>{data.length} nivel(es)</p>
         <button onClick={abrirCrear} style={btnPrimario}>+ Nuevo Nivel</button>
@@ -322,32 +410,44 @@ const SubNiveles: React.FC = () => {
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
               <div>
-                <label style={labelStyle}>Código</label>
+                <label style={labelStyle}>Código<span style={req}>*</span></label>
                 <input style={fieldStyle} placeholder="Ej: BASICA" maxLength={20} value={form.codigo}
-                  onChange={e => setForm({ ...form, codigo: e.target.value })} />
+                  onChange={e => setField('codigo', e.target.value)} />
+                {errors.codigo && <div style={errorFieldStyle}>{errors.codigo}</div>}
               </div>
               <div>
-                <label style={labelStyle}>Nombre</label>
+                <label style={labelStyle}>Nombre<span style={req}>*</span></label>
                 <input style={fieldStyle} placeholder="Ej: Educación Básica" maxLength={100} value={form.nombre}
-                  onChange={e => setForm({ ...form, nombre: e.target.value })} />
+                  onChange={e => setField('nombre', e.target.value)} />
+                {errors.nombre && <div style={errorFieldStyle}>{errors.nombre}</div>}
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
               <div>
-                <label style={labelStyle}>Periodos Pedagógicos Semanales</label>
+                <label style={labelStyle}>Periodos Pedagógicos Semanales<span style={req}>*</span></label>
                 <input style={fieldStyle} type="number" min={0} max={1200} value={form.periodoPedagogicoSemanaMinimo}
-                  onChange={e => setForm({ ...form, periodoPedagogicoSemanaMinimo: Number(e.target.value) })} />
+                  onChange={e => {
+                    const v = e.target.value;
+                    if (v === '') { setField('periodoPedagogicoSemanaMinimo', ''); return; }
+                    setField('periodoPedagogicoSemanaMinimo', v.replace(/^0+(?=\d)/, ''));
+                  }} />
+                {errors.periodoPedagogicoSemanaMinimo && <div style={errorFieldStyle}>{errors.periodoPedagogicoSemanaMinimo}</div>}
               </div>
               <div>
-                <label style={labelStyle}>Minutos por Período Pedagógico</label>
+                <label style={labelStyle}>Minutos por Período Pedagógico<span style={req}>*</span></label>
                 <input style={fieldStyle} type="number" min={0} max={120} value={form.periodoPedagogicoMinutos}
-                  onChange={e => setForm({ ...form, periodoPedagogicoMinutos: Number(e.target.value) })} />
+                  onChange={e => {
+                    const v = e.target.value;
+                    if (v === '') { setField('periodoPedagogicoMinutos', ''); return; }
+                    setField('periodoPedagogicoMinutos', v.replace(/^0+(?=\d)/, ''));
+                  }} />
+                {errors.periodoPedagogicoMinutos && <div style={errorFieldStyle}>{errors.periodoPedagogicoMinutos}</div>}
               </div>
 
             </div>
-            {errorForm && (
+            {errors.general && (
               <div style={{ padding: '12px 16px', marginBottom: 16, borderRadius: 8, background: '#fef2f2', color: '#dc2626', fontSize: '14px', fontWeight: 500, border: '1px solid #fecaca', textAlign: 'center' }}>
-                {errorForm}
+                {errors.general}
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
@@ -357,6 +457,12 @@ const SubNiveles: React.FC = () => {
           </div>
         </div>
       )}
+      <ConfirmDeleteModal
+        open={!!deleteTarget}
+        nombre={deleteTarget?.nombre || ''}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 };
@@ -367,10 +473,13 @@ const SubSubNiveles: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState<EducacionSubNivel | null>(null);
-  const [notif, setNotif] = useState<{msg: string; type: 'success' | 'error'} | null>(null);
   const [form, setForm] = useState({ nombre: '', codigo: '', periodoPedagogicoSemanaMinimo: 0, nivel: 0 });
-  const [errorForm, setErrorForm] = useState("");
-  const show = (msg: string, type: 'success' | 'error') => { setNotif({ msg, type }); setTimeout(() => setNotif(null), 4000); };
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; nombre: string; type: 'plan' | 'nivel' | 'subnivel' } | null>(null);
+  const setField = (field: string, value: any) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+    setErrors(prev => { const copy = { ...prev }; delete copy[field]; return copy; });
+  };
 
   const cargar = async () => {
     setLoading(true);
@@ -385,10 +494,26 @@ const SubSubNiveles: React.FC = () => {
   };
   useEffect(() => { cargar(); }, []);
 
+  const validate = (): boolean => {
+    const errs: Record<string, string> = {};
+    if (!form.codigo.trim()) errs.codigo = '⚠️ Este campo es obligatorio';
+    if (!form.nombre.trim()) errs.nombre = '⚠️ Este campo es obligatorio';
+    if (form.periodoPedagogicoSemanaMinimo < 1) errs.periodoPedagogicoSemanaMinimo = '⚠️ Mínimo 1 período semanal';
+    if (!form.nivel) errs.nivel = '⚠️ Debe seleccionar un nivel padre';
+    else {
+      const nivelPadre = niveles.find(n => n.id === form.nivel);
+      if (nivelPadre && form.periodoPedagogicoSemanaMinimo > nivelPadre.periodoPedagogicoSemanaMinimo) {
+        errs.periodoPedagogicoSemanaMinimo = `⚠️ No puede exceder el máximo del nivel padre: ${nivelPadre.periodoPedagogicoSemanaMinimo}`;
+      }
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const abrirCrear = () => {
     setEditando(null);
     setForm({ nombre: '', codigo: '', periodoPedagogicoSemanaMinimo: 0, nivel: 0 });
-    setErrorForm("");
+    setErrors({});
     setShowForm(true);
   };
 
@@ -400,36 +525,51 @@ const SubSubNiveles: React.FC = () => {
       periodoPedagogicoSemanaMinimo: s.periodoPedagogicoSemanaMinimo,
       nivel: s.nivel,
     });
-    setErrorForm("");
+    setErrors({});
     setShowForm(true);
   };
 
   const handleGuardar = async () => {
-    setErrorForm("");
-    if (!form.nivel) { setErrorForm('Seleccione un nivel'); return; }
+    if (!validate()) return;
     try {
       if (editando) {
         await planificacionApi.updateSubNivel(editando.id, form);
-        show('Subnivel actualizado exitosamente', 'success');
+        showSuccess('Subnivel actualizado exitosamente');
       } else {
         await planificacionApi.createSubNivel(form);
-        show('Subnivel creado exitosamente', 'success');
+        showSuccess('Subnivel creado exitosamente');
       }
       setShowForm(false);
       setEditando(null);
       setForm({ nombre: '', codigo: '', periodoPedagogicoSemanaMinimo: 0, nivel: 0 });
       await cargar();
-    } catch (e: any) { setErrorForm(e?.data ? (typeof e.data === 'string' ? e.data : JSON.stringify(e.data)) : (e?.message || 'Error al guardar')); }
+    } catch (e: any) {
+      const data = e?.data;
+      if (typeof data === 'object') {
+        const errs: Record<string, string> = {};
+        Object.entries(data).forEach(([k, v]) => { errs[k] = `⚠️ ${v}`; });
+        setErrors(errs);
+      } else {
+        setErrors({ general: `⚠️ ${typeof data === 'string' ? data : (e?.message || 'Error al guardar')}` });
+      }
+    }
   };
 
-  const handleEliminar = async (id: number) => {
-    if (!window.confirm('¿Está seguro de que desea eliminar este subnivel educativo? Esta acción no se puede deshacer.')) return;
+  const handleEliminar = (id: number) => {
+    const sn = data.find(s => s.id === id);
+    setDeleteTarget({ id, nombre: sn?.nombre || '', type: 'subnivel' });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await planificacionApi.deleteSubNivel(id);
-      show('Subnivel eliminado exitosamente', 'success');
+      await planificacionApi.deleteSubNivel(deleteTarget.id);
+      showSuccess('Subnivel educativo eliminado exitosamente');
+      setDeleteTarget(null);
       await cargar();
-    } catch (err) {
-      show('Error al eliminar el subnivel. Asegúrese de que no tenga grados asociados.', 'error');
+    } catch {
+      showError('Error al eliminar. Verifique que no tenga datos asociados.');
+      setDeleteTarget(null);
     }
   };
 
@@ -437,7 +577,6 @@ const SubSubNiveles: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {notif && <div style={notifStyle(notif.type)}>{notif.msg}</div>}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <p style={{ margin: 0, fontSize: 'var(--font-body-sm)', color: 'var(--on-surface-variant)' }}>{data.length} subnivel(es)</p>
         <button onClick={abrirCrear} style={btnPrimario}>+ Nuevo SubNivel</button>
@@ -479,34 +618,42 @@ const SubSubNiveles: React.FC = () => {
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
               <div>
-                <label style={labelStyle}>Código</label>
+                <label style={labelStyle}>Código<span style={req}>*</span></label>
                 <input style={fieldStyle} placeholder="Ej: PREPARATORIA" maxLength={20} value={form.codigo}
-                  onChange={e => setForm({ ...form, codigo: e.target.value })} />
+                  onChange={e => setField('codigo', e.target.value)} />
+                {errors.codigo && <div style={errorFieldStyle}>{errors.codigo}</div>}
               </div>
               <div>
-                <label style={labelStyle}>Nombre</label>
+                <label style={labelStyle}>Nombre<span style={req}>*</span></label>
                 <input style={fieldStyle} placeholder="Ej: Educación Preparatoria" maxLength={100} value={form.nombre}
-                  onChange={e => setForm({ ...form, nombre: e.target.value })} />
+                  onChange={e => setField('nombre', e.target.value)} />
+                {errors.nombre && <div style={errorFieldStyle}>{errors.nombre}</div>}
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
               <div>
-                <label style={labelStyle}>Periodos Pedagógicos Semanales</label>
+                <label style={labelStyle}>Periodos Pedagógicos Semanales<span style={req}>*</span></label>
                 <input style={fieldStyle} type="number" min={0} max={1200} value={form.periodoPedagogicoSemanaMinimo}
-                  onChange={e => setForm({ ...form, periodoPedagogicoSemanaMinimo: Number(e.target.value) })} />
+                  onChange={e => {
+                    const v = e.target.value;
+                    if (v === '') { setField('periodoPedagogicoSemanaMinimo', ''); return; }
+                    setField('periodoPedagogicoSemanaMinimo', v.replace(/^0+(?=\d)/, ''));
+                  }} />
+                {errors.periodoPedagogicoSemanaMinimo && <div style={errorFieldStyle}>{errors.periodoPedagogicoSemanaMinimo}</div>}
               </div>
               <div>
-                <label style={labelStyle}>Nivel</label>
+                <label style={labelStyle}>Nivel<span style={req}>*</span></label>
                 <select style={selectStyle} value={form.nivel}
-                  onChange={e => setForm({ ...form, nivel: Number(e.target.value) })}>
+                  onChange={e => setField('nivel', Number(e.target.value))}>
                   <option value={0}>-- Seleccione --</option>
                   {niveles.map(n => <option key={n.id} value={n.id}>{n.nombre}</option>)}
                 </select>
+                {errors.nivel && <div style={errorFieldStyle}>{errors.nivel}</div>}
               </div>
             </div>
-            {errorForm && (
+            {errors.general && (
               <div style={{ padding: '12px 16px', marginBottom: 16, borderRadius: 8, background: '#fef2f2', color: '#dc2626', fontSize: '14px', fontWeight: 500, border: '1px solid #fecaca', textAlign: 'center' }}>
-                {errorForm}
+                {errors.general}
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
@@ -516,6 +663,12 @@ const SubSubNiveles: React.FC = () => {
           </div>
         </div>
       )}
+      <ConfirmDeleteModal
+        open={!!deleteTarget}
+        nombre={deleteTarget?.nombre || ''}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 };

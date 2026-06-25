@@ -40,7 +40,7 @@ export const ModalGobernanzaPorAnio: React.FC<Props> = ({
   const [vigenteHasta, setVigenteHasta] = useState<Record<string, string>>({});
   const [erroresTipo, setErroresTipo] = useState<Record<string, string>>({});
 
-  const cerrado = anioLectivoEstado === "CERRADO";
+  const editable = anioLectivoEstado === "ACTIVO";
 
   const docMap = new Map(documentos.map(d => [d.gobernanzaTipo, d]));
 
@@ -123,9 +123,9 @@ export const ModalGobernanzaPorAnio: React.FC<Props> = ({
           <button onClick={onClose} style={{ background: "none", border: "none", fontSize: "22px", cursor: "pointer" }}>×</button>
         </div>
 
-        {cerrado && (
+        {!editable && (
           <div style={{ background: "#fee2e2", color: "#991b1b", padding: "12px", borderRadius: "8px", marginBottom: "16px", fontSize: "13px" }}>
-            Este año lectivo está cerrado. No se pueden modificar los documentos de gobernanza.
+            El año lectivo no está activo. No se pueden modificar los documentos de gobernanza.
           </div>
         )}
 
@@ -162,14 +162,14 @@ export const ModalGobernanzaPorAnio: React.FC<Props> = ({
                       <input type="datetime-local" style={fieldStyle}
                         value={vigenteDesde[tipo.value] || ""}
                         onChange={e => setVigenteDesde(p => ({ ...p, [tipo.value]: e.target.value }))}
-                        disabled={cerrado} />
+                        disabled={!editable} />
                     </div>
                     <div>
                       <label style={labelStyle}>Vigente Hasta</label>
                       <input type="datetime-local" style={fieldStyle}
                         value={vigenteHasta[tipo.value] || ""}
                         onChange={e => setVigenteHasta(p => ({ ...p, [tipo.value]: e.target.value }))}
-                        disabled={cerrado} />
+                        disabled={!editable} />
                     </div>
                   </div>
 
@@ -180,7 +180,7 @@ export const ModalGobernanzaPorAnio: React.FC<Props> = ({
                         📄 Ver PDF actual
                       </a>
                     )}
-                    {!cerrado && (
+                    {!!editable && (
                       <>
                         <input type="file" accept=".pdf"
                           onChange={e => setFiles(p => ({ ...p, [tipo.value]: e.target.files?.[0] || null }))}

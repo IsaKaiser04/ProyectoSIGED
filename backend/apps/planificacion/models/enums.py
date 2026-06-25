@@ -8,6 +8,5 @@ class PeriodoTipo(models.TextChoices):
 
 
 class AnioLectivoEstado(models.TextChoices):
-    BORRADOR = 'BORRADOR', 'Borrador'
+    INACTIVO = 'INACTIVO', 'Inactivo'
     ACTIVO = 'ACTIVO', 'Activo'
-    CERRADO = 'CERRADO', 'Cerrado'

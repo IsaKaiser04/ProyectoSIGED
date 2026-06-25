@@ -25,6 +25,22 @@ class PeriodoAcademicoSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {'fechaFin': 'La fecha de fin debe ser posterior a la fecha de inicio.'}
                 )
+
+        anio_lectivo = data.get('anioLectivo') or (self.instance.anioLectivo if self.instance else None)
+        if anio_lectivo:
+            fecha_inicio = data.get('fechaInicio') or (self.instance.fechaInicio if self.instance else None)
+            fecha_fin = data.get('fechaFin') or (self.instance.fechaFin if self.instance else None)
+
+            if fecha_inicio and anio_lectivo.fechaInicio and fecha_inicio < anio_lectivo.fechaInicio:
+                raise serializers.ValidationError({
+                    'fechaInicio': f'La fecha de inicio ({fecha_inicio}) no puede ser anterior a la fecha de inicio del año lectivo ({anio_lectivo.fechaInicio}).'
+                })
+
+            if fecha_fin and anio_lectivo.fechaFin and fecha_fin > anio_lectivo.fechaFin:
+                raise serializers.ValidationError({
+                    'fechaFin': f'La fecha de fin ({fecha_fin}) no puede ser posterior a la fecha de fin del año lectivo ({anio_lectivo.fechaFin}).'
+                })
+
         return data
 
 

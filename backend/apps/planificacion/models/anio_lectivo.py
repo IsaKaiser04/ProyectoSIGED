@@ -9,7 +9,7 @@ class AnioLectivo(models.Model):
     estado = models.CharField(
         max_length=20,
         choices=AnioLectivoEstado.choices,
-        default=AnioLectivoEstado.BORRADOR
+        default=AnioLectivoEstado.INACTIVO
     )
 
     institucion = models.ForeignKey('institucion.Institucion', on_delete=models.CASCADE, related_name='anios_lectivos', null=True, blank=True)

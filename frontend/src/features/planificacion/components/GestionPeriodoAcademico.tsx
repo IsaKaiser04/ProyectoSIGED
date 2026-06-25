@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { planificacionApi } from '../services/planificacionApi';
 import type { AnioLectivo, PeriodoAcademico } from '../../../types/entities/planificacion';
+import { ConfirmDeleteModal } from '../../../components/ConfirmDeleteModal';
+import { showSuccess, showError, showWarning } from '../../../components/Toast';
 
 const labelStyle: React.CSSProperties = {
   display: 'block', marginBottom: 6, fontWeight: 600, fontSize: 'var(--font-body-sm)', color: 'var(--on-surface)',
@@ -47,12 +49,12 @@ const modalBox: React.CSSProperties = {
   boxShadow: '0 10px 30px rgba(0,0,0,0.15)', padding: 28, borderRadius: 12,
   width: 520, maxHeight: '90vh', overflowY: 'auto',
 };
-const notifStyle = (type: 'success' | 'error'): React.CSSProperties => ({
-  padding: '12px 20px', borderRadius: 8, fontWeight: 600, fontSize: 'var(--font-body-sm)',
-  background: type === 'success' ? '#dcfce7' : '#fee2e2',
-  color: type === 'success' ? '#166534' : '#991b1b',
-  border: `1px solid ${type === 'success' ? '#86efac' : '#fecaca'}`,
-});
+const req: React.CSSProperties = { color: 'red', marginLeft: 2 };
+const errorFieldStyle: React.CSSProperties = {
+  color: '#dc2626', fontSize: '12px', marginTop: 4,
+  display: 'flex', alignItems: 'center', gap: 4,
+};
+
 
 const GestionPeriodoAcademico: React.FC = () => {
   const [anios, setAnios] = useState<AnioLectivo[]>([]);
@@ -62,13 +64,15 @@ const GestionPeriodoAcademico: React.FC = () => {
 
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState<PeriodoAcademico | null>(null);
-  const [notif, setNotif] = useState<{msg: string; type: 'success' | 'error'} | null>(null);
   const [form, setForm] = useState({ orden: '', nombre: '', periodoTipo: 'QUIMESTRE', fechaInicio: '', fechaFin: '' });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; nombre: string } | null>(null);
 
-  const show = (msg: string, type: 'success' | 'error') => {
-    setNotif({ msg, type });
-    setTimeout(() => setNotif(null), 4000);
+  const setField = (field: string, value: any) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+    setErrors(prev => { const copy = { ...prev }; delete copy[field]; return copy; });
   };
+
 
   const cargarAnios = () => {
     planificacionApi.getAniosLectivos().then(d => setAnios(d || [])).catch(() => {});
@@ -97,16 +101,18 @@ const GestionPeriodoAcademico: React.FC = () => {
 
   const abrirCrear = () => {
     if (!anioSel) {
-      show('Debe seleccionar un año lectivo antes de agregar un período.', 'error');
+      showError('Debe seleccionar un año lectivo antes de agregar un período.');
       return;
     }
     setEditando(null);
     setForm({ orden: '', nombre: '', periodoTipo: 'QUIMESTRE', fechaInicio: '', fechaFin: '' });
+    setErrors({});
     setShowForm(true);
   };
 
   const abrirEditar = (p: PeriodoAcademico) => {
     setEditando(p);
+    setErrors({});
     setForm({
       orden: p.orden,
       nombre: p.nombre,
@@ -117,24 +123,28 @@ const GestionPeriodoAcademico: React.FC = () => {
     setShowForm(true);
   };
 
-  const handleGuardar = async () => {
-    if (!form.orden || !form.nombre || !form.periodoTipo || !form.fechaInicio || !form.fechaFin) {
-      show('Todos los campos son obligatorios', 'error');
-      return;
+  const validate = (): boolean => {
+    const errs: Record<string, string> = {};
+    if (!form.orden) errs.orden = '⚠️ Este campo es obligatorio';
+    if (!form.nombre.trim()) errs.nombre = '⚠️ Este campo es obligatorio';
+    if (!form.fechaInicio) errs.fechaInicio = '⚠️ Este campo es obligatorio';
+    if (!form.fechaFin) errs.fechaFin = '⚠️ Este campo es obligatorio';
+    if (form.fechaInicio && form.fechaFin && form.fechaInicio >= form.fechaFin) {
+      errs.fechaFin = '⚠️ Debe ser posterior a la fecha de inicio';
     }
-    if (form.fechaInicio >= form.fechaFin) {
-      show('La fecha de inicio debe ser anterior a la fecha de fin', 'error');
-      return;
-    }
-
-    const anioObj = anios.find(a => a.id === anioSel);
-    if (anioObj) {
-      if (form.fechaInicio < anioObj.fechaInicio || form.fechaFin > anioObj.fechaFin) {
-        show(`Las fechas deben estar dentro del rango del año lectivo (${anioObj.fechaInicio} a ${anioObj.fechaFin})`, 'error');
-        return;
+    if (form.fechaInicio && form.fechaFin && anioSel) {
+      const anioObj = anios.find(a => a.id === anioSel);
+      if (anioObj) {
+        if (form.fechaInicio < anioObj.fechaInicio) errs.fechaInicio = `⚠️ No puede iniciar antes del año lectivo (${anioObj.fechaInicio})`;
+        if (form.fechaFin > anioObj.fechaFin) errs.fechaFin = `⚠️ No puede terminar después del año lectivo (${anioObj.fechaFin})`;
       }
     }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
 
+  const handleGuardar = async () => {
+    if (!validate()) return;
     try {
       let nuevosPeriodos: any[] = [];
       if (editando) {
@@ -181,38 +191,43 @@ const GestionPeriodoAcademico: React.FC = () => {
         periodosAcademicos: nuevosPeriodos
       } as any);
 
-      show(editando ? 'Período académico actualizado exitosamente' : 'Período académico creado exitosamente', 'success');
+      showSuccess(editando ? 'Período académico actualizado exitosamente' : 'Período académico creado exitosamente');
       setShowForm(false);
       setEditando(null);
       await cargarPeriodos();
       cargarAnios();
     } catch (e: any) {
-      show(e?.data ? JSON.stringify(e.data) : 'Error al guardar período académico', 'error');
+      setErrors({ general: `⚠️ ${e?.data ? JSON.stringify(e.data) : 'Error al guardar período académico'}` });
     }
   };
 
-  const handleEliminar = async (id: number) => {
-    if (!window.confirm('¿Está seguro de que desea eliminar este período académico?')) return;
+  const handleEliminar = (id: number) => {
+    const p = data.find(item => item.id === id);
+    if (!p) return;
+    const hoy = new Date();
+    const inicio = new Date(p.fechaInicio);
+    const fin = new Date(p.fechaFin);
+    if (hoy >= inicio && hoy <= fin) {
+      showWarning(`"${p.nombre}" está en curso. No se puede eliminar.`);
+      return;
+    }
+    if (fin < hoy) {
+      showWarning(`"${p.nombre}" ya finalizó. No se puede eliminar.`);
+      return;
+    }
+    setDeleteTarget({ id, nombre: p.nombre });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      const nuevosPeriodos = data
-        .filter(p => p.id !== id)
-        .map(p => ({
-          orden: p.orden,
-          nombre: p.nombre,
-          periodoTipo: p.periodoTipo,
-          fechaInicio: p.fechaInicio,
-          fechaFin: p.fechaFin,
-        }));
-
-      await planificacionApi.updateAnioLectivo(anioSel, {
-        periodosAcademicos: nuevosPeriodos
-      } as any);
-
-      show('Período académico eliminado exitosamente', 'success');
+      await planificacionApi.deletePeriodoAcademico(deleteTarget.id);
+      showSuccess(`"${deleteTarget.nombre}" eliminado correctamente.`);
+      setDeleteTarget(null);
       await cargarPeriodos();
-      cargarAnios();
-    } catch (err) {
-      show('Error al eliminar el período académico.', 'error');
+    } catch {
+      showError('Error al eliminar el período académico.');
+      setDeleteTarget(null);
     }
   };
 
@@ -225,7 +240,6 @@ const GestionPeriodoAcademico: React.FC = () => {
         </p>
       </div>
 
-      {notif && <div style={notifStyle(notif.type)}>{notif.msg}</div>}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16 }}>
         <div>
@@ -261,8 +275,18 @@ const GestionPeriodoAcademico: React.FC = () => {
                 <td style={td}>{p.fechaInicio}</td>
                 <td style={td}>{p.fechaFin}</td>
                 <td style={td}>
-                  <button type="button" onClick={() => abrirEditar(p)} title="Editar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>✏️</button>
-                  <button type="button" onClick={() => handleEliminar(p.id)} title="Eliminar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>🔴</button>
+                  {(() => {
+                    const hoy = new Date();
+                    const inicio = new Date(p.fechaInicio);
+                    const fin = new Date(p.fechaFin);
+                    const futuro = inicio > hoy;
+                    const enCurso = hoy >= inicio && hoy <= fin;
+                    const pasado = fin < hoy;
+                    return <>
+                      <button type="button" onClick={() => futuro ? abrirEditar(p) : showWarning(enCurso ? `"${p.nombre}" está en curso` : `"${p.nombre}" ya finalizó`)} title={futuro ? 'Editar' : enCurso ? 'En curso - no editable' : 'Finalizado - no editable'} style={{ background: 'transparent', border: 'none', cursor: futuro ? 'pointer' : 'not-allowed', marginRight: '6px', fontSize: '15px', opacity: futuro ? 1 : 0.4 }}>{futuro ? '✏️' : '🔒'}</button>
+                      <button type="button" onClick={() => handleEliminar(p.id)} title={futuro ? 'Eliminar' : 'No eliminable'} style={{ background: 'transparent', border: 'none', cursor: futuro ? 'pointer' : 'not-allowed', marginRight: '6px', fontSize: '15px', opacity: futuro ? 1 : 0.3 }}>🗑️</button>
+                    </>;
+                  })()}
                 </td>
               </tr>
             ))}
@@ -278,14 +302,20 @@ const GestionPeriodoAcademico: React.FC = () => {
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
               <div>
-                <label style={labelStyle}>Orden</label>
-                <input style={fieldStyle} placeholder="Ej: 1" value={form.orden}
-                  onChange={e => setForm({ ...form, orden: e.target.value })} />
+                <label style={labelStyle}>Orden<span style={req}>*</span></label>
+                <input style={{ ...fieldStyle, borderColor: errors.orden ? '#dc2626' : undefined }} type="text" inputMode="numeric" placeholder="Ej: 1" value={form.orden}
+                  onChange={e => {
+                    const v = e.target.value;
+                    if (v === '') { setField('orden', ''); return; }
+                    const cleaned = v.replace(/^0+(?=\d)/, '').replace(/\D/g, '');
+                    setField('orden', cleaned);
+                  }} />
+                {errors.orden && <div style={errorFieldStyle}>{errors.orden}</div>}
               </div>
               <div>
-                <label style={labelStyle}>Tipo de Período</label>
+                <label style={labelStyle}>Tipo de Período<span style={req}>*</span></label>
                 <select style={{ ...fieldStyle, appearance: 'auto' } as React.CSSProperties} value={form.periodoTipo}
-                  onChange={e => setForm({ ...form, periodoTipo: e.target.value })}>
+                  onChange={e => setField('periodoTipo', e.target.value)}>
                   <option value="QUIMESTRE">Quimestre</option>
                   <option value="TRIMESTRE">Trimestre</option>
                   <option value="BIMESTRE">Bimestre</option>
@@ -293,22 +323,26 @@ const GestionPeriodoAcademico: React.FC = () => {
               </div>
             </div>
             <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>Nombre</label>
-              <input style={fieldStyle} placeholder="Ej: Primer Quimestre" value={form.nombre}
-                onChange={e => setForm({ ...form, nombre: e.target.value })} />
+              <label style={labelStyle}>Nombre<span style={req}>*</span></label>
+              <input style={{ ...fieldStyle, borderColor: errors.nombre ? '#dc2626' : undefined }} placeholder="Ej: Primer Quimestre" value={form.nombre}
+                onChange={e => setField('nombre', e.target.value)} />
+              {errors.nombre && <div style={errorFieldStyle}>{errors.nombre}</div>}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
               <div>
-                <label style={labelStyle}>Fecha Inicio</label>
-                <input style={fieldStyle} type="date" value={form.fechaInicio}
-                  onChange={e => setForm({ ...form, fechaInicio: e.target.value })} />
+                <label style={labelStyle}>Fecha Inicio<span style={req}>*</span></label>
+                <input style={{ ...fieldStyle, borderColor: errors.fechaInicio ? '#dc2626' : undefined }} type="date" value={form.fechaInicio}
+                  onChange={e => setField('fechaInicio', e.target.value)} />
+                {errors.fechaInicio && <div style={errorFieldStyle}>{errors.fechaInicio}</div>}
               </div>
               <div>
-                <label style={labelStyle}>Fecha Fin</label>
-                <input style={fieldStyle} type="date" value={form.fechaFin}
-                  onChange={e => setForm({ ...form, fechaFin: e.target.value })} />
+                <label style={labelStyle}>Fecha Fin<span style={req}>*</span></label>
+                <input style={{ ...fieldStyle, borderColor: errors.fechaFin ? '#dc2626' : undefined }} type="date" value={form.fechaFin}
+                  onChange={e => setField('fechaFin', e.target.value)} />
+                {errors.fechaFin && <div style={errorFieldStyle}>{errors.fechaFin}</div>}
               </div>
             </div>
+            {errors.general && <div style={{ padding: '12px 16px', marginBottom: 16, borderRadius: 8, background: '#fef2f2', color: '#dc2626', fontSize: '14px', fontWeight: 500, border: '1px solid #fecaca', textAlign: 'center' }}>{errors.general}</div>}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
               <button onClick={() => setShowForm(false)} style={btnSecundario}>Cancelar</button>
               <button onClick={handleGuardar} style={btnPrimario}>Guardar</button>
@@ -316,6 +350,12 @@ const GestionPeriodoAcademico: React.FC = () => {
           </div>
         </div>
       )}
+      <ConfirmDeleteModal
+        open={!!deleteTarget}
+        nombre={deleteTarget?.nombre || ''}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 };

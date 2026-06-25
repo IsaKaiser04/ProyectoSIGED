@@ -3,6 +3,8 @@ import { planificacionApi } from '../services/planificacionApi';
 import type { AnioLectivo } from '../../../types/entities/planificacion';
 import { useAuth } from '../../autenticacion/context/AuthContext';
 import { ModalGobernanzaPorAnio } from '../../gobernanza/components/ModalGobernanzaPorAnio';
+import { ConfirmDeleteModal } from '../../../components/ConfirmDeleteModal';
+import { showSuccess, showError, showWarning } from '../../../components/Toast';
 
 const labelStyle: React.CSSProperties = {
   display: 'block', marginBottom: 6, fontWeight: 600, fontSize: 'var(--font-body-sm)', color: 'var(--on-surface)',
@@ -49,18 +51,18 @@ const modalBox: React.CSSProperties = {
   boxShadow: '0 10px 30px rgba(0,0,0,0.15)', padding: 28, borderRadius: 12,
   width: 520, maxHeight: '90vh', overflowY: 'auto',
 };
-const notifStyle = (type: 'success' | 'error'): React.CSSProperties => ({
-  padding: '12px 20px', borderRadius: 8, fontWeight: 600, fontSize: 'var(--font-body-sm)',
-  background: type === 'success' ? '#dcfce7' : '#fee2e2',
-  color: type === 'success' ? '#166534' : '#991b1b',
-  border: `1px solid ${type === 'success' ? '#86efac' : '#fecaca'}`,
-});
+const req: React.CSSProperties = { color: 'red', marginLeft: 2 };
+const errorFieldStyle: React.CSSProperties = {
+  color: '#dc2626', fontSize: '12px', marginTop: 4,
+  display: 'flex', alignItems: 'center', gap: 4,
+};
+
 
 const estadoBadge = (estado: string): React.CSSProperties => {
-  const colors: Record<string, string> = { ACTIVO: '#dcfce7', BORRADOR: '#fef9c3', CERRADO: '#fee2e2' };
-  const text: Record<string, string> = { ACTIVO: '#166534', BORRADOR: '#854d0e', CERRADO: '#991b1b' };
+  const colors: Record<string, string> = { ACTIVO: '#dcfce7', INACTIVO: '#fee2e2' };
+  const text: Record<string, string> = { ACTIVO: '#166534', INACTIVO: '#991b1b' };
   return { padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600, display: 'inline-block',
-    background: colors[estado] || colors.BORRADOR, color: text[estado] || text.BORRADOR };
+    background: colors[estado] || '#f3f4f6', color: text[estado] || '#374151' };
 };
 
 const GestionAnioLectivo: React.FC = () => {
@@ -69,14 +71,11 @@ const GestionAnioLectivo: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState<AnioLectivo | null>(null);
-  const [notif, setNotif] = useState<{msg: string; type: 'success' | 'error'} | null>(null);
-  const [form, setForm] = useState({ nombre: '', fechaInicio: '', fechaFin: '', estado: 'BORRADOR' });
+  const [form, setForm] = useState({ nombre: '', fechaInicio: '', fechaFin: '', estado: 'INACTIVO' });
   const [gobernanzaAnio, setGobernanzaAnio] = useState<AnioLectivo | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; nombre: string } | null>(null);
 
-  const show = (msg: string, type: 'success' | 'error') => {
-    setNotif({ msg, type });
-    setTimeout(() => setNotif(null), 4000);
-  };
 
   const cargar = async () => {
     setLoading(true);
@@ -86,17 +85,62 @@ const GestionAnioLectivo: React.FC = () => {
 
   useEffect(() => { cargar(); }, []);
 
+  const setField = (field: string, value: any) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+    setErrors(prev => { const copy = { ...prev }; delete copy[field]; return copy; });
+  };
+
+  const validate = (): boolean => {
+    const errs: Record<string, string> = {};
+    const editandoActivo = editando?.estado === 'ACTIVO';
+    if (!editandoActivo) {
+      if (!form.nombre.trim()) errs.nombre = '⚠️ Este campo es obligatorio';
+      else if (!/^\d{4}-\d{4}$/.test(form.nombre)) errs.nombre = '⚠️ Formato: AAAA-AAAA (ej: 2025-2026)';
+      else {
+        const [a1, a2] = form.nombre.split('-').map(Number);
+        if (a2 !== a1 + 1) errs.nombre = '⚠️ Los años deben ser consecutivos (ej: 2025-2026, no 2025-2027)';
+      }
+      if (!form.fechaInicio) errs.fechaInicio = '⚠️ Este campo es obligatorio';
+      if (!form.fechaFin) errs.fechaFin = '⚠️ Este campo es obligatorio';
+      if (form.fechaInicio && form.fechaFin) {
+        const inicio = new Date(form.fechaInicio);
+        const fin = new Date(form.fechaFin);
+        if (inicio >= fin) errs.fechaFin = '⚠️ Debe ser posterior a la fecha de inicio';
+        else {
+          const diffDays = Math.round((fin.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24));
+          if (diffDays < 270) errs.fechaFin = `⚠️ Muy corto: ${diffDays} días. El año lectivo en Ecuador dura ~10 meses (mín. 270 días)`;
+          if (diffDays > 330) errs.fechaFin = `⚠️ Muy largo: ${diffDays} días. El año lectivo no debe exceder 11 meses (330 días)`;
+        }
+      }
+      const duplicado = data.some(a => a.nombre === form.nombre.trim() && (!editando || a.id !== editando.id));
+      if (duplicado) errs.nombre = '⚠️ Ya existe un año lectivo con este nombre en la institución';
+    }
+    if (form.estado === 'ACTIVO' && editando?.estado === 'INACTIVO') {
+      const activoActual = data.find(a => a.estado === 'ACTIVO' && a.id !== editando.id);
+      if (activoActual) errs.estado = `⚠️ Desactive "${activoActual.nombre}" antes de activar "${form.nombre}"`;
+      if (!errs.estado) {
+        const anio = data.find(a => a.id === editando.id);
+        if (anio) {
+          if (!anio.periodosAcademicos?.length) errs.estado = '⚠️ Configure períodos académicos antes de activar.';
+        }
+      }
+    }
+    if (form.estado === 'ACTIVO' && !editando) {
+      const activoActual = data.find(a => a.estado === 'ACTIVO');
+      if (activoActual) errs.estado = `⚠️ Desactive "${activoActual.nombre}" antes de activar "${form.nombre}"`;
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const abrirCrear = () => {
     setEditando(null);
-    setForm({ nombre: '', fechaInicio: '', fechaFin: '', estado: 'BORRADOR' });
+    setForm({ nombre: '', fechaInicio: '', fechaFin: '', estado: 'INACTIVO' });
+    setErrors({});
     setShowForm(true);
   };
 
   const abrirEditar = (a: AnioLectivo) => {
-    if (a.estado !== 'BORRADOR') {
-      show('No se puede modificar este año lectivo porque ya está en uso (estado Activo o Cerrado).', 'error');
-      return;
-    }
     setEditando(a);
     setForm({
       nombre: a.nombre,
@@ -104,40 +148,65 @@ const GestionAnioLectivo: React.FC = () => {
       fechaFin: a.fechaFin,
       estado: a.estado,
     });
+    setErrors({});
     setShowForm(true);
   };
 
   const handleGuardar = async () => {
-    if (!form.nombre || !form.fechaInicio || !form.fechaFin) { show('Todos los campos son obligatorios', 'error'); return; }
-    if (form.fechaInicio >= form.fechaFin) { show('La fecha de inicio debe ser menor a la fecha de fin', 'error'); return; }
+    if (!validate()) return;
     try {
       if (editando) {
         await planificacionApi.updateAnioLectivo(editando.id, form as any);
-        show('Año lectivo actualizado exitosamente', 'success');
+        showSuccess('Año lectivo actualizado exitosamente');
       } else {
         await planificacionApi.createAnioLectivo(form as any);
-        show('Año lectivo creado exitosamente', 'success');
+        showSuccess('Año lectivo creado exitosamente');
       }
       setShowForm(false);
       setEditando(null);
-      setForm({ nombre: '', fechaInicio: '', fechaFin: '', estado: 'BORRADOR' });
+      setForm({ nombre: '', fechaInicio: '', fechaFin: '', estado: 'INACTIVO' });
       await cargar();
-    } catch (e: any) { show(e?.data ? JSON.stringify(e.data) : 'Error al guardar año lectivo', 'error'); }
+    } catch (e: any) {
+      const data = e?.data;
+      if (typeof data === 'object') {
+        const errs: Record<string, string> = {};
+        Object.entries(data).forEach(([k, v]) => { errs[k] = `⚠️ ${v}`; });
+        setErrors(errs);
+      } else {
+        const msg = typeof data === 'string' ? data : (e?.message || 'Error al guardar año lectivo');
+        setErrors({ general: `⚠️ ${msg}` });
+      }
+    }
+  };
+
+  const handleToggleEstado = async (a: AnioLectivo) => {
+    try {
+      const nuevoEstado = a.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO';
+      await planificacionApi.updateAnioLectivo(a.id, { estado: nuevoEstado } as any);
+      showSuccess(`Año lectivo ${nuevoEstado === 'ACTIVO' ? 'activado' : 'desactivado'} exitosamente`);
+      await cargar();
+    } catch { showError('Error al cambiar el estado del año lectivo'); }
   };
 
   const handleEliminar = async (id: number) => {
     const a = data.find(item => item.id === id);
-    if (a && a.estado !== 'BORRADOR') {
-      show('No se puede eliminar este año lectivo porque ya está en uso (estado Activo o Cerrado).', 'error');
+    if (a && a.estado === 'ACTIVO') {
+      showError('No se puede eliminar un año lectivo activo. Desactívelo primero.');
       return;
     }
-    if (!window.confirm('¿Está seguro de que desea eliminar este año lectivo? Esta acción no se puede deshacer.')) return;
+    setDeleteTarget({ id, nombre: a?.nombre || '' });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await planificacionApi.deleteAnioLectivo(id);
-      show('Año lectivo eliminado exitosamente', 'success');
+      await planificacionApi.deleteAnioLectivo(deleteTarget.id);
+      showSuccess('Año lectivo eliminado exitosamente');
+      setDeleteTarget(null);
       await cargar();
     } catch (err) {
-      show('Error al eliminar el año lectivo. Verifique que no tenga períodos académicos activos.', 'error');
+      showError('Error al eliminar el año lectivo. Verifique que no tenga períodos académicos activos.');
+      setDeleteTarget(null);
     }
   };
 
@@ -150,7 +219,6 @@ const GestionAnioLectivo: React.FC = () => {
         </p>
       </div>
 
-      {notif && <div style={notifStyle(notif.type)}>{notif.msg}</div>}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <p style={{ margin: 0, fontSize: 'var(--font-body-sm)', color: 'var(--on-surface-variant)' }}>{data.length} año(s) lectivo(s)</p>
@@ -178,13 +246,33 @@ const GestionAnioLectivo: React.FC = () => {
                 <td style={td}><span style={estadoBadge(a.estado)}>{a.estado}</span></td>
                 <td style={td}>{a.periodosAcademicos?.length || 0}</td>
                 <td style={td}>
-                  <button onClick={() => setGobernanzaAnio(a)} style={{ ...btnAccion, background: a.estado === 'CERRADO' ? 'var(--outline-variant)' : '#8b5cf6' }}>
-                    {a.estado === 'CERRADO' ? 'Ver' : 'Gestionar'}
+                  <button onClick={() => setGobernanzaAnio(a)} style={{ ...btnAccion, background: a.estado === 'ACTIVO' ? '#8b5cf6' : 'var(--outline-variant)' }}>
+                    {a.estado === 'ACTIVO' ? 'Gestionar' : 'Ver'}
                   </button>
                 </td>
                 <td style={td}>
-                  <button type="button" onClick={() => abrirEditar(a)} title="Editar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>✏️</button>
-                  <button type="button" onClick={() => handleEliminar(a.id)} title="Eliminar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>🔴</button>
+                  {a.estado !== 'CERRADO' && (
+                    <div
+                      style={{
+                        width: 48, height: 24, borderRadius: 12, position: 'relative',
+                        cursor: 'pointer', display: 'inline-block', marginRight: 10,
+                        background: a.estado === 'ACTIVO' ? '#22c55e' : '#9ca3af',
+                        transition: 'all 0.2s',
+                      }}
+                      onClick={() => handleToggleEstado(a)}
+                      title={a.estado === 'ACTIVO' ? 'Desactivar' : 'Activar'}
+                    >
+                      <div style={{
+                        width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                        position: 'absolute', top: 2,
+                        left: a.estado === 'ACTIVO' ? 26 : 2,
+                        transition: 'left 0.2s',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                      }} />
+                    </div>
+                  )}
+                  <button type="button" onClick={() => abrirEditar(a)} title="Editar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: 6, fontSize: 15 }}>✏️</button>
+                  <button type="button" onClick={() => a.estado === 'ACTIVO' ? showWarning('Desactive el año antes de eliminar') : handleEliminar(a.id)} title={a.estado === 'ACTIVO' ? 'Desactive para eliminar' : 'Eliminar'} style={{ background: 'transparent', border: 'none', cursor: a.estado === 'ACTIVO' ? 'not-allowed' : 'pointer', fontSize: 15, opacity: a.estado === 'ACTIVO' ? 0.3 : 1 }} disabled={a.estado === 'ACTIVO'}>🗑️</button>
                 </td>
               </tr>
             ))}
@@ -198,30 +286,55 @@ const GestionAnioLectivo: React.FC = () => {
               {editando ? 'Editar Año Lectivo' : 'Nuevo Año Lectivo'}
             </h3>
             <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>Nombre</label>
-              <input style={fieldStyle} placeholder="Ej: 2025-2026" value={form.nombre}
-                onChange={e => setForm({ ...form, nombre: e.target.value })} />
+              <label style={labelStyle}>Nombre<span style={req}>*</span></label>
+              <input style={{ ...fieldStyle, borderColor: errors.nombre ? '#dc2626' : undefined, background: editando?.estado === 'ACTIVO' ? '#f3f4f6' : undefined }}
+                placeholder="Ej: 2025-2026" value={form.nombre}
+                onChange={e => setField('nombre', e.target.value)}
+                disabled={editando?.estado === 'ACTIVO'} />
+              {errors.nombre && <div style={errorFieldStyle}>{errors.nombre}</div>}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
               <div>
-                <label style={labelStyle}>Fecha Inicio</label>
-                <input style={fieldStyle} type="date" value={form.fechaInicio}
-                  onChange={e => setForm({ ...form, fechaInicio: e.target.value })} />
+                <label style={labelStyle}>Fecha Inicio<span style={req}>*</span></label>
+                <input style={{ ...fieldStyle, borderColor: errors.fechaInicio ? '#dc2626' : undefined, background: editando?.estado === 'ACTIVO' ? '#f3f4f6' : undefined }}
+                  type="date" value={form.fechaInicio}
+                  onChange={e => setField('fechaInicio', e.target.value)}
+                  disabled={editando?.estado === 'ACTIVO'} />
+                {errors.fechaInicio && <div style={errorFieldStyle}>{errors.fechaInicio}</div>}
               </div>
               <div>
-                <label style={labelStyle}>Fecha Fin</label>
-                <input style={fieldStyle} type="date" value={form.fechaFin}
-                  onChange={e => setForm({ ...form, fechaFin: e.target.value })} />
+                <label style={labelStyle}>Fecha Fin<span style={req}>*</span></label>
+                <input style={{ ...fieldStyle, borderColor: errors.fechaFin ? '#dc2626' : undefined, background: editando?.estado === 'ACTIVO' ? '#f3f4f6' : undefined }}
+                  type="date" value={form.fechaFin}
+                  onChange={e => setField('fechaFin', e.target.value)}
+                  disabled={editando?.estado === 'ACTIVO'} />
+                {errors.fechaFin && <div style={errorFieldStyle}>{errors.fechaFin}</div>}
               </div>
             </div>
+            {form.fechaInicio && form.fechaFin && !errors.fechaInicio && !errors.fechaFin && (
+              (() => {
+                const i = new Date(form.fechaInicio);
+                const f = new Date(form.fechaFin);
+                if (i >= f) return null;
+                const d = Math.round((f.getTime() - i.getTime()) / (1000*60*60*24));
+                const m = (d / 30).toFixed(1);
+                return (
+                  <div style={{ fontSize: 12, color: '#166534', fontWeight: 600, marginBottom: 16, padding: '8px 12px', background: '#dcfce7', borderRadius: 6 }}>
+                    Duración: {d} días (~{m} meses) — ideal ~10 meses (300-310 días)
+                  </div>
+                );
+              })()
+            )}
             <div style={{ marginBottom: 24 }}>
-              <label style={labelStyle}>Estado</label>
-              <select style={{ ...fieldStyle, appearance: 'auto' } as React.CSSProperties} value={form.estado}
-                onChange={e => setForm({ ...form, estado: e.target.value })}>
-                <option value="BORRADOR">Borrador</option>
+              <label style={labelStyle}>Estado<span style={req}>*</span></label>
+              <select style={{ ...fieldStyle, appearance: 'auto' as React.CSSProperties['appearance'],
+                borderColor: errors.estado ? '#dc2626' : undefined }}
+                value={form.estado}
+                onChange={e => setField('estado', e.target.value)}>
                 <option value="ACTIVO">Activo</option>
-                <option value="CERRADO">Cerrado</option>
+                <option value="INACTIVO">Inactivo</option>
               </select>
+              {errors.estado && <div style={errorFieldStyle}>{errors.estado}</div>}
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
               <button onClick={() => setShowForm(false)} style={btnSecundario}>Cancelar</button>
@@ -230,6 +343,13 @@ const GestionAnioLectivo: React.FC = () => {
           </div>
         </div>
       )}
+
+      <ConfirmDeleteModal
+        open={!!deleteTarget}
+        nombre={deleteTarget?.nombre || ''}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
 
       {gobernanzaAnio && (
         <ModalGobernanzaPorAnio

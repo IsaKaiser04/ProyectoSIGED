@@ -6,6 +6,7 @@
 import React, { useState } from "react";
 import { NAVIGATION_AUTORIDAD } from "../config/navigationAutoridad";
 import { UserMenu } from "../components/UserMenu";
+import { ToastContainer } from "../components/Toast";
 
 interface AutoridadLayoutProps {
   currentView: string;
@@ -104,6 +105,7 @@ export const AutoridadLayout: React.FC<AutoridadLayoutProps> = ({
         </main>
       </div>
 
+      <ToastContainer />
     </div>
   );
 };

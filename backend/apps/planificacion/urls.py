@@ -9,7 +9,7 @@ from .views.paralelo_view import ParaleloViewSet
 from .views.educacion_view import EducacionNivelListCreateView, EducacionNivelDetailView, EducacionSubNivelListCreateView, EducacionSubNivelDetailView
 from .views.plan_estudio_view import PlanEstudioListCreateView, PlanEstudioDetailView, GradoListCreateView, GradoDetailView, AsignaturaListCreateView, AsignaturaDetailView
 from .views.calificacion_view import CalificacionListCreateView, CalificacionDetailView
-from .views.oferta_view import OfertaAcademicaListCreateView, OfertaAcademicaDetailView, GradoOfertadoListCreateView, GradoOfertadoDetailView, AsignaturaOfertadaListCreateView, AsignaturaOfertadaDetailView
+from .views.oferta_view import OfertaAcademicaListCreateView, OfertaAcademicaDetailView, GradoOfertadoListCreateView, GradoOfertadoDetailView, AsignaturaOfertadaListCreateView, AsignaturaOfertadaDetailView, preview_asignaturas, crear_grado_con_asignaturas
 
 router = DefaultRouter()
 router.register(r'anios-lectivos', AnioLectivoViewSet, basename='anio-lectivo')
@@ -38,4 +38,6 @@ urlpatterns = [
     path('grados-ofertados/<int:pk>/', GradoOfertadoDetailView.as_view(), name='gradoofertado-detail'),
     path('asignaturas-ofertadas/', AsignaturaOfertadaListCreateView.as_view(), name='asignaturaofertada-list-create'),
     path('asignaturas-ofertadas/<int:pk>/', AsignaturaOfertadaDetailView.as_view(), name='asignaturaofertada-detail'),
+    path('preview-asignaturas/', preview_asignaturas, name='preview-asignaturas'),
+    path('grados-ofertados/crear-con-asignaturas/', crear_grado_con_asignaturas, name='gradoofertado-crear-con-asignaturas'),
 ]

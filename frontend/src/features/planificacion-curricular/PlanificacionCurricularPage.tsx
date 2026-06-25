@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { showError, showSuccess } from "../../components/Toast";
 import {
   obtenerPlanificaciones,
   crearPlanificacion,
@@ -69,7 +70,7 @@ export default function PlanificacionCurricularPage() {
       await enviarAprobacion(id);
       await cargar();
     } catch (err: any) {
-      alert(err?.response?.data?.error || "Error al enviar");
+      showError(err?.response?.data?.error || "Error al enviar");
     }
   };
 
@@ -78,7 +79,7 @@ export default function PlanificacionCurricularPage() {
       await aprobarPlanificacion(id);
       await cargar();
     } catch (err: any) {
-      alert(err?.response?.data?.error || "Error al aprobar");
+      showError(err?.response?.data?.error || "Error al aprobar");
     }
   };
 

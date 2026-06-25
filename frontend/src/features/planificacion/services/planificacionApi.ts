@@ -23,6 +23,7 @@ export const planificacionApi = {
 
   getAsignaturasOfertadas: () => apiGet<AsignaturaOfertada[]>(P('asignaturas-ofertadas')),
   createAsignaturaOfertada: (data: Partial<AsignaturaOfertada>) => apiPost2<AsignaturaOfertada>(P('asignaturas-ofertadas'), data),
+  updateAsignaturaOfertada: (id: number, data: Partial<AsignaturaOfertada>) => apiPatch2<AsignaturaOfertada>(P(`asignaturas-ofertadas/${id}`), data),
   deleteAsignaturaOfertada: (id: number) => apiDelete(P(`asignaturas-ofertadas/${id}`)),
 
   getPlanesEstudio: () => apiGet<PlanEstudio[]>(P('planes-estudio')),
@@ -46,6 +47,11 @@ export const planificacionApi = {
   deleteGrado: (id: number) => apiDelete(P(`grados/${id}`)),
 
   getAsignaturas: () => apiGet<Asignatura[]>(P('asignaturas')),
+  previewAsignaturas: (gradoId: number) => apiGet<any[]>(`${P('preview-asignaturas')}?grado_id=${gradoId}`),
+  crearGradoConAsignaturas: (data: { gradoOfertado: Partial<GradoOfertado>; asignaturaIds: number[] }) =>
+    apiPost<any>(P('grados-ofertados/crear-con-asignaturas'), data),
+  activarAnioLectivo: (id: number) => apiPost<any>(`${P(`anios-lectivos/${id}`)}/activar/`, {}),
+  existsActivo: () => apiGet<{exists: boolean}>(P('anios-lectivos/exists_activo')),
   createAsignatura: (data: Partial<Asignatura>) => apiPost2<Asignatura>(P('asignaturas'), data),
   updateAsignatura: (id: number, data: Partial<Asignatura>) => apiPatch2<Asignatura>(P(`asignaturas/${id}`), data),
   deleteAsignatura: (id: number) => apiDelete(P(`asignaturas/${id}`)),

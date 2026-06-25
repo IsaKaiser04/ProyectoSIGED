@@ -15,7 +15,7 @@ class AsignaturaOfertadaSerializer(serializers.ModelSerializer):
 
 
 class GradoOfertadoSerializer(serializers.ModelSerializer):
-    asignaturasOfertadas = AsignaturaOfertadaSerializer(many=True, read_only=True)
+    asignaturasOfertadas = AsignaturaOfertadaSerializer(many=True, read_only=True, source='asignaturas_ofertadas')
     grado_id = serializers.IntegerField(source='grado.id', read_only=True)
     grado_nombre = serializers.CharField(source='grado.nombre', read_only=True)
 
@@ -43,6 +43,16 @@ class GradoOfertadoSerializer(serializers.ModelSerializer):
                     "grado": f"El grado '{grado.nombre}' no cumple con el mínimo de periodos pedagógicos semanales establecido globalmente ({sum_periods} de {min_semana} requeridos)."
                 })
 
+        oferta_academica = attrs.get('ofertaAcademica')
+        if oferta_academica:
+            qs = GradoOfertado.objects.filter(ofertaAcademica=oferta_academica, grado=grado)
+            if self.instance:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise serializers.ValidationError({
+                    'grado': f'El grado "{grado.nombre}" ya está registrado en esta oferta académica.'
+                })
+
         request = self.context.get('request')
         auth = getattr(request, 'auth', None) if request else None
         institucion_id = auth.get('institucion_id') if auth else None
@@ -57,7 +67,7 @@ class GradoOfertadoSerializer(serializers.ModelSerializer):
 
 
 class OfertaAcademicaSerializer(serializers.ModelSerializer):
-    gradosOfertados = GradoOfertadoSerializer(many=True, read_only=True)
+    gradosOfertados = GradoOfertadoSerializer(many=True, read_only=True, source='grados_ofertados')
 
     class Meta:
         model = OfertaAcademica
