@@ -1,6 +1,7 @@
 from django.contrib import admin
 
 from .models import (
+    BloqueHorario,
     Distributivo,
     DistributivoAsignatura,
     Horario,
@@ -44,8 +45,15 @@ class PlanificacionCurricularHistorialAdmin(admin.ModelAdmin):
     list_filter = ('estado_anterior', 'estado_actual', 'fecha')
 
 
+@admin.register(BloqueHorario)
+class BloqueHorarioAdmin(admin.ModelAdmin):
+    list_display = ('id', 'paralelo', 'dia_semana', 'hora_inicio', 'hora_fin', 'orden')
+    search_fields = ('paralelo__nombre', 'dia_semana')
+    list_filter = ('dia_semana',)
+
+
 @admin.register(Horario)
 class HorarioAdmin(admin.ModelAdmin):
-    list_display = ('id', 'distributivo', 'distributivo_asignatura', 'dia_semana', 'hora_inicio', 'hora_fin', 'tipo_horario')
+    list_display = ('id', 'distributivo', 'distributivo_asignatura', 'bloque_horario', 'dia_semana', 'hora_inicio', 'hora_fin', 'tipo_horario')
     search_fields = ('dia_semana', 'tipo_horario')
     list_filter = ('dia_semana', 'tipo_horario')

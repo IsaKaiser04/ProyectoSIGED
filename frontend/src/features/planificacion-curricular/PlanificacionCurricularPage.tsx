@@ -60,7 +60,7 @@ export default function PlanificacionCurricularPage() {
       setShowForm(false);
       await cargar();
     } catch (err: any) {
-      setError(err?.response?.data ? JSON.stringify(err.response.data) : "Error al guardar");
+      setError(err?.data ? (typeof err.data === "string" ? err.data : JSON.stringify(err.data)) : "Error al guardar");
     }
   };
 
@@ -69,7 +69,7 @@ export default function PlanificacionCurricularPage() {
       await enviarAprobacion(id);
       await cargar();
     } catch (err: any) {
-      alert(err?.response?.data?.error || "Error al enviar");
+      alert(err?.data?.error || "Error al enviar");
     }
   };
 
@@ -78,7 +78,7 @@ export default function PlanificacionCurricularPage() {
       await aprobarPlanificacion(id);
       await cargar();
     } catch (err: any) {
-      alert(err?.response?.data?.error || "Error al aprobar");
+      alert(err?.data?.error || "Error al aprobar");
     }
   };
 

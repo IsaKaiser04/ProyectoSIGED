@@ -1,12 +1,7 @@
 // src/app/EstudianteApp.tsx
 import { useState } from "react";
 import { EstudianteLayout } from "../layouts/EstudianteLayout";
-
-// ──────────────────────────────────────────────────────────────────────────
-// Importa tus futuros componentes del EVA o paneles de notas cuando los construyas:
-// import { EstudianteEvaPanel } from '../features/eva/components/EstudianteEvaPanel';
-// import { BoletaCalificaciones } from '../features/evaluacion/components/BoletaCalificaciones';
-// ──────────────────────────────────────────────────────────────────────────
+import HorarioEscolarPage from "../features/estudiante/components/HorarioEscolarPage";
 
 const InicioEstudiante = () => (
   <div className="content-heading" style={{ padding: "24px" }}>
@@ -44,7 +39,7 @@ export function EstudianteApp() {
       case "mi-asistencia":
         return <EnDesarrollo titulo="Reporte Semanal de Asistencia, Atrasos e Justificaciones" />;
       case "horario-escolar":
-        return <EnDesarrollo titulo="Consulta de Carga Horaria y Cronograma de Clases" />;
+        return <HorarioEscolarPage />;
 
       // Entorno Virtual (EVA)
       case "aulas-virtuales":

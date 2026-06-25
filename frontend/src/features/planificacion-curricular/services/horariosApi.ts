@@ -23,3 +23,19 @@ export async function horariosPorDistributivo(distributivoId: number) {
 export async function horariosPorAsignatura(distributivoAsignaturaId: number) {
   return apiGet<any[]>(`/distributivos/horarios/por_distributivo_asignatura/?distributivo_asignatura_id=${distributivoAsignaturaId}`);
 }
+
+export async function horariosPorParalelo(paraleloId: number) {
+  return apiGet<any[]>(`/distributivos/horarios/por-paralelo/?paralelo_id=${paraleloId}`);
+}
+
+export async function miHorario() {
+  return apiGet<any[]>("/distributivos/horarios/mi-horario/");
+}
+
+export async function todosParalelos() {
+  return apiGet<any[]>("/distributivos/horarios/todos-paralelos/");
+}
+
+export async function horariosPorEstudiante() {
+  return apiGet<any[]>("/distributivos/horarios/por-estudiante/");
+}

@@ -10,6 +10,7 @@ import { DistributivosDashboard } from "../features/distributivos/DistributivosD
 import DistributivoDocentePage from "../features/planificacion-curricular/DistributivoDocentePage";
 import PlanificacionCurricularPage from "../features/planificacion-curricular/PlanificacionCurricularPage";
 import CargaHorariaPage from "../features/planificacion-curricular/CargaHorariaPage";
+import HorariosParalelosPage from "../features/planificacion-curricular/HorariosParalelosPage";
 import { GobernanzaDashboard } from "../features/gobernanza/GobernanzaDashboard";
 import { MatriculaDashboard } from "../features/matricula/MatriculaDashboard";
 import { PeriodosMatriculaPage } from "../features/matricula/PeriodosMatriculaPage";
@@ -170,6 +171,11 @@ export function AutoridadApp() {
       case "carga-horaria":
         return <CargaHorariaPage />;
 
+<<<<<<< HEAD
+      // --- Horarios por Paralelo ---
+      case "horarios-paralelos":
+        return <HorariosParalelosPage />;
+=======
       // --- Gestión de Matrículas ---
       case "periodos-matricula":
         return <PeriodosMatriculaPage />;
@@ -181,6 +187,7 @@ export function AutoridadApp() {
       // --- Estudiantes Registrados ---
       case "estudiantes-registrados":
         return <EstudiantesListado />;
+>>>>>>> d4b8aa753bd46e25acba9f56c6ab825390c6cb65
 
       // --- MÓDULOS PENDIENTES ---
       case "documentacion-gobernanza":
