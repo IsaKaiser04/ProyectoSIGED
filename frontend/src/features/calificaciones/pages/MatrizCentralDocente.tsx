@@ -455,26 +455,52 @@ export function CalificacionesDocentePage() {
     if (!anoId || anoId === 0 || !cursoId || cursoId === 0) return;
 
     setLoading(true);
-    Promise.all([
+    Promise.allSettled([
       listEstudiantesPorAnoYCurso(anoId, cursoId),
       getLibroCalificaciones(anoId, cursoId, asignaturaId || 0),
     ])
-      .then(([ests, cals]) => {
-        setEstudiantes(ests);
-        setCalificaciones(cals);
+      .then(([estsResult, calsResult]) => {
+        if (estsResult.status === "fulfilled") {
+          setEstudiantes(estsResult.value);
+        } else {
+          console.error("Error loading estudiantes", estsResult.reason);
+          setEstudiantes([]);
+        }
+        
+        if (calsResult.status === "fulfilled") {
+          setCalificaciones(calsResult.value);
+        } else {
+          console.error("Error loading calificaciones", calsResult.reason);
+          setCalificaciones([]);
+        }
+        
         setDataLoaded(true);
       })
-      .catch(() => mostrarToast("error", "Error al cargar datos académicos"))
+      .catch((e) => {
+        console.error("Unexpected error in Promise.allSettled", e);
+        mostrarToast("error", "Error crítico al cargar datos");
+      })
       .finally(() => setLoading(false));
   }, [anoId, cursoId, asignaturaId]);
 
   /* ── Construcción de la matriz de promedios ── */
   const matrizEstudiantes: EstudiantePromedio[] = useMemo(() => {
     return estudiantes.map((e) => {
-      const t1 = 0; const t2 = 0; const t3 = 0;
+      // Find the student's grades
+      // Usamos matricula_id que viene del backend para mapear correctamente incluso a los aspirantes con ID negativo
+      const cal = calificaciones.find((c: any) => 
+        (c.estudiante_id && c.estudiante_id === e.id) || 
+        (c.matricula === (e as any).matricula_id) ||
+        (e.id < 0 && c.matricula === Math.abs(e.id))
+      );
+
+      const t1 = cal && cal.primer_trimestre ? (cal.primer_trimestre.ef || 0) + (cal.primer_trimestre.es || 0) : 0;
+      const t2 = cal && cal.segundo_trimestre ? (cal.segundo_trimestre.ef || 0) + (cal.segundo_trimestre.es || 0) : 0;
+      const t3 = cal && cal.tercer_trimestre ? (cal.tercer_trimestre.ef || 0) + (cal.tercer_trimestre.es || 0) : 0;
       const final = (t1 + t2 + t3) / 3;
-      const supletorio = null;
+      const supletorio = cal?.supletorio ?? null;
       const promedio = calcPromedio(t1, t2, t3, supletorio);
+
       return {
         id: e.id,
         cedula: e.identificacion,
@@ -484,7 +510,7 @@ export function CalificacionesDocentePage() {
         estado: calcEstado(promedio),
       };
     });
-  }, [estudiantes]);
+  }, [estudiantes, calificaciones]);
 
   /* ── Métricas ── */
   const metricas = useMemo(() => {

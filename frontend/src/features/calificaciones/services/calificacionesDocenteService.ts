@@ -23,7 +23,7 @@ export function listAnosLectivos(signal?: AbortSignal) {
 }
 
 export function getAnoLectivoActivo(signal?: AbortSignal) {
-  return apiGet<AnoLectivo>(`${apiEndpoints.calificaciones.anosLectivos.collection}activo/`, {
+  return apiGet<AnoLectivo>(apiEndpoints.calificaciones.anosLectivos.activo, {
     signal
   });
 }

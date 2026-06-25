@@ -5,13 +5,14 @@ from apps.calificaciones.models.calificacion import Calificacion
 class CalificacionSerializer(serializers.ModelSerializer):
     estudiante_nombre = serializers.SerializerMethodField(read_only=True)
     evaluacion_nombre = serializers.SerializerMethodField(read_only=True)
+    estudiante_id = serializers.IntegerField(source='matricula.estudiante.id', read_only=True)
 
     class Meta:
         model = Calificacion
         fields = [
             'id', 'valor', 'observacion', 'fecha_registro', 'fecha_actualizacion',
             'asignatura_evaluacion', 'promedio_categoria', 'matricula',
-            'estudiante_nombre', 'evaluacion_nombre',
+            'estudiante_nombre', 'evaluacion_nombre', 'estudiante_id'
         ]
 
     def get_estudiante_nombre(self, obj):
