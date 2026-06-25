@@ -62,6 +62,35 @@ class RequisitoService:
         return RequisitoListSerializer(RequisitoRepository.get_by_id(pk)).data, None
 
     @staticmethod
+    def solicitar_correccion(pk):
+        requisito = RequisitoRepository.get_by_id(pk)
+        if not requisito:
+            return None, {"error": "Requisito no encontrado"}
+        if requisito.estado != 'No validado':
+            return None, {"error": "Solo se puede solicitar corrección de requisitos rechazados"}
+        RequisitoRepository.update(requisito, {
+            'estado': 'Pendiente',
+            'revisado_por_id': None,
+            'fecha_revision': None,
+        })
+        return RequisitoListSerializer(RequisitoRepository.get_by_id(pk)).data, None
+
+    @staticmethod
+    def subir_archivo(pk, archivo):
+        requisito = RequisitoRepository.get_by_id(pk)
+        if not requisito:
+            return None, {"error": "Requisito no encontrado"}
+        if not archivo:
+            return None, {"error": "Debe adjuntar un archivo PDF"}
+        RequisitoRepository.update(requisito, {
+            'archivo': archivo,
+            'estado': 'Pendiente',
+            'revisado_por_id': None,
+            'fecha_revision': None,
+        })
+        return RequisitoListSerializer(RequisitoRepository.get_by_id(pk)).data, None
+
+    @staticmethod
     def delete(pk):
         requisito = RequisitoRepository.get_by_id(pk)
         if not requisito:

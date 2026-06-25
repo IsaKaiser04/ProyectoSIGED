@@ -40,3 +40,13 @@ export async function validarRequisito(requisitoId: number) {
 export async function rechazarRequisito(requisitoId: number, observacion: string) {
   return apiPost(`/matricula/requisitos/${requisitoId}/rechazar/`, { observacion });
 }
+
+export async function solicitarCorreccionRequisito(requisitoId: number) {
+  return apiPost(`/matricula/requisitos/${requisitoId}/solicitar_correccion/`, {});
+}
+
+export async function subirArchivoRequisito(requisitoId: number, archivo: File) {
+  const formData = new FormData();
+  formData.append("archivo", archivo);
+  return apiUpload(`/matricula/requisitos/${requisitoId}/subir_archivo/`, formData);
+}

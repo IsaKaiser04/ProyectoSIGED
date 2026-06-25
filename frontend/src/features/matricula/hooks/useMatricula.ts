@@ -1,43 +1,86 @@
-﻿import { useEffect, useState } from "react";
+﻿import { useEffect, useState, useCallback } from "react";
 import { obtenerMatriculas } from "../services/matriculaApi";
 import type { Matricula } from "../../../types/entities/matricula";
 
-const mockMatriculas: Matricula[] = [
-  { id: 1, codigo_unico: null, estado: "Solicitud", estado_display: "Solicitud", estudiante_id: 101, paralelo_id: 1, representante_id: 201, secretaria_id: null, matricula_periodo: 1, tiene_discapacidad: false, tipo_discapacidad: null, grado_discapacidad: null, fecha_registro: "2024-05-20", promedio_anual: null, asp_nombres: "", asp_apellidos: "", asp_fecha_nacimiento: null, asp_correo_personal: "" },
-  { id: 2, codigo_unico: "MAT-2024-AB12CD", estado: "Legalizada", estado_display: "Legalizada", estudiante_id: 102, paralelo_id: 1, representante_id: 202, secretaria_id: 1, matricula_periodo: 1, tiene_discapacidad: true, tipo_discapacidad: "Visual", grado_discapacidad: "Leve", fecha_registro: "2024-05-18", promedio_anual: null, asp_nombres: "", asp_apellidos: "", asp_fecha_nacimiento: null, asp_correo_personal: "" },
-  { id: 3, codigo_unico: null, estado: "Prematricula", estado_display: "Prematrícula", estudiante_id: 103, paralelo_id: 2, representante_id: 203, secretaria_id: null, matricula_periodo: 1, tiene_discapacidad: false, tipo_discapacidad: null, grado_discapacidad: null, fecha_registro: "2024-05-21", promedio_anual: null, asp_nombres: "", asp_apellidos: "", asp_fecha_nacimiento: null, asp_correo_personal: "" },
-  { id: 4, codigo_unico: null, estado: "Rechazada", estado_display: "Rechazada", estudiante_id: 104, paralelo_id: 1, representante_id: 204, secretaria_id: 1, matricula_periodo: 1, tiene_discapacidad: false, tipo_discapacidad: null, grado_discapacidad: null, fecha_registro: "2024-05-15", promedio_anual: null, asp_nombres: "", asp_apellidos: "", asp_fecha_nacimiento: null, asp_correo_personal: "" },
-  { id: 5, codigo_unico: "MAT-2024-XY98Z", estado: "Legalizada", estado_display: "Legalizada", estudiante_id: 105, paralelo_id: 2, representante_id: 205, secretaria_id: 1, matricula_periodo: 1, tiene_discapacidad: false, tipo_discapacidad: null, grado_discapacidad: null, fecha_registro: "2024-05-10", promedio_anual: null, asp_nombres: "", asp_apellidos: "", asp_fecha_nacimiento: null, asp_correo_personal: "" }
-];
+const STORAGE_KEY = "siged_matriculas_v2";
+
+function cargarLocales(): Matricula[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return [];
+}
+
+function guardarLocales(lista: Matricula[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(lista));
+  } catch {}
+}
+
+let nextLocalId = Date.now();
 
 export function useMatriculas() {
   const [matriculas, setMatriculas] = useState<Matricula[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const cargarDatos = async () => {
+  const cargarDatos = useCallback(async () => {
     try {
       setLoading(true);
+      let desdeApi: Matricula[] = [];
       try {
         const data = await obtenerMatriculas();
-        if (data && data.length > 0) setMatriculas(data);
-        else setMatriculas(mockMatriculas);
-      } catch (apiError) {
-        setMatriculas(mockMatriculas);
-      }
+        if (data && data.length > 0) desdeApi = data;
+      } catch {}
+      const locales = cargarLocales();
+      const mezcladas = [
+        ...locales,
+        ...desdeApi.filter(d => !locales.some(l => l.id === d.id)),
+      ];
+      setMatriculas(mezcladas.length > 0 ? mezcladas : []);
+      guardarLocales(mezcladas);
     } catch (error) {
       console.error("Error al cargar matrículas:", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { cargarDatos(); }, []);
+  useEffect(() => {
+    cargarDatos().then(() => {
+      const actuales = cargarLocales();
+      const ids = new Set(actuales.map(m => m.id));
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith("siged_requisitos_")) {
+          const id = Number(key.replace("siged_requisitos_", ""));
+          if (!ids.has(id)) {
+            localStorage.removeItem(key);
+          }
+        }
+      }
+    });
+  }, [cargarDatos]);
 
   const updateMatriculaState = (id: number, newState: string, codigo?: string) => {
-    setMatriculas(prev => prev.map(m => 
-      m.id === id ? { ...m, estado: newState, codigo_unico: codigo || m.codigo_unico } : m
-    ));
+    setMatriculas(prev => {
+      const next = prev.map(m =>
+        m.id === id ? { ...m, estado: newState, codigo_unico: codigo || m.codigo_unico } : m
+      );
+      guardarLocales(next);
+      return next;
+    });
   };
 
-  return { matriculas, loading, refrescarTablas: cargarDatos, updateMatriculaState };
+  const agregarMatricula = (matricula: Matricula) => {
+    console.log("[useMatricula] agregarMatricula llamado con:", matricula);
+    setMatriculas(prev => {
+      console.log("[useMatricula] prev length:", prev.length);
+      const next = [matricula, ...prev];
+      console.log("[useMatricula] next length:", next.length);
+      guardarLocales(next);
+      return next;
+    });
+  };
+
+  return { matriculas, loading, refrescarTablas: () => cargarDatos(), updateMatriculaState, agregarMatricula };
 }

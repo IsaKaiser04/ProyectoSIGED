@@ -17,10 +17,13 @@ export default function MatriculaTable({ matriculas, paraleloMap, onRevisar, onA
   const [legalizarMatriculaId, setLegalizarMatriculaId] = useState<number | null>(null);
   const [rechazarMatriculaId, setRechazarMatriculaId] = useState<number | null>(null);
   const [motivoRechazo, setMotivoRechazo] = useState("");
+  const [anularMatriculaId, setAnularMatriculaId] = useState<number | null>(null);
+  const [motivoAnulacion, setMotivoAnulacion] = useState("");
 
   const cerrarLegalizar = () => {
+    const id = legalizarMatriculaId;
     setLegalizarMatriculaId(null);
-    onAccionRealizada();
+    if (id) onAccionLocal(id, "Legalizada");
   };
 
   const abrirRechazar = (id: number) => {
@@ -42,17 +45,22 @@ export default function MatriculaTable({ matriculas, paraleloMap, onRevisar, onA
     }
   };
 
-  const handleLiberarCupo = async (id: number) => {
-    const motivo = window.prompt("Ingrese motivo de anulación/liberación de cupo:");
-    if (motivo) {
-      try {
-        await anularMatricula(id, motivo);
-        showSuccess("Cupo liberado correctamente.");
-        onAccionRealizada();
-      } catch (error) {
-        showError(getErrorMessage(error));
-        onAccionLocal(id, "Anulada");
-      }
+  const abrirAnular = (id: number) => {
+    setAnularMatriculaId(id);
+    setMotivoAnulacion("");
+  };
+
+  const confirmarAnular = async () => {
+    if (!anularMatriculaId || !motivoAnulacion.trim()) return;
+    try {
+      await anularMatricula(anularMatriculaId, motivoAnulacion);
+      showSuccess("Cupo liberado correctamente.");
+      setAnularMatriculaId(null);
+      onAccionRealizada();
+    } catch (error) {
+      showError(getErrorMessage(error));
+      onAccionLocal(anularMatriculaId, "Anulada");
+      setAnularMatriculaId(null);
     }
   };
 
@@ -73,6 +81,27 @@ export default function MatriculaTable({ matriculas, paraleloMap, onRevisar, onA
           onClose={() => setLegalizarMatriculaId(null)}
           onLegalizado={cerrarLegalizar}
         />
+      )}
+
+      {anularMatriculaId !== null && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 9999 }}>
+          <div style={{ background: "white", borderRadius: "12px", padding: "24px", width: "420px", maxWidth: "90vw" }}>
+            <h3 style={{ margin: "0 0 8px", color: "var(--primary)" }}>Anular Matrícula</h3>
+            <p style={{ fontSize: "13px", color: "var(--on-surface-variant)", marginBottom: "16px" }}>
+              Ingrese el motivo por el cual se anula esta matrícula y se libera el cupo.
+            </p>
+            <textarea
+              value={motivoAnulacion}
+              onChange={(e) => setMotivoAnulacion(e.target.value)}
+              style={{ width: "100%", minHeight: "100px", padding: "10px", borderRadius: "8px", border: "1px solid var(--outline-variant)", fontSize: "14px", resize: "vertical" }}
+              placeholder="Ej: Retiro voluntario, incumplimiento de requisitos..."
+            />
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "16px" }}>
+              <button onClick={() => setAnularMatriculaId(null)} style={{ padding: "10px 20px", borderRadius: "8px", border: "1px solid var(--outline)", background: "white", cursor: "pointer", fontWeight: 600 }}>Cancelar</button>
+              <button onClick={confirmarAnular} disabled={!motivoAnulacion.trim()} style={{ padding: "10px 20px", borderRadius: "8px", border: "none", background: motivoAnulacion.trim() ? "#ea580c" : "var(--outline)", color: "white", fontWeight: 600, cursor: motivoAnulacion.trim() ? "pointer" : "not-allowed" }}>Anular Matrícula</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {rechazarMatriculaId !== null && (
@@ -102,24 +131,20 @@ export default function MatriculaTable({ matriculas, paraleloMap, onRevisar, onA
             <tr style={{ background: "var(--primary)", color: "white" }}>
               <th style={{ padding: "12px", textAlign: "left" }}>Aspirante</th>
               <th style={{ padding: "12px", textAlign: "left" }}>Curso / Paralelo</th>
-              <th style={{ padding: "12px", textAlign: "left" }}>N° Matrícula</th>
               <th style={{ padding: "12px", textAlign: "left" }}>Estado</th>
               <th style={{ padding: "12px", textAlign: "center" }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {matriculas.length === 0 ? (
-              <tr><td colSpan={5} style={{ padding: "20px", textAlign: "center" }}>No hay matrículas que coincidan con el filtro.</td></tr>
+              {matriculas.length === 0 ? (
+                <tr><td colSpan={4} style={{ padding: "20px", textAlign: "center" }}>No hay matrículas que coincidan con el filtro.</td></tr>
             ) : (
               matriculas.map((m) => (
                 <tr key={m.id} style={{ borderBottom: "1px solid var(--outline-variant)" }}>
                   <td style={{ padding: "12px" }}>
-                    <strong>{m.estudiante_nombre || `#${m.id}`}</strong>
+                    <strong>{m.estudiante_nombre || [m.asp_nombres, m.asp_apellidos].filter(Boolean).join(' ') || `#${m.id}`}</strong>
                   </td>
                   <td style={{ padding: "12px" }}>{gradoNombre(m)}</td>
-                  <td style={{ padding: "12px", fontFamily: "monospace", fontWeight: "700" }}>
-                    {m.codigo_unico || "PENDIENTE"}
-                  </td>
                   <td style={{ padding: "12px" }}>
                     <span style={{
                       background: m.estado === "Legalizada" ? "#dcfce7" : m.estado === "Anulada" || m.estado === "Rechazada" ? "#fee2e2" : "#fef9c3",
@@ -140,7 +165,7 @@ export default function MatriculaTable({ matriculas, paraleloMap, onRevisar, onA
                     )}
 
                     {m.estado === "Legalizada" && (
-                      <button title="Liberar Cupo / Anular" style={{ ...btnAction, color: "#ea580c" }} onClick={() => handleLiberarCupo(m.id)}>🔓</button>
+                      <button title="Liberar Cupo / Anular" style={{ ...btnAction, color: "#ea580c" }} onClick={() => abrirAnular(m.id)}>🔓</button>
                     )}
                   </td>
                 </tr>
