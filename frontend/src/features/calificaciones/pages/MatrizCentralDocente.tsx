@@ -107,22 +107,24 @@ function TarjetaMetrica({
   colorValor?: string; badge?: { texto: string; color: string };
 }) {
   return (
-    <div className="group relative overflow-hidden bg-white rounded-2xl border border-[#e2e8f0] p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgba(0,109,67,0.15)] hover:-translate-y-1 transition-all duration-300 ease-out">
-      {/* Gradiente decorativo */}
-      <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-[#006d43]/5 to-transparent rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500" />
-      <div className="flex items-start justify-between mb-3 relative">
-        <span className="text-xs font-semibold tracking-widest uppercase text-[#64748b]">{titulo}</span>
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#006d43] to-[#005536] flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
-          <Icon className="w-5 h-5 text-white" />
+    <div className="group relative overflow-hidden rounded-2xl border border-[#c8d4e0] bg-white/80 backdrop-blur-sm p-5 shadow-[0_4px_24px_rgba(0,25,45,0.14),0_1px_4px_rgba(0,25,45,0.08)] hover:shadow-[0_12px_40px_rgba(0,25,45,0.20),0_2px_8px_rgba(0,109,67,0.12)] hover:-translate-y-1 transition-all duration-300 ease-out">
+      {/* Difuminado decorativo de esquina */}
+      <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-[#006d43]/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+      {/* Borde inferior de acento */}
+      <div className="absolute bottom-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-[#006d43]/20 to-transparent" />
+      <div className="flex items-start justify-between mb-4 relative">
+        <span className="text-[11px] font-semibold tracking-widest uppercase text-[#8da0b3]">{titulo}</span>
+        <div className="w-9 h-9 rounded-xl bg-[#f0f5f2] flex items-center justify-center group-hover:bg-[#006d43]/12 transition-colors duration-300">
+          <Icon className="w-4 h-4 text-[#006d43]" />
         </div>
       </div>
-      <div className="text-4xl font-extrabold font-['JetBrains_Mono',monospace] tracking-tight tabular-nums" style={{ color: colorValor || '#00192d' }}>
+      <div className="text-3xl font-bold font-['JetBrains_Mono',monospace] tracking-tight tabular-nums" style={{ color: colorValor || '#00192d' }}>
         {valor}
       </div>
-      <div className="flex items-center gap-2 mt-2 relative">
-        <span className="text-xs text-[#64748b]">{subtexto}</span>
+      <div className="flex items-center gap-2 mt-2.5 relative">
+        <span className="text-xs text-[#8da0b3]">{subtexto}</span>
         {badge && (
-          <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-sm ${badge.color}`}>
+          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${badge.color}`}>
             {badge.texto}
           </span>
         )}
@@ -163,20 +165,20 @@ function GlassmorphicCard({
 }) {
   return (
     <div
-      className={`group relative overflow-hidden rounded-[20px] border border-white/20
-        bg-white/[0.08] backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]
-        hover:translate-y-[-6px] hover:scale-[1.02] hover:shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_25px_rgba(0,109,67,0.4)]
-        hover:border-white/30 transition-all duration-300 ease-out ${className}`}
-      style={{ backdropFilter: 'blur(20px)' }}
+      className={`group relative overflow-hidden rounded-2xl border border-white/25
+        bg-white/[0.12] backdrop-blur-2xl shadow-[0_4px_24px_rgba(0,0,0,0.28),0_1px_0_rgba(255,255,255,0.08)_inset]
+        hover:translate-y-[-4px] hover:shadow-[0_16px_40px_rgba(0,0,0,0.35),0_0_20px_rgba(0,109,67,0.2)]
+        hover:border-white/35 transition-all duration-300 ease-out ${className}`}
+      style={{ backdropFilter: 'blur(24px) saturate(1.4)' }}
     >
-      {/* Luz de acento esmeralda periférica */}
-      <div className="absolute -inset-1 bg-gradient-to-br from-[#006d43]/30 to-transparent opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500" />
-      {/* Barra lateral verde cuando está activa */}
+      {/* Barra lateral sutil cuando activa */}
       {isActive && (
-        <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-[#006d43] via-[#10b981] to-[#006d43] shadow-[0_0_10px_rgba(0,109,67,0.8)]" />
+        <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-[#006d43]/80 via-[#10b981]/60 to-[#006d43]/80 rounded-r-full" />
       )}
       {/* Brillo especular superior */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+      {/* Textura sutil */}
+      <div className="absolute inset-0 opacity-[0.02] bg-white pointer-events-none" />
       <div className="relative z-10 overflow-hidden break-words">{children}</div>
     </div>
   );
@@ -547,157 +549,157 @@ export function CalificacionesDocentePage() {
 
   /* ── Render ── */
   return (
-    <div className="p-6 min-h-screen font-['Inter',sans-serif] bg-[#f8fafc]">
+    <div className="p-6 min-h-screen font-['Inter',sans-serif] bg-[#f4f6f9]">
       {/* Toast */}
       <ToastContainer toasts={toasts} onDismiss={(id) => setToasts((p) => p.filter((t) => t.id !== id))} />
 
-      {/* Cabecera Moderna */}
-      <div className="mb-6">
-        <div className="group relative overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white shadow-[0_2px_12px_rgba(0,0,0,0.05)] p-6 hover:shadow-[0_4px_20px_rgba(0,109,67,0.1)] transition-shadow duration-300">
-          <div className="absolute -inset-1 bg-gradient-to-br from-[#006d43]/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500" />
-          <div className="relative z-10 flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#006d43] to-[#10b981] flex items-center justify-center shadow-lg shadow-[#006d43]/30">
-              <FileSpreadsheet className="w-7 h-7 text-white" />
+      {/* Cabecera */}
+      <div className="mb-5">
+        <div className="relative overflow-hidden rounded-2xl border border-[#e4e9f0] bg-white/80 backdrop-blur-sm shadow-[0_1px_8px_rgba(0,0,0,0.06)] p-5">
+          {/* Bande de color lateral */}
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#006d43] to-[#10b981] rounded-r-full" />
+          <div className="pl-4 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-[#006d43]/10 flex items-center justify-center">
+              <FileSpreadsheet className="w-5 h-5 text-[#006d43]" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-[#00192d] tracking-tight">Matriz Central de Promedios</h1>
-              <p className="text-sm text-[#64748b]">Centro de mando académico — Planta Docente</p>
+              <h1 className="text-xl font-bold text-[#00192d] tracking-tight">Registro de Notas</h1>
+              <p className="text-xs text-[#8da0b3] mt-0.5">Matriz de promedios — Vista Docente</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Barra de Filtros Moderna */}
-      <div className="bg-white rounded-2xl border border-[#e2e8f0] p-4 mb-6 shadow-[0_2px_12px_rgba(0,0,0,0.05)] hover:shadow-[0_4px_20px_rgba(0,109,67,0.1)] transition-shadow duration-300">
-        <div className="flex flex-wrap items-center gap-3">
+      {/* Barra de Filtros */}
+      <div className="bg-white/75 backdrop-blur-sm rounded-2xl border border-[#e4e9f0] p-4 mb-5 shadow-[0_1px_10px_rgba(0,0,0,0.05)]">
+        <div className="flex flex-wrap items-center gap-2.5">
           {/* Filtros */}
           <select
             value={cursoId} onChange={(e) => setCursoId(Number(e.target.value))}
-            className="px-4 py-2.5 rounded-xl border border-[#e2e8f0] text-sm text-[#00192d] bg-[#f8fafc] focus:outline-none focus:border-[#006d43] focus:ring-2 focus:ring-[#006d43]/20 transition-all"
+            className="px-3.5 py-2 rounded-lg border border-[#dde3ec] text-sm text-[#2d3f50] bg-[#f7f9fc] focus:outline-none focus:border-[#006d43]/60 focus:ring-2 focus:ring-[#006d43]/12 transition-all"
           >
             {cursos.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
           </select>
           <select
             value={asignaturaId} onChange={(e) => setAsignaturaId(Number(e.target.value))}
-            className="px-4 py-2.5 rounded-xl border border-[#e2e8f0] text-sm text-[#00192d] bg-[#f8fafc] focus:outline-none focus:border-[#006d43] focus:ring-2 focus:ring-[#006d43]/20 transition-all"
+            className="px-3.5 py-2 rounded-lg border border-[#dde3ec] text-sm text-[#2d3f50] bg-[#f7f9fc] focus:outline-none focus:border-[#006d43]/60 focus:ring-2 focus:ring-[#006d43]/12 transition-all"
           >
             {asignaturas.map((a) => <option key={a.id} value={a.id}>{a.nombre}</option>)}
           </select>
 
-          <div className="w-px h-10 bg-gradient-to-b from-[#e2e8f0] to-transparent" />
+          <div className="w-px h-8 bg-[#dde3ec] mx-1" />
 
           {/* Búsqueda */}
           <div className="relative flex-1 min-w-[200px] group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94a3b8] group-focus-within:text-[#006d43] transition-colors" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#a0b0c0] group-focus-within:text-[#006d43] transition-colors" />
             <input
               type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar por nombre o cédula..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#e2e8f0] text-sm text-[#00192d] placeholder-[#94a3b8] focus:outline-none focus:border-[#006d43] focus:ring-2 focus:ring-[#006d43]/20 bg-[#f8fafc] transition-all"
+              placeholder="Buscar estudiante..."
+              className="w-full pl-9 pr-4 py-2 rounded-lg border border-[#dde3ec] text-sm text-[#2d3f50] placeholder-[#a0b0c0] focus:outline-none focus:border-[#006d43]/60 focus:ring-2 focus:ring-[#006d43]/12 bg-[#f7f9fc] transition-all"
             />
           </div>
 
           {/* Filtro por estado */}
           <select
             value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value as FiltroEstado)}
-            className="px-4 py-2.5 rounded-xl border border-[#e2e8f0] text-sm text-[#00192d] bg-[#f8fafc] focus:outline-none focus:border-[#006d43] focus:ring-2 focus:ring-[#006d43]/20 transition-all"
+            className="px-3.5 py-2 rounded-lg border border-[#dde3ec] text-sm text-[#2d3f50] bg-[#f7f9fc] focus:outline-none focus:border-[#006d43]/60 focus:ring-2 focus:ring-[#006d43]/12 transition-all"
           >
-            <option value="todos">Todos los Estudiantes</option>
+            <option value="todos">Todos</option>
             <option value="aprobados">Aprobados (≥ 7.00)</option>
             <option value="en_riesgo">En Riesgo (&lt; 7.00)</option>
             <option value="con_adaptacion">Con Adaptación DECE</option>
           </select>
 
-          {/* Acciones rápidas */}
-          <button
-            onClick={() => setActaAbierta(true)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#006d43] to-[#005536] text-white text-sm font-bold hover:shadow-lg hover:shadow-[#006d43]/30 hover:-translate-y-0.5 transition-all duration-200"
-          >
-            <Download className="w-4 h-4" /> Acta Oficial
-          </button>
-          <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-[#e2e8f0] text-sm font-semibold text-[#00192d] hover:bg-[#f1f5f9] hover:border-[#006d43]/30 transition-all duration-200">
-            <Settings className="w-4 h-4" /> Adaptación
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => setActaAbierta(true)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#006d43] text-white text-sm font-semibold hover:bg-[#005536] hover:shadow-md hover:shadow-[#006d43]/25 transition-all duration-200"
+            >
+              <Download className="w-3.5 h-3.5" /> Acta Oficial
+            </button>
+            <button className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#dde3ec] text-sm font-medium text-[#2d3f50] bg-white hover:bg-[#f4f6f9] hover:border-[#006d43]/40 transition-all duration-200">
+              <Settings className="w-3.5 h-3.5" /> Adaptación
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Tabla Moderna */}
-      <div className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_rgba(0,109,67,0.08)] transition-shadow duration-300">
+      {/* Tabla */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-[#e4e9f0] overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.06)]">
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="relative">
-              <div className="w-12 h-12 border-3 border-[#e2e8f0] border-t-[#006d43] rounded-full animate-spin" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-3 h-3 bg-[#006d43] rounded-full animate-ping" />
-              </div>
-            </div>
+          <div className="flex flex-col items-center justify-center py-24 gap-4">
+            <div className="w-10 h-10 border-2 border-[#dde3ec] border-t-[#006d43] rounded-full animate-spin" />
+            <p className="text-sm text-[#8da0b3]">Cargando estudiantes...</p>
           </div>
         ) : estudiantesFiltrados.length === 0 ? (
-          <div className="flex flex-col items-center py-20 text-[#94a3b8]">
-            <div className="w-16 h-16 rounded-2xl bg-[#f1f5f9] flex items-center justify-center mb-4">
-              <Users className="w-8 h-8" />
+          <div className="flex flex-col items-center py-20 text-[#a0b0c0]">
+            <div className="w-14 h-14 rounded-2xl bg-[#f4f6f9] flex items-center justify-center mb-3">
+              <Users className="w-6 h-6 text-[#a0b0c0]" />
             </div>
-            <p className="text-sm font-medium">No se encontraron estudiantes</p>
-            <p className="text-xs mt-1 opacity-70">Intenta con otros filtros</p>
+            <p className="text-sm font-medium text-[#5a7080]">No se encontraron estudiantes</p>
+            <p className="text-xs mt-1 text-[#a0b0c0]">Verifica los filtros seleccionados</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gradient-to-r from-[#0a192f] to-[#0f172a] text-white">
-                  <th className="p-4 text-left font-semibold text-xs tracking-wider">Estudiante</th>
-                  <th className="p-4 text-center font-semibold text-xs tracking-wider">T1</th>
-                  <th className="p-4 text-center font-semibold text-xs tracking-wider">T2</th>
-                  <th className="p-4 text-center font-semibold text-xs tracking-wider">T3</th>
-                  <th className="p-4 text-center font-semibold text-xs tracking-wider">Final</th>
-                  <th className="p-4 text-center font-semibold text-xs tracking-wider">Suple.</th>
-                  <th className="p-4 text-center font-semibold text-xs tracking-wider text-[#10b981]">Prom.</th>
-                  <th className="p-4 text-center font-semibold text-xs tracking-wider">Estado</th>
-                  <th className="p-4 text-center font-semibold text-xs tracking-wider">Acciones</th>
+                <tr className="bg-[#f4f7fa] border-b border-[#e4e9f0]">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold tracking-wider text-[#5a7080] uppercase">Estudiante</th>
+                  <th className="px-4 py-3 text-center text-[11px] font-semibold tracking-wider text-[#5a7080] uppercase">T1</th>
+                  <th className="px-4 py-3 text-center text-[11px] font-semibold tracking-wider text-[#5a7080] uppercase">T2</th>
+                  <th className="px-4 py-3 text-center text-[11px] font-semibold tracking-wider text-[#5a7080] uppercase">T3</th>
+                  <th className="px-4 py-3 text-center text-[11px] font-semibold tracking-wider text-[#5a7080] uppercase">Final</th>
+                  <th className="px-4 py-3 text-center text-[11px] font-semibold tracking-wider text-[#5a7080] uppercase">Suple.</th>
+                  <th className="px-4 py-3 text-center text-[11px] font-semibold tracking-wider text-[#006d43] uppercase">Promedio</th>
+                  <th className="px-4 py-3 text-center text-[11px] font-semibold tracking-wider text-[#5a7080] uppercase">Estado</th>
+                  <th className="px-4 py-3 text-center text-[11px] font-semibold tracking-wider text-[#5a7080] uppercase">Acciones</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-[#edf0f5]">
                 {estudiantesFiltrados.map((e, i) => (
                   <tr
                     key={e.id}
-                    className={`border-b border-[#f1f5f9] hover:bg-[#f8fafc] transition-colors ${i % 2 === 0 ? "bg-white" : "bg-[#fafbfc]"}`}
+                    className={`hover:bg-[#f7f9fc] transition-colors duration-150 ${i % 2 === 0 ? "bg-white" : "bg-[#fafbfd]"}`}
                   >
-                    <td className="p-3">
+                    <td className="px-4 py-3">
                       <div className="flex flex-col">
-                        <span className="font-semibold text-[#00192d]">{e.apellidos} {e.nombres}</span>
-                        <span className="font-['JetBrains_Mono',monospace] text-[11px] text-[#94a3b8]">{e.cedula}</span>
+                        <span className="font-semibold text-[#1e2d3d] text-sm">{e.apellidos} {e.nombres}</span>
+                        <span className="font-['JetBrains_Mono',monospace] text-[10px] text-[#a0b0c0] mt-0.5">{e.cedula || '—'}</span>
                       </div>
                     </td>
-                    <td className="p-4 text-center font-['JetBrains_Mono',monospace] text-sm">{formatNota(e.t1)}</td>
-                    <td className="p-4 text-center font-['JetBrains_Mono',monospace] text-sm">{formatNota(e.t2)}</td>
-                    <td className="p-4 text-center font-['JetBrains_Mono',monospace] text-sm">{formatNota(e.t3)}</td>
-                    <td className="p-4 text-center font-['JetBrains_Mono',monospace] text-sm font-semibold">{formatNota(e.final)}</td>
-                    <td className="p-3 text-center font-['JetBrains_Mono',monospace] text-sm">
+                    <td className="px-4 py-3 text-center font-['JetBrains_Mono',monospace] text-sm text-[#3a5068]">{formatNota(e.t1)}</td>
+                    <td className="px-4 py-3 text-center font-['JetBrains_Mono',monospace] text-sm text-[#3a5068]">{formatNota(e.t2)}</td>
+                    <td className="px-4 py-3 text-center font-['JetBrains_Mono',monospace] text-sm text-[#3a5068]">{formatNota(e.t3)}</td>
+                    <td className="px-4 py-3 text-center font-['JetBrains_Mono',monospace] text-sm font-semibold text-[#1e2d3d]">{formatNota(e.final)}</td>
+                    <td className="px-4 py-3 text-center font-['JetBrains_Mono',monospace] text-sm">
                       {e.supletorio != null ? (
-                        <span className="text-[#92400e] font-semibold">{formatNota(e.supletorio)}</span>
+                        <span className="text-[#b45309] font-semibold">{formatNota(e.supletorio)}</span>
                       ) : (
-                        <span className="text-[#e2e8f0]">—</span>
+                        <span className="text-[#d0d8e4]">—</span>
                       )}
                     </td>
-                    <td className="p-3 text-center font-['JetBrains_Mono',monospace] text-sm font-bold text-[#050061]">
-                      {formatNota(e.promedio)}
+                    <td className="px-4 py-3 text-center">
+                      <span className="font-['JetBrains_Mono',monospace] text-sm font-bold text-[#006d43] bg-[#006d43]/8 px-2.5 py-1 rounded-lg">
+                        {formatNota(e.promedio)}
+                      </span>
                     </td>
-                    <td className="p-3 text-center">
+                    <td className="px-4 py-3 text-center">
                       <BadgeEstado estado={e.estado} />
                     </td>
-                    <td className="p-4 text-center">
-                      <div className="flex items-center justify-center gap-1.5">
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center gap-1">
                         <button
                           onClick={() => setEstudianteAdaptacion(e)}
-                          className="p-2 rounded-xl text-[#94a3b8] hover:text-[#006d43] hover:bg-[#d1fae5] hover:shadow-md transition-all duration-200"
+                          className="p-1.5 rounded-lg text-[#a0b0c0] hover:text-[#006d43] hover:bg-[#006d43]/10 transition-all duration-150"
                           title="Adaptación Curricular"
                         >
-                          <Settings className="w-4 h-4" />
+                          <Settings className="w-3.5 h-3.5" />
                         </button>
-                        <button className="p-2 rounded-xl text-[#94a3b8] hover:text-[#050061] hover:bg-[#e0e7ff] hover:shadow-md transition-all duration-200" title="Ver evidencias">
-                          <Eye className="w-4 h-4" />
+                        <button className="p-1.5 rounded-lg text-[#a0b0c0] hover:text-[#050061] hover:bg-[#050061]/10 transition-all duration-150" title="Ver evidencias">
+                          <Eye className="w-3.5 h-3.5" />
                         </button>
-                        <button className="p-2 rounded-xl text-[#94a3b8] hover:text-[#00192d] hover:bg-[#f1f5f9] hover:shadow-md transition-all duration-200" title="Más opciones">
-                          <MoreVertical className="w-4 h-4" />
+                        <button className="p-1.5 rounded-lg text-[#a0b0c0] hover:text-[#1e2d3d] hover:bg-[#f0f3f7] transition-all duration-150" title="Más opciones">
+                          <MoreVertical className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>
@@ -709,15 +711,15 @@ export function CalificacionesDocentePage() {
         )}
       </div>
 
-      {/* Métricas Glassmorphic */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-8">
+      {/* ── Métricas: siempre visibles independientemente del estado de la tabla ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
         <TarjetaMetrica
           icon={GraduationCap}
-          titulo="Promedio General de Aula"
+          titulo="Promedio General"
           valor={formatNota(metricas.promedioGeneral)}
           subtexto="Consolidado del paralelo"
-          colorValor="#050061"
-          badge={{ texto: `${metricas.tasaPromocion.toFixed(0)}% aprobación`, color: "bg-[#d1fae5] text-[#006d43]" }}
+          colorValor="#00192d"
+          badge={{ texto: `${metricas.tasaPromocion.toFixed(0)}% aprobación`, color: "bg-[#e8f5ee] text-[#006d43]" }}
         />
         <TarjetaMetrica
           icon={TrendingUp}
@@ -725,15 +727,15 @@ export function CalificacionesDocentePage() {
           valor={`${metricas.tasaPromocion.toFixed(0)}%`}
           subtexto="Estudiantes aprobados"
           colorValor={metricas.tasaPromocion >= 70 ? "#006d43" : "#b45309"}
-          badge={metricas.tasaPromocion >= 70 ? { texto: "✓ SALUDABLE", color: "bg-[#d1fae5] text-[#006d43]" } : { texto: "⚠ ALERTA", color: "bg-[#fef3c7] text-[#92400e]" }}
+          badge={metricas.tasaPromocion >= 70 ? { texto: "✓ SALUDABLE", color: "bg-[#e8f5ee] text-[#006d43]" } : { texto: "⚠ ALERTA", color: "bg-[#fef9ec] text-[#92400e]" }}
         />
         <TarjetaMetrica
           icon={Users}
           titulo="Casos en Riesgo"
           valor={String(metricas.casosRiesgo)}
           subtexto="Requieren atención"
-          colorValor={metricas.casosRiesgo > 0 ? "#dc2626" : "#006d43"}
-          badge={metricas.casosRiesgo > 0 ? { texto: "⚠ REQUIERE ATENCIÓN", color: "bg-[#fee2e2] text-[#991b1b]" } : { texto: "✓ SIN NOVEDAD", color: "bg-[#d1fae5] text-[#006d43]" }}
+          colorValor={metricas.casosRiesgo > 0 ? "#b91c1c" : "#006d43"}
+          badge={metricas.casosRiesgo > 0 ? { texto: "⚠ ATENCIÓN", color: "bg-[#fee2e2] text-[#991b1b]" } : { texto: "✓ SIN NOVEDAD", color: "bg-[#e8f5ee] text-[#006d43]" }}
         />
       </div>
 
