@@ -197,6 +197,44 @@ export default function FormularioLegalizar({ matriculaId, onClose, onLegalizado
     color: "#dc2626", fontSize: "12px", marginTop: "4px", display: fieldErrors[field] ? "block" : "none",
   });
 
+  const guardarLocal = (codigo: string) => {
+    try {
+      const key = "siged_matriculas_v2";
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const lista = JSON.parse(raw);
+        const idx = lista.findIndex((m: any) => m.id === matriculaId);
+        if (idx !== -1) {
+          lista[idx].estado = "Legalizada";
+          lista[idx].codigo_unico = codigo;
+          lista[idx].asp_identificacion = form.identificacion;
+          lista[idx].asp_celular = form.celular;
+          lista[idx].asp_correo_personal = form.correo_personal;
+          lista[idx].asp_nombres = form.nombres;
+          lista[idx].asp_apellidos = form.apellidos;
+          lista[idx].asp_correo_institucional = form.correo_institucional;
+          lista[idx].asp_nombre_usuario = form.nombre_usuario;
+          lista[idx].asp_contrasena = form.contrasena;
+          localStorage.setItem(key, JSON.stringify(lista));
+        }
+      }
+    } catch {}
+
+    try {
+      const localesKey = "siged_usuarios_locales";
+      const existentes = JSON.parse(localStorage.getItem(localesKey) || "[]");
+      existentes.push({
+        correo_institucional: form.correo_institucional,
+        nombre_usuario: form.nombre_usuario,
+        contrasena: form.contrasena,
+        nombres: form.nombres,
+        apellidos: form.apellidos,
+        id: matriculaId,
+      });
+      localStorage.setItem(localesKey, JSON.stringify(existentes));
+    } catch {}
+  };
+
   const handleSubmit = async () => {
     setError("");
     setFieldErrors({});
@@ -229,6 +267,9 @@ export default function FormularioLegalizar({ matriculaId, onClose, onLegalizado
       };
 
       const res = await legalizarMatricula(matriculaId, payload);
+      // Guardar estado local también cuando la API funciona
+      const codigo = res?.cuenta_creada?.codigo_unico || `MAT-LOCAL-${String(matriculaId).slice(-6)}`;
+      guardarLocal(codigo);
       if (res?.cuenta_creada) {
         setCredenciales(res.cuenta_creada);
       } else {
@@ -236,27 +277,8 @@ export default function FormularioLegalizar({ matriculaId, onClose, onLegalizado
         onLegalizado();
       }
     } catch (err: any) {
-      // Modo local: simular legalización exitosa
       const codigo = `MAT-LOCAL-${String(matriculaId).slice(-6)}`;
-      try {
-        const key = "siged_matriculas_v2";
-        const raw = localStorage.getItem(key);
-        if (raw) {
-          const lista = JSON.parse(raw);
-          const idx = lista.findIndex((m: any) => m.id === matriculaId);
-          if (idx !== -1) {
-            lista[idx].estado = "Legalizada";
-            lista[idx].codigo_unico = codigo;
-            lista[idx].asp_identificacion = form.identificacion;
-            lista[idx].asp_celular = form.celular;
-            lista[idx].asp_correo_personal = form.correo_personal;
-            lista[idx].asp_nombres = form.nombres;
-            lista[idx].asp_apellidos = form.apellidos;
-            localStorage.setItem(key, JSON.stringify(lista));
-          }
-        }
-      } catch {}
-
+      guardarLocal(codigo);
       setCredenciales({
         codigo_unico: codigo,
         nombre_usuario: form.nombre_usuario,

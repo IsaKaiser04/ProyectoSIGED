@@ -68,6 +68,30 @@ export function useMatriculas() {
         }
       }
       if (modificado) guardarLocales(actuales);
+
+      // Backfill credenciales locales para matrículas legalizadas sin ellas
+      try {
+        const localesKey = "siged_usuarios_locales";
+        const existentes: any[] = JSON.parse(localStorage.getItem(localesKey) || "[]");
+        const correosExistentes = new Set(existentes.map((u: any) => u.correo_institucional));
+        let nuevos = false;
+        for (const m of actuales) {
+          if (m.estado !== "Legalizada") continue;
+          const institucional = m.asp_correo_institucional || `${(m.asp_identificacion || m.asp_nombres || "estudiante").toLowerCase()}@institucion.edu.ec`;
+          if (correosExistentes.has(institucional)) continue;
+          existentes.push({
+            correo_institucional: institucional,
+            nombre_usuario: m.asp_nombre_usuario || m.asp_identificacion || (m.asp_nombres || "estudiante").toLowerCase(),
+            contrasena: m.asp_contrasena || "123456",
+            nombres: m.asp_nombres || "Estudiante",
+            apellidos: m.asp_apellidos || "",
+            id: m.id,
+          });
+          correosExistentes.add(institucional);
+          nuevos = true;
+        }
+        if (nuevos) localStorage.setItem(localesKey, JSON.stringify(existentes));
+      } catch {}
     });
   }, [cargarDatos]);
 

@@ -86,117 +86,132 @@ class MatriculaService:
     @staticmethod
     @transaction.atomic
     def legalizar(pk, data, user_id):
+        from apps.actoresAcademicos.models import Estudiante, Cuenta, Secretaria, Autoridad
+        from apps.actoresAcademicos.models.enums import RolTipo
+        from django.contrib.auth.hashers import make_password
+        from apps.ubicacion.models import Direccion, Parroquia
+
+        # Intentar obtener la matrícula (puede no existir si es local)
+        matricula = None
         try:
             matricula = Matricula.objects.select_for_update().get(pk=pk)
         except Matricula.DoesNotExist:
-            return None, {"error": "Matrícula no encontrada"}
+            pass
 
-        if matricula.estado == MatriculaEstado.LEGALIZADA:
-            return None, {"error": "La matrícula ya está legalizada"}
+        if matricula:
+            if matricula.estado == MatriculaEstado.LEGALIZADA:
+                return None, {"error": "La matrícula ya está legalizada"}
 
-        # 1. Validar Requisitos
-        pendientes = matricula.requisitos.exclude(estado='Validado').count()
-        if pendientes > 0:
-            return None, {"error": f"No se puede legalizar. Hay {pendientes} requisito(s) pendiente(s) o rechazado(s)."}
+            pendientes = matricula.requisitos.exclude(estado='Validado').count()
+            if pendientes > 0:
+                return None, {"error": f"No se puede legalizar. Hay {pendientes} requisito(s) pendiente(s) o rechazado(s)."}
 
-        # 2. Validar Cupos
-        if matricula.paralelo_id and not matricula.exceder_cupo_autorizado:
-            try:
-                from apps.planificacion.models import Paralelo
-                paralelo = Paralelo.objects.select_for_update().get(pk=matricula.paralelo_id)
-                if paralelo.cuposOcupados >= paralelo.cuposMaximo:
-                    return None, {"error": "El paralelo no tiene cupos disponibles."}
-                paralelo.cuposOcupados += 1
-                paralelo.save()
-            except Paralelo.DoesNotExist:
-                pass
+            if matricula.paralelo_id and not matricula.exceder_cupo_autorizado:
+                try:
+                    from apps.planificacion.models import Paralelo
+                    paralelo = Paralelo.objects.select_for_update().get(pk=matricula.paralelo_id)
+                    if paralelo.cuposOcupados >= paralelo.cuposMaximo:
+                        return None, {"error": "El paralelo no tiene cupos disponibles."}
+                    paralelo.cuposOcupados += 1
+                    paralelo.save()
+                except Paralelo.DoesNotExist:
+                    pass
 
-        # 3. Generar Codigo y Legalizar
-        if not matricula.codigo_unico:
-            anio = timezone.now().year
-            matricula.codigo_unico = f"MAT-{anio}-{uuid.uuid4().hex[:6].upper()}"
+            if not matricula.codigo_unico:
+                anio = timezone.now().year
+                matricula.codigo_unico = f"MAT-{anio}-{uuid.uuid4().hex[:6].upper()}"
 
-        matricula.estado = MatriculaEstado.LEGALIZADA
-        matricula.save()
+            matricula.estado = MatriculaEstado.LEGALIZADA
+            matricula.save()
 
-        # 4. Procesar datos del estudiante recibidos del formulario
+        # Procesar datos del estudiante recibidos del formulario
         credenciales = None
         estudiante_data = data.get('estudiante', {})
-        if estudiante_data:
-            from apps.actoresAcademicos.models import Estudiante, Cuenta
-            from apps.actoresAcademicos.models.enums import RolTipo
-            from apps.actoresAcademicos.serializers.usuario_serializer import UsuarioSerializer
-            from apps.institucion.models import Institucion
-            from django.contrib.auth.hashers import make_password
+        if not estudiante_data:
+            if matricula:
+                resultado = MatriculaDetailSerializer(
+                    Matricula.objects.select_related('matricula_periodo').get(pk=pk)
+                ).data
+                return resultado, None
+            return None, {"error": "No se proporcionaron datos del estudiante"}
 
-            institucion_id = estudiante_data.get('institucion_id')
+        institucion_id = estudiante_data.get('institucion_id')
+        if not institucion_id:
+            sec = Secretaria.objects.filter(cuenta_id=user_id).first()
+            if sec:
+                institucion_id = sec.institucion_id
             if not institucion_id:
-                from apps.actoresAcademicos.models import Secretaria
-                sec = Secretaria.objects.filter(cuenta_id=user_id).first()
-                if sec:
-                    institucion_id = sec.institucion_id
+                aut = Autoridad.objects.filter(cuenta_id=user_id).first()
+                if aut:
+                    institucion_id = aut.institucion_id
 
-            direccion_data = estudiante_data.pop('direccion_domicilio', None)
-            cuenta_data = estudiante_data.pop('cuenta', None)
-            identificacion = estudiante_data.get('identificacion')
+        direccion_data = estudiante_data.pop('direccion_domicilio', None)
+        cuenta_data = estudiante_data.pop('cuenta', None)
+        identificacion = estudiante_data.get('identificacion')
 
-            existing = None
-            if identificacion:
-                existing = Estudiante.objects.filter(identificacion=identificacion).first()
+        existing = None
+        if identificacion:
+            existing = Estudiante.objects.filter(identificacion=identificacion).first()
 
-            if direccion_data:
-                from apps.ubicacion.models import Direccion, Parroquia
-                parroquia_val = direccion_data.pop('parroquia', None)
-                if isinstance(parroquia_val, int):
-                    direccion_data['parroquia'] = Parroquia.objects.get(id=parroquia_val)
-                direccion = Direccion.objects.create(**direccion_data)
-            else:
-                direccion = None
+        if direccion_data:
+            parroquia_val = direccion_data.pop('parroquia', None)
+            if isinstance(parroquia_val, int):
+                direccion_data['parroquia'] = Parroquia.objects.get(id=parroquia_val)
+            direccion = Direccion.objects.create(**direccion_data)
+        else:
+            direccion = None
 
-            if cuenta_data:
-                if Cuenta.objects.filter(nombre_usuario=cuenta_data['nombre_usuario']).exists():
-                    return None, {"error": "El nombre de usuario ya existe"}
-                if Cuenta.objects.filter(correo_institucional=cuenta_data['correo_institucional']).exists():
-                    return None, {"error": "El correo institucional ya existe"}
-                cuenta = Cuenta.objects.create(
-                    nombre_usuario=cuenta_data['nombre_usuario'],
-                    contrasena=make_password(cuenta_data['contrasena']),
-                    correo_institucional=cuenta_data['correo_institucional'],
-                    rol=RolTipo.ESTUDIANTE,
-                    es_activo=True
-                )
-                credenciales = {
-                    'usuario': cuenta_data['nombre_usuario'],
-                    'contrasena_temporal': cuenta_data['contrasena'],
-                    'correo_institucional': cuenta.correo_institucional,
-                    'estudiante_nombre': f"{estudiante_data.get('nombres', '')} {estudiante_data.get('apellidos', '')}".strip()
-                }
+        if cuenta_data:
+            if Cuenta.objects.filter(nombre_usuario=cuenta_data['nombre_usuario']).exists():
+                return None, {"error": "El nombre de usuario ya existe"}
+            if Cuenta.objects.filter(correo_institucional=cuenta_data['correo_institucional']).exists():
+                return None, {"error": "El correo institucional ya existe"}
+            cuenta = Cuenta.objects.create(
+                nombre_usuario=cuenta_data['nombre_usuario'],
+                contrasena=make_password(cuenta_data['contrasena']),
+                correo_institucional=cuenta_data['correo_institucional'],
+                rol=RolTipo.ESTUDIANTE,
+                es_activo=True
+            )
+            credenciales = {
+                'usuario': cuenta_data['nombre_usuario'],
+                'contrasena_temporal': cuenta_data['contrasena'],
+                'correo_institucional': cuenta.correo_institucional,
+                'estudiante_nombre': f"{estudiante_data.get('nombres', '')} {estudiante_data.get('apellidos', '')}".strip()
+            }
 
-            if existing:
-                for field, value in estudiante_data.items():
-                    setattr(existing, field, value)
-                if direccion:
-                    existing.direccion_domicilio = direccion
-                if credenciales:
-                    existing.cuenta = cuenta
-                existing.institucion_id = institucion_id
-                existing.save()
-                estudiante = existing
-            else:
-                estudiante = Estudiante.objects.create(
-                    direccion_domicilio=direccion,
-                    cuenta=cuenta if credenciales else None,
-                    institucion_id=institucion_id,
-                    **estudiante_data
-                )
+        if existing:
+            for field, value in estudiante_data.items():
+                setattr(existing, field, value)
+            if direccion:
+                existing.direccion_domicilio = direccion
+            if credenciales:
+                existing.cuenta = cuenta
+            existing.institucion_id = institucion_id
+            existing.save()
+            estudiante = existing
+        else:
+            estudiante = Estudiante.objects.create(
+                direccion_domicilio=direccion,
+                cuenta=cuenta if credenciales else None,
+                institucion_id=institucion_id,
+                **estudiante_data
+            )
 
+        if matricula:
             matricula.estudiante = estudiante
             matricula.institucion_id = institucion_id
             matricula.save()
 
-        resultado = MatriculaDetailSerializer(
-            Matricula.objects.select_related('matricula_periodo').get(pk=pk)
-        ).data
+        if matricula:
+            resultado = MatriculaDetailSerializer(
+                Matricula.objects.select_related('matricula_periodo').get(pk=pk)
+            ).data
+        else:
+            resultado = {
+                "mensaje": "Estudiante y cuenta creados exitosamente",
+                "estudiante_id": estudiante.id,
+            }
         if credenciales:
             resultado['cuenta_creada'] = credenciales
         return resultado, None
