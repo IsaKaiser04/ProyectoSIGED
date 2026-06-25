@@ -80,12 +80,17 @@ export const EstudiantesListado: React.FC = () => {
           const key = `${nombres} ${apellidos}|${m.paralelo_id || ""}`;
           if (vistos.has(key)) return;
           vistos.add(key);
+          let correo = m.asp_correo_personal || m.correo_personal || "";
+          if (correo && !correo.includes("@")) {
+            correo += "@gmail.com";
+            m.asp_correo_personal = correo;
+          }
           const p = paraleloMap.get(Number(m.paralelo_id));
           deMatriculas.push({
             id: -(m.id),
             nombres,
             apellidos,
-            correo_personal: m.asp_correo_personal || m.correo_personal || "",
+            correo_personal: correo,
             celular: m.asp_celular || m.celular || "",
             institucion: institucionId ?? null,
             grado: m.grado_nombre || p?.gradoOfertadoGradoNombre || p?.gradoOfertadoNombre || "",
@@ -99,9 +104,18 @@ export const EstudiantesListado: React.FC = () => {
           const raw = localStorage.getItem("siged_matriculas_v2");
           if (raw) {
             const locales = JSON.parse(raw);
+            let modificado = false;
             for (const m of locales) {
-              if (m.estado === "Legalizada") procesarMatricula(m);
+              if (m.estado === "Legalizada") {
+                const correo = m.asp_correo_personal || m.correo_personal || "";
+                if (correo && !correo.includes("@")) {
+                  m.asp_correo_personal = correo + "@gmail.com";
+                  modificado = true;
+                }
+                procesarMatricula(m);
+              }
             }
+            if (modificado) localStorage.setItem("siged_matriculas_v2", JSON.stringify(locales));
           }
         } catch {}
 
@@ -160,7 +174,7 @@ export const EstudiantesListado: React.FC = () => {
           {busqueda ? "No se encontraron estudiantes con ese criterio." : "No hay estudiantes registrados en esta instituci&oacute;n."}
         </div>
       ) : (
-        <div style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)", borderRadius: 8, overflow: "hidden" }}>
+        <div style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)", borderRadius: 8, overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>

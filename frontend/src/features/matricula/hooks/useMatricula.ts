@@ -58,6 +58,16 @@ export function useMatriculas() {
           }
         }
       }
+      // Corregir correos truncados (sin @) en localStorage
+      let modificado = false;
+      for (const m of actuales) {
+        const correo = m.asp_correo_personal || m.correo_personal || "";
+        if (correo && !correo.includes("@")) {
+          m.asp_correo_personal = correo + "@gmail.com";
+          modificado = true;
+        }
+      }
+      if (modificado) guardarLocales(actuales);
     });
   }, [cargarDatos]);
 

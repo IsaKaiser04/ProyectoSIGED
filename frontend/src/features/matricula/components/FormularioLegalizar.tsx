@@ -30,6 +30,26 @@ export default function FormularioLegalizar({ matriculaId, onClose, onLegalizado
 
   // Cargar matrícula existente para pre-fill
   useEffect(() => {
+    const cargarLocales = () => {
+      try {
+        const raw = localStorage.getItem("siged_matriculas_v2");
+        if (raw) {
+          const lista = JSON.parse(raw);
+          const mat = lista.find((m: any) => m.id === matriculaId);
+          if (mat) {
+            setForm(prev => ({
+              ...prev,
+              nombres: mat.asp_nombres || "",
+              apellidos: mat.asp_apellidos || "",
+              identificacion: mat.asp_identificacion || "",
+              celular: mat.asp_celular || "",
+              correo_personal: mat.asp_correo_personal || mat.correo_personal || "",
+            }));
+          }
+        }
+      } catch {}
+    };
+
     apiGet<any>(`/matricula/matriculas/${matriculaId}/`).then(mat => {
       if (mat?.estudiante_id) {
         apiGet<any>(`/actoresAcademicos/estudiantes/${mat.estudiante_id}/`).then(est => {
@@ -43,9 +63,11 @@ export default function FormularioLegalizar({ matriculaId, onClose, onLegalizado
             celular: est.celular || "",
             correo_personal: est.correo_personal || "",
           }));
-        }).catch(() => {});
+        }).catch(cargarLocales);
+      } else {
+        cargarLocales();
       }
-    }).catch(() => {});
+    }).catch(cargarLocales);
   }, [matriculaId]);
 
   // Ubicación cascading
