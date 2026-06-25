@@ -10,7 +10,12 @@ import { DistributivosDashboard } from "../features/distributivos/DistributivosD
 import DistributivoDocentePage from "../features/planificacion-curricular/DistributivoDocentePage";
 import PlanificacionCurricularPage from "../features/planificacion-curricular/PlanificacionCurricularPage";
 import CargaHorariaPage from "../features/planificacion-curricular/CargaHorariaPage";
+import HorariosParalelosPage from "../features/planificacion-curricular/HorariosParalelosPage";
 import { GobernanzaDashboard } from "../features/gobernanza/GobernanzaDashboard";
+import { MatriculaDashboard } from "../features/matricula/MatriculaDashboard";
+import { PeriodosMatriculaPage } from "../features/matricula/PeriodosMatriculaPage";
+import { RequisitosConfigPage } from "../features/matricula/RequisitosConfigPage";
+import { EstudiantesListado } from "../features/matricula/components/EstudiantesListado";
 import { useAuth } from "../features/autenticacion/context/AuthContext";
 import { apiGet } from "../services/apiClient";
 
@@ -165,6 +170,21 @@ export function AutoridadApp() {
       // --- Carga Horaria ---
       case "carga-horaria":
         return <CargaHorariaPage />;
+
+      // --- Horarios por Paralelo ---
+      case "horarios-paralelos":
+        return <HorariosParalelosPage />;
+      // --- Gestión de Matrículas ---
+      case "periodos-matricula":
+        return <PeriodosMatriculaPage />;
+      case "requisitos-config":
+        return <RequisitosConfigPage />;
+      case "control-matriculas":
+        return <MatriculaDashboard />;
+
+      // --- Estudiantes Registrados ---
+      case "estudiantes-registrados":
+        return <EstudiantesListado />;
 
       // --- MÓDULOS PENDIENTES ---
       case "documentacion-gobernanza":

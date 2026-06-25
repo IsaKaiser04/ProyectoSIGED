@@ -86,6 +86,7 @@ export function useFormularioDocente(
   );
 
   const [enviando, setEnviando] = useState(false);
+  const [errores, setErrores] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (isEditing) {
@@ -158,6 +159,7 @@ export function useFormularioDocente(
 
   const actualizarCampo = (campo: string, valor: any) => {
     setFormData(prev => ({ ...prev, [campo]: valor }));
+    limpiarError(campo);
   };
 
   const actualizarDireccion = (campo: string, valor: any) => {
@@ -174,6 +176,23 @@ export function useFormularioDocente(
     }));
   };
 
+  const validarCelular = (celular: string): string | null => {
+    if (!celular) return null;
+    const soloDigitos = celular.replace(/\D/g, "");
+    if (!/^0\d{9}$/.test(soloDigitos)) {
+      return "El celular debe tener 10 dígitos y comenzar con 0 (ej: 0991234567).";
+    }
+    return null;
+  };
+
+  const limpiarError = (campo: string) => {
+    setErrores(prev => {
+      const copy = { ...prev };
+      delete copy[campo];
+      return copy;
+    });
+  };
+
   const resetFormulario = () => {
     setFormData({
       nombres: "", apellidos: "", identificacion: "", tipo_identificacion: "CEDULA", fecha_nacimiento: "", celular: "", correo_personal: "",
@@ -186,6 +205,12 @@ export function useFormularioDocente(
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const errorCelular = validarCelular(formData.celular);
+    if (errorCelular) {
+      setErrores(prev => ({ ...prev, celular: errorCelular }));
+      return;
+    }
 
     const idInstitucionActiva = usuario?.institucion_id;
     if (!idInstitucionActiva) {
@@ -203,7 +228,7 @@ export function useFormularioDocente(
       identificacion: formData.identificacion,
       tipo_identificacion: formData.tipo_identificacion,
       fecha_nacimiento: formData.fecha_nacimiento,
-      celular: formData.celular || null,
+      celular: formData.celular ? formData.celular.replace(/\D/g, "") : null,
       correo_personal: formData.correo_personal,
       especialidad: formData.especialidad,
       fecha_ingreso: formData.fecha_ingreso,
@@ -243,8 +268,17 @@ export function useFormularioDocente(
       onSaveSuccess?.();
     } catch (error: any) {
       console.error("Error al guardar docente:", error);
-      const msg = error?.data ? JSON.stringify(error.data) : "Revisa los datos. El servidor rechazó la solicitud.";
-      showError(msg);
+      const erroresBackend = error?.data;
+      if (erroresBackend && typeof erroresBackend === "object") {
+        const erroresMap: Record<string, string> = {};
+        for (const [key, msgs] of Object.entries(erroresBackend)) {
+          erroresMap[key] = Array.isArray(msgs) ? msgs[0] : String(msgs);
+        }
+        setErrores(erroresMap);
+        showError("Corrige los errores en el formulario.");
+      } else {
+        showError("Revisa los datos. El servidor rechazó la solicitud.");
+      }
     } finally {
       setEnviando(false);
     }
@@ -255,6 +289,8 @@ export function useFormularioDocente(
     actualizarCampo,
     actualizarDireccion,
     actualizarCuenta,
+    errores,
+    limpiarError,
     resetFormulario,
     ubicacionCascada: {
       paises,

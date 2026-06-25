@@ -1,6 +1,7 @@
 // src/app/EstudianteApp.tsx
 import { useState } from "react";
 import { EstudianteLayout } from "../layouts/EstudianteLayout";
+import HorarioEscolarPage from "../features/estudiante/components/HorarioEscolarPage";
 
 // ──────────────────────────────────────────────────────────────────────────
 import { CalificacionesEstudiantePage, AulaVirtualEstudiantePage } from "../features/calificaciones";
@@ -42,7 +43,7 @@ export function EstudianteApp() {
       case "mi-asistencia":
         return <EnDesarrollo titulo="Reporte Semanal de Asistencia, Atrasos e Justificaciones" />;
       case "horario-escolar":
-        return <EnDesarrollo titulo="Consulta de Carga Horaria y Cronograma de Clases" />;
+        return <HorarioEscolarPage />;
 
       // Entorno Virtual (EVA)
       case "aulas-virtuales":

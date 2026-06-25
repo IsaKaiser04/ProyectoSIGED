@@ -46,6 +46,7 @@ export const NAVIGATION_AUTORIDAD: NavGroup[] = [
     items: [
       { view: "distributivo-docente", label: "Distributivo Docente", icon: "🧑‍🏫" },
       { view: "carga-horaria", label: "Carga Horaria Semanal", icon: "⏰" },
+      { view: "horarios-paralelos", label: "Horarios por Paralelo", icon: "📅" },
       { view: "pca", label: "Planificación Curricular (PCA)", icon: "📋" },
     ],
   },
@@ -55,6 +56,20 @@ export const NAVIGATION_AUTORIDAD: NavGroup[] = [
       { view: "anios-lectivos", label: "Año Lectivo", icon: "📅" },
       { view: "periodos-academicos", label: "Período Académico", icon: "⏳" },
       { view: "jornadas", label: "Jornadas Horarias", icon: "🌅" },
+    ],
+  },
+  {
+    groupLabel: "Gestión de Matrículas",
+    items: [
+      { view: "periodos-matricula", label: "Periodos de Matrícula", icon: "📅" },
+      { view: "requisitos-config", label: "Requisitos por Periodo", icon: "📋" },
+      { view: "control-matriculas", label: "Control de Matrículas", icon: "📝" },
+    ],
+  },
+  {
+    groupLabel: "Población Estudiantil",
+    items: [
+      { view: "estudiantes-registrados", label: "Estudiantes Registrados", icon: "👥" },
     ],
   },
   {

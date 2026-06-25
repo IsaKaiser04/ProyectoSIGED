@@ -1,4 +1,4 @@
-﻿import { apiGet, apiPost, apiPatch } from "../../../services/apiClient";
+﻿import { apiGet, apiPost, apiPatch, apiUpload } from "../../../services/apiClient";
 import type { Matricula } from "../../../types/entities/matricula";
 
 export async function obtenerMatriculas() {
@@ -7,6 +7,10 @@ export async function obtenerMatriculas() {
 
 export async function crearMatricula(data: any) {
   return apiPost("/matricula/matriculas/", data);
+}
+
+export async function crearMatriculaConRequisitos(formData: FormData): Promise<any> {
+  return apiUpload("/matricula/matriculas/registro-completo/", formData);
 }
 
 export async function legalizarMatricula(id: number, data?: any): Promise<any> {
@@ -35,4 +39,14 @@ export async function validarRequisito(requisitoId: number) {
 
 export async function rechazarRequisito(requisitoId: number, observacion: string) {
   return apiPost(`/matricula/requisitos/${requisitoId}/rechazar/`, { observacion });
+}
+
+export async function solicitarCorreccionRequisito(requisitoId: number) {
+  return apiPost(`/matricula/requisitos/${requisitoId}/solicitar_correccion/`, {});
+}
+
+export async function subirArchivoRequisito(requisitoId: number, archivo: File) {
+  const formData = new FormData();
+  formData.append("archivo", archivo);
+  return apiUpload(`/matricula/requisitos/${requisitoId}/subir_archivo/`, formData);
 }

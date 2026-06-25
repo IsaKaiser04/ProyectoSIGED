@@ -4,6 +4,10 @@ from ..serializers.horario_serializer import (
     HorarioDetailSerializer,
     HorarioCreateSerializer,
 )
+from ..serializers.horario_serializer import (
+    HorarioDocenteSerializer,
+    HorarioParaleloSerializer,
+)
 
 
 class HorarioService:
@@ -55,3 +59,34 @@ class HorarioService:
     def por_distributivo_asignatura(distributivo_asignatura_id):
         instances = HorarioRepository.filter_by_distributivo_asignatura(distributivo_asignatura_id)
         return HorarioListSerializer(instances, many=True).data
+
+    @staticmethod
+    def por_paralelo(paralelo_id):
+        instances = HorarioRepository.filter_by_paralelo(paralelo_id)
+        return HorarioParaleloSerializer(instances, many=True).data
+
+    @staticmethod
+    def por_docente_actual(cuenta_id):
+        instances = HorarioRepository.filter_by_docente_cuenta(cuenta_id)
+        return HorarioDocenteSerializer(instances, many=True).data
+
+    @staticmethod
+    def todos_paralelos():
+        """Devuelve horarios agrupados por paralelo"""
+        from collections import OrderedDict
+
+        instances = HorarioRepository.get_all()
+        grupos = OrderedDict()
+        for h in instances:
+            da = h.distributivo_asignatura
+            paralelo = da.paralelo
+            key = paralelo.id
+            if key not in grupos:
+                grupos[key] = {
+                    'paralelo_id': paralelo.id,
+                    'paralelo_nombre': paralelo.nombre,
+                    'grado': paralelo.gradoOfertado.nombre if hasattr(paralelo, 'gradoOfertado') and paralelo.gradoOfertado else '',
+                    'horarios': [],
+                }
+            grupos[key]['horarios'].append(HorarioParaleloSerializer(h).data)
+        return list(grupos.values())

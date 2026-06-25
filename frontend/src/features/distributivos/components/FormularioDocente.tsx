@@ -13,6 +13,7 @@ export const FormularioDocente: React.FC<FormularioDocenteProps> = ({ onSuccess,
     actualizarCampo,
     actualizarDireccion,
     actualizarCuenta,
+    errores,
     ubicacionCascada,
     enviando,
     handleSubmit,
@@ -69,7 +70,8 @@ export const FormularioDocente: React.FC<FormularioDocenteProps> = ({ onSuccess,
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
           <div>
             <label className="filter-label" style={{ display: "block", marginBottom: "6px" }}>Celular</label>
-            <input type="text" value={formData.celular} onChange={(e) => actualizarCampo("celular", e.target.value)} className="search-input" style={{ width: "100%" }} />
+            <input type="text" value={formData.celular} onChange={(e) => actualizarCampo("celular", e.target.value)} className="search-input" style={{ width: "100%", borderColor: errores.celular ? "var(--error, #e53935)" : undefined }} />
+            {errores.celular && <span style={{ color: "var(--error, #e53935)", fontSize: "12px", marginTop: "4px", display: "block" }}>{errores.celular}</span>}
           </div>
           <div>
             <label className="filter-label" style={{ display: "block", marginBottom: "6px" }}>Correo Personal</label>

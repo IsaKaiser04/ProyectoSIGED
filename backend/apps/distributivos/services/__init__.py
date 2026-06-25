@@ -1,3 +1,4 @@
+from .bloque_horario_service import BloqueHorarioService
 from .distributivo_asignatura_service import DistributivoAsignaturaService
 from .distributivo_service import DistributivoService
 from .horario_service import HorarioService

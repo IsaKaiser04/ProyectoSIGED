@@ -23,6 +23,13 @@ class Horario(models.Model):
         on_delete=models.PROTECT,
         related_name='horarios'
     )
+    bloque_horario = models.ForeignKey(
+        'BloqueHorario',
+        on_delete=models.PROTECT,
+        related_name='horarios_asignados',
+        null=True,
+        blank=True
+    )
     hora_inicio = models.TimeField()
     hora_fin = models.TimeField()
     observacion = models.TextField(blank=True)
@@ -48,4 +55,6 @@ class Horario(models.Model):
                 raise ValidationError({'hora_fin': 'La hora fin debe estar dentro de la jornada.'})
 
     def __str__(self):
+        if self.bloque_horario:
+            return str(self.bloque_horario)
         return f'{self.dia_semana} {self.hora_inicio}-{self.hora_fin}'

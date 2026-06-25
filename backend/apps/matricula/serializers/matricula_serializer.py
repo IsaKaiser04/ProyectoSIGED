@@ -22,7 +22,7 @@ class MatriculaListSerializer(serializers.ModelSerializer):
             'rep_nombres', 'rep_apellidos', 'rep_identificacion',
             'rep_telefono', 'rep_parentesco',
             'asp_nombres', 'asp_apellidos', 'asp_fecha_nacimiento', 'asp_correo_personal',
-            'fecha_registro', 'requisitos_count'
+            'fecha_registro', 'requisitos_count', 'institucion'
         ]
 
     def get_estudiante_nombre(self, obj):
@@ -75,12 +75,12 @@ class MatriculaDetailSerializer(serializers.ModelSerializer):
 
     def get_creado_por_nombre(self, obj):
         if obj.creado_por:
-            return f"{obj.creado_por.first_name} {obj.creado_por.last_name}".strip()
+            return obj.creado_por.nombre_usuario
         return None
 
     def get_legalizada_por_nombre(self, obj):
         if obj.legalizada_por:
-            return f"{obj.legalizada_por.first_name} {obj.legalizada_por.last_name}".strip()
+            return obj.legalizada_por.nombre_usuario
         return None
 
     def get_estudiante_nombre(self, obj):

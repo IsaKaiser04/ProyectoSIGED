@@ -2,6 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
 from .views import (
+    BloqueHorarioViewSet,
     JornadaHoraViewSet,
     DistributivoViewSet,
     DistributivoAsignaturaViewSet,
@@ -11,6 +12,7 @@ from .views import (
 )
 
 router = DefaultRouter()
+router.register(r'bloques-horarios', BloqueHorarioViewSet, basename='bloque-horario')
 router.register(r'jornadas', JornadaHoraViewSet, basename='jornada')
 router.register(r'distributivos', DistributivoViewSet, basename='distributivo')
 router.register(r'distributivos-asignaturas', DistributivoAsignaturaViewSet, basename='distributivo-asignatura')
