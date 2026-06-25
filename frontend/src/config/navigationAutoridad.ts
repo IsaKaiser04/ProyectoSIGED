@@ -59,6 +59,20 @@ export const NAVIGATION_AUTORIDAD: NavGroup[] = [
     ],
   },
   {
+    groupLabel: "Gestión de Matrículas",
+    items: [
+      { view: "periodos-matricula", label: "Periodos de Matrícula", icon: "📅" },
+      { view: "requisitos-config", label: "Requisitos por Periodo", icon: "📋" },
+      { view: "control-matriculas", label: "Control de Matrículas", icon: "📝" },
+    ],
+  },
+  {
+    groupLabel: "Población Estudiantil",
+    items: [
+      { view: "estudiantes-registrados", label: "Estudiantes Registrados", icon: "👥" },
+    ],
+  },
+  {
     groupLabel: "Supervisión y Gobernanza",
     items: [
       { view: "seguimiento-eva", label: "Seguimiento EVA", icon: "💻" },

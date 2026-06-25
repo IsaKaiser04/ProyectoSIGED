@@ -1,6 +1,10 @@
 export function getErrorMessage(error: unknown): string {
   const err = error as any;
 
+  if (err?.name === "QuotaExceededError" || err?.message?.includes("exceeded the quota")) {
+    return "No hay suficiente espacio para guardar los archivos localmente. Intente liberar espacio o reducir el tamaño de los PDFs.";
+  }
+
   if (err?.message?.includes("localhost") || err?.message?.includes("http")) {
     return "Error de conexión";
   }

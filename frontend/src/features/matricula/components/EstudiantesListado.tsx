@@ -20,10 +20,11 @@ interface EstudianteData {
   id: number;
   nombres: string;
   apellidos: string;
-  identificacion: string;
   correo_personal: string;
   celular: string;
   institucion: number | null;
+  grado?: string;
+  paralelo?: string;
 }
 
 const th: React.CSSProperties = {
@@ -48,6 +49,10 @@ export const EstudiantesListado: React.FC = () => {
       try {
         const institucionId = usuario?.institucion_id;
 
+        // 0. Cargar paralelos para resolver grado y paralelo de matrículas existentes
+        const paralelosApi = await apiGet<any[]>("/planificacion/paralelos/").catch(() => []);
+        const paraleloMap = new Map(paralelosApi.map((p: any) => [p.id, p]));
+
         // 1. Obtener estudiantes con perfil Estudiante en la BD
         let estudiantesApi = await apiGet<EstudianteData[]>("/actoresAcademicos/estudiantes/").catch(() => []);
         if (institucionId) {
@@ -67,39 +72,38 @@ export const EstudiantesListado: React.FC = () => {
         const idsPerfil = new Set(estudiantesApi.map((e) => e.id));
 
         const deMatriculas: EstudianteData[] = [];
-        for (const m of legalizadas) {
-          if (m.estudiante_id && idsPerfil.has(m.estudiante_id)) continue;
-          let datosExtra: Partial<EstudianteData> = {};
-          if (m.estudiante_id) {
-            try {
-              const est = await apiGet<any>(`/actoresAcademicos/estudiantes/${m.estudiante_id}/`);
-              datosExtra = {
-                nombres: est.nombres || est.nombre_completo || m.estudiante_nombre || "—",
-                apellidos: est.apellidos || "—",
-                identificacion: est.identificacion || "",
-                correo_personal: est.correo_personal || "",
-                celular: est.celular || "",
-              };
-            } catch {
-              datosExtra = {
-                nombres: m.estudiante_nombre || "—",
-                apellidos: "—",
-                identificacion: "",
-                correo_personal: "",
-                celular: "",
-              };
-            }
-          }
+        const vistos = new Set<string>();
+        const procesarMatricula = (m: any) => {
+          if (m.estudiante_id && idsPerfil.has(m.estudiante_id)) return;
+          const nombres = m.asp_nombres || m.estudiante_nombre?.split(" ")[0] || "—";
+          const apellidos = m.asp_apellidos || m.estudiante_nombre?.split(" ").slice(1).join(" ") || "—";
+          const key = `${nombres} ${apellidos}|${m.paralelo_id || ""}`;
+          if (vistos.has(key)) return;
+          vistos.add(key);
+          const p = paraleloMap.get(Number(m.paralelo_id));
           deMatriculas.push({
             id: -(m.id),
-            nombres: datosExtra.nombres || "—",
-            apellidos: datosExtra.apellidos || "—",
-            identificacion: datosExtra.identificacion || "",
-            correo_personal: datosExtra.correo_personal || "",
-            celular: datosExtra.celular || "",
+            nombres,
+            apellidos,
+            correo_personal: m.asp_correo_personal || m.correo_personal || "",
+            celular: m.asp_celular || m.celular || "",
             institucion: institucionId ?? null,
+            grado: m.grado_nombre || p?.gradoOfertadoGradoNombre || p?.gradoOfertadoNombre || "",
+            paralelo: m.paralelo_nombre || p?.nombre || "",
           });
-        }
+        };
+        for (const m of legalizadas) procesarMatricula(m);
+
+        // 4. También leer matrículas legalizadas desde localStorage
+        try {
+          const raw = localStorage.getItem("siged_matriculas_v2");
+          if (raw) {
+            const locales = JSON.parse(raw);
+            for (const m of locales) {
+              if (m.estado === "Legalizada") procesarMatricula(m);
+            }
+          }
+        } catch {}
 
         setEstudiantes([...estudiantesApi, ...deMatriculas]);
       } catch { setEstudiantes([]); }
@@ -112,8 +116,7 @@ export const EstudiantesListado: React.FC = () => {
     (e) =>
       !busqueda ||
       e.nombres.toLowerCase().includes(busqueda.toLowerCase()) ||
-      e.apellidos.toLowerCase().includes(busqueda.toLowerCase()) ||
-      e.identificacion.includes(busqueda)
+      e.apellidos.toLowerCase().includes(busqueda.toLowerCase())
   );
 
   return (
@@ -137,7 +140,7 @@ export const EstudiantesListado: React.FC = () => {
             {loading ? "Cargando..." : "Refrescar"}
           </button>
           <input
-            placeholder="Buscar por nombre, apellido o c&eacute;dula..."
+            placeholder="Buscar por nombre o apellido..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             style={{
@@ -164,9 +167,9 @@ export const EstudiantesListado: React.FC = () => {
                 <th style={th}>#</th>
                 <th style={th}>Nombres</th>
                 <th style={th}>Apellidos</th>
-                <th style={th}>C&eacute;dula</th>
+                <th style={th}>Grado</th>
+                <th style={th}>Paralelo</th>
                 <th style={th}>Correo Personal</th>
-                <th style={th}>Celular</th>
               </tr>
             </thead>
             <tbody>
@@ -175,9 +178,9 @@ export const EstudiantesListado: React.FC = () => {
                   <td style={td}>{i + 1}</td>
                   <td style={{ ...td, fontWeight: 600 }}>{e.nombres}</td>
                   <td style={td}>{e.apellidos}</td>
-                  <td style={td}>{e.identificacion}</td>
-                  <td style={td}>{e.correo_personal || "—"}</td>
-                  <td style={td}>{e.celular || "—"}</td>
+                  <td style={td}>{e.grado || ""}</td>
+                  <td style={td}>{e.paralelo || ""}</td>
+                  <td style={td}>{e.correo_personal || ""}</td>
                 </tr>
               ))}
             </tbody>
