@@ -171,11 +171,9 @@ export function AutoridadApp() {
       case "carga-horaria":
         return <CargaHorariaPage />;
 
-<<<<<<< HEAD
       // --- Horarios por Paralelo ---
       case "horarios-paralelos":
         return <HorariosParalelosPage />;
-=======
       // --- Gestión de Matrículas ---
       case "periodos-matricula":
         return <PeriodosMatriculaPage />;
@@ -187,7 +185,6 @@ export function AutoridadApp() {
       // --- Estudiantes Registrados ---
       case "estudiantes-registrados":
         return <EstudiantesListado />;
->>>>>>> d4b8aa753bd46e25acba9f56c6ab825390c6cb65
 
       // --- MÓDULOS PENDIENTES ---
       case "documentacion-gobernanza":
