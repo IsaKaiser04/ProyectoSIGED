@@ -81,4 +81,7 @@ class HorarioViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'], url_path='todos-paralelos')
     def todos_paralelos(self, request):
-        return Response(HorarioService.todos_paralelos())
+        anio_lectivo_id = request.query_params.get('anio_lectivo_id')
+        if anio_lectivo_id:
+            anio_lectivo_id = int(anio_lectivo_id)
+        return Response(HorarioService.todos_paralelos(anio_lectivo_id))

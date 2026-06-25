@@ -32,8 +32,9 @@ export async function miHorario() {
   return apiGet<any[]>("/distributivos/horarios/mi-horario/");
 }
 
-export async function todosParalelos() {
-  return apiGet<any[]>("/distributivos/horarios/todos-paralelos/");
+export async function todosParalelos(anioLectivoId?: number) {
+  const params = anioLectivoId ? `?anio_lectivo_id=${anioLectivoId}` : "";
+  return apiGet<any[]>(`/distributivos/horarios/todos-paralelos/${params}`);
 }
 
 export async function horariosPorEstudiante() {

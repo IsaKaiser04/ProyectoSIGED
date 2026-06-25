@@ -71,21 +71,34 @@ class HorarioService:
         return HorarioDocenteSerializer(instances, many=True).data
 
     @staticmethod
-    def todos_paralelos():
-        """Devuelve horarios agrupados por paralelo"""
+    def todos_paralelos(anio_lectivo_id=None):
+        """Devuelve horarios agrupados por paralelo, opcionalmente filtrados por año lectivo"""
         from collections import OrderedDict
 
         instances = HorarioRepository.get_all()
         grupos = OrderedDict()
         for h in instances:
             da = h.distributivo_asignatura
+            if da is None:
+                continue
+            if anio_lectivo_id and h.distributivo and h.distributivo.anio_lectivo_id != anio_lectivo_id:
+                continue
             paralelo = da.paralelo
+            if paralelo is None:
+                continue
             key = paralelo.id
             if key not in grupos:
+                grado_ofertado = getattr(paralelo, 'gradoOfertado', None)
+                grado_obj = grado_ofertado.grado if grado_ofertado and hasattr(grado_ofertado, 'grado') else None
+                go_nombre = grado_ofertado.nombre if grado_ofertado else ''
+                g_nombre = grado_obj.nombre if grado_obj else ''
                 grupos[key] = {
                     'paralelo_id': paralelo.id,
                     'paralelo_nombre': paralelo.nombre,
-                    'grado': paralelo.gradoOfertado.nombre if hasattr(paralelo, 'gradoOfertado') and paralelo.gradoOfertado else '',
+                    'grado': go_nombre,
+                    'grado_id': grado_obj.id if grado_obj else None,
+                    'grado_nombre': g_nombre or go_nombre,
+                    'titulo': f"{g_nombre or go_nombre} - {paralelo.nombre}",
                     'horarios': [],
                 }
             grupos[key]['horarios'].append(HorarioParaleloSerializer(h).data)

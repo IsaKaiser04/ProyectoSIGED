@@ -28,8 +28,10 @@ export default function DistributivoDocentePage() {
   const [paralelos, setParalelos] = useState<any[]>([]);
   const [horarios, setHorarios] = useState<any[]>([]);
   const [jornadas, setJornadas] = useState<any[]>([]);
+  const [bloquesHorarios, setBloquesHorarios] = useState<any[]>([]);
   const [horarioForm, setHorarioForm] = useState({
     distributivo_asignatura: "",
+    bloque_horario: "",
     jornada_hora: "",
     hora_inicio: "",
     hora_fin: "",
@@ -113,8 +115,10 @@ export default function DistributivoDocentePage() {
       setGradosOfertados(grados);
       setParalelos(parals);
     } catch {}
+    setBloquesHorarios([]);
     setHorarioForm({
       distributivo_asignatura: "",
+      bloque_horario: "",
       jornada_hora: "",
       hora_inicio: "",
       hora_fin: "",
@@ -181,24 +185,53 @@ export default function DistributivoDocentePage() {
   };
 
   const agregarHorario = async () => {
-    if (!horarioForm.distributivo_asignatura || !horarioForm.jornada_hora) return;
+    if (!horarioForm.distributivo_asignatura) {
+      setError("Debe seleccionar una asignatura.");
+      return;
+    }
     setError("");
+
+    const payload: any = {
+      distributivo: selectedId,
+      distributivo_asignatura: Number(horarioForm.distributivo_asignatura),
+      tipo_horario: horarioForm.tipo_horario,
+      observacion: horarioForm.observacion,
+    };
+
+    if (horarioForm.bloque_horario) {
+      payload.bloque_horario = Number(horarioForm.bloque_horario);
+    } else {
+      if (!horarioForm.jornada_hora) {
+        setError("Debe seleccionar una jornada / turno.");
+        return;
+      }
+      if (!horarioForm.hora_inicio) {
+        setError("Debe ingresar la hora de inicio.");
+        return;
+      }
+      if (!horarioForm.hora_fin) {
+        setError("Debe ingresar la hora de fin.");
+        return;
+      }
+      if (!horarioForm.dia_semana) {
+        setError("Debe seleccionar un d\u00eda.");
+        return;
+      }
+      payload.jornada_hora = Number(horarioForm.jornada_hora);
+      payload.hora_inicio = horarioForm.hora_inicio;
+      payload.hora_fin = horarioForm.hora_fin;
+      payload.dia_semana = horarioForm.dia_semana;
+    }
+
     try {
-      await crearHorario({
-        distributivo: selectedId,
-        distributivo_asignatura: Number(horarioForm.distributivo_asignatura),
-        jornada_hora: Number(horarioForm.jornada_hora),
-        hora_inicio: horarioForm.hora_inicio,
-        hora_fin: horarioForm.hora_fin,
-        tipo_horario: horarioForm.tipo_horario,
-        dia_semana: horarioForm.dia_semana,
-        observacion: horarioForm.observacion
-      });
+      await crearHorario(payload);
       const hrs = await horariosPorDistributivo(selectedId!);
       setHorarios(hrs);
+      setBloquesHorarios([]);
       setHorarioForm((prev) => ({
         ...prev,
         distributivo_asignatura: "",
+        bloque_horario: "",
         jornada_hora: "",
         hora_inicio: "",
         hora_fin: "",
@@ -216,6 +249,55 @@ export default function DistributivoDocentePage() {
       const hrs = await horariosPorDistributivo(selectedId!);
       setHorarios(hrs);
     } catch {}
+  };
+
+  const handleAsignaturaChange = async (asignaturaId: string) => {
+    setHorarioForm((p) => ({
+      ...p,
+      distributivo_asignatura: asignaturaId,
+      bloque_horario: "",
+    }));
+    setBloquesHorarios([]);
+
+    if (!asignaturaId) return;
+
+    const asignatura = asignaturas.find((a: any) => a.id === Number(asignaturaId));
+    if (!asignatura?.paralelo) return;
+
+    try {
+      const bloques = await apiGet<any[]>(
+        `/distributivos/bloques-horarios/por-paralelo/?paralelo_id=${asignatura.paralelo}`
+      );
+      setBloquesHorarios(bloques || []);
+    } catch {
+      setBloquesHorarios([]);
+    }
+  };
+
+  const handleBloqueChange = (bloqueId: string) => {
+    if (!bloqueId) {
+      setHorarioForm((p) => ({
+        ...p,
+        bloque_horario: "",
+        jornada_hora: "",
+        hora_inicio: "",
+        hora_fin: "",
+        dia_semana: "LUNES",
+      }));
+      return;
+    }
+
+    const bloque = bloquesHorarios.find((b: any) => b.id === Number(bloqueId));
+    if (!bloque) return;
+
+    setHorarioForm((p) => ({
+      ...p,
+      bloque_horario: bloqueId,
+      jornada_hora: bloque.jornada_hora,
+      hora_inicio: bloque.hora_inicio,
+      hora_fin: bloque.hora_fin,
+      dia_semana: bloque.dia_semana,
+    }));
   };
 
   const obtenerGradoNombre = (gradoOfertadoId: number) => {
@@ -331,7 +413,6 @@ export default function DistributivoDocentePage() {
     fontWeight: "bold",
     fontSize: "15px",
     width: "100%",
-    marginTop: "12px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -700,7 +781,7 @@ export default function DistributivoDocentePage() {
                 <select
                   style={fieldStyle}
                   value={horarioForm.distributivo_asignatura}
-                  onChange={(e) => setHorarioForm((p) => ({ ...p, distributivo_asignatura: e.target.value }))}
+                  onChange={(e) => handleAsignaturaChange(e.target.value)}
                 >
                   <option value="">Seleccione la materia...</option>
                   {asignaturas.map((a: any) => {
