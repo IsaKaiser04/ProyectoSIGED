@@ -1,0 +1,1 @@
+export { VinculacionCurricularPage } from "./VinculacionCurricularPage";
