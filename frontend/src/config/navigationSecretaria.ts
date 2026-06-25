@@ -47,7 +47,6 @@ export const NAVIGATION_SECRETARIA: NavGroup[] = [
   {
     groupLabel: "Soporte Informativo",
     items: [
-      { view: "consulta-plan-estudios", label: "Plan de Estudios", icon: "📘" },
       { view: "reportes-rendimiento", label: "Reportes de Rendimiento", icon: "📊" },
       { view: "seguimiento-asistencia", label: "Seguimiento de Asistencia", icon: "📅" },
     ],

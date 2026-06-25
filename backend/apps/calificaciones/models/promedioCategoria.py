@@ -15,11 +15,6 @@ class PromedioCategoria(models.Model):
         on_delete=models.PROTECT,
         related_name='promedios_categoria',
     )
-    asignatura_evaluacion = models.ForeignKey(
-        'AsignaturaEvaluacion',
-        on_delete=models.PROTECT,
-        related_name='promedios_categoria',
-    )
     promedio_categoria_padre = models.ForeignKey(
         'self',
         on_delete=models.CASCADE,

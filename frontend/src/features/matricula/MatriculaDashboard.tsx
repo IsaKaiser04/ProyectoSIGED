@@ -4,16 +4,33 @@ import MatriculaTable from "./components/MatriculaTable";
 import RevisarRequisitos from "./components/RevisarRequisitos";
 import { useMatriculas } from "./hooks/useMatricula";
 import { apiGet } from "../../services/apiClient";
+import { ToastContainer } from "../../components/Toast";
 
 function MatriculaDashboard() {
   const [showWizard, setShowWizard] = useState(false);
   const [showRevisar, setShowRevisar] = useState(false);
   const [matriculaToRevisar, setMatriculaToRevisar] = useState<number | null>(null);
   
-  const { matriculas, loading, refrescarTablas, updateMatriculaState } = useMatriculas();
+  const { matriculas, loading, refrescarTablas, updateMatriculaState, agregarMatricula } = useMatriculas();
 
   const [filtroEstado, setFiltroEstado] = useState("");
   const [paralelos, setParalelos] = useState<any[]>([]);
+
+  const getCuposConsumidos = () => {
+    try {
+      const consumidos: Record<number, number> = {};
+      const raw = localStorage.getItem("siged_matriculas_v2");
+      if (raw) {
+        const lista: any[] = JSON.parse(raw);
+        for (const m of lista) {
+          if (m.estado === "Legalizada" && m.paralelo_id) {
+            consumidos[m.paralelo_id] = (consumidos[m.paralelo_id] || 0) + 1;
+          }
+        }
+      }
+      return consumidos;
+    } catch { return {}; }
+  };
 
   useEffect(() => {
     apiGet<any[]>("/planificacion/paralelos/").then(setParalelos).catch(() => {
@@ -21,21 +38,31 @@ function MatriculaDashboard() {
     });
   }, []);
 
+  const cuposConsumidos = getCuposConsumidos();
   const totalSolicitudes = matriculas.length;
   const legalizadas = matriculas.filter(m => m.estado === "Legalizada").length;
   const pendientes = matriculas.filter(m => m.estado === "Solicitud" || m.estado === "Prematricula").length;
   const anuladas = matriculas.filter(m => m.estado === "Anulada" || m.estado === "Rechazada").length;
-  const cuposDisponibles = paralelos.reduce((acc, p) => acc + ((p.cuposMaximo || p.cupos_maximo || 0) - (p.cuposOcupados || p.cupos_ocupados || 0)), 0);
+  const cuposDisponibles = paralelos.reduce((acc, p) => {
+    const max = p.cuposMaximo || p.cupos_maximo || 0;
+    const ocup = p.cuposOcupados || p.cupos_ocupados || 0;
+    const consumido = cuposConsumidos[p.id] || 0;
+    return acc + (max - ocup - consumido);
+  }, 0);
   const paraleloMap = Object.fromEntries(paralelos.map(p => [p.id, p]));
 
-  const matriculasFiltradas = matriculas.filter(m =>
-    !filtroEstado ? m.estado !== 'Legalizada' : m.estado === filtroEstado
-  );
+  const matriculasFiltradas = filtroEstado
+    ? matriculas.filter(m => m.estado === filtroEstado)
+    : matriculas;
 
   const handleRevisar = (id: number) => {
     setMatriculaToRevisar(id);
     setShowRevisar(true);
   };
+
+  const aspiranteActual = matriculaToRevisar
+    ? matriculas.find(m => m.id === matriculaToRevisar)
+    : null;
 
   const kpiCard: React.CSSProperties = { background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)", borderRadius: "8px", padding: "16px", flex: "1" };
   const selectStyle: React.CSSProperties = { height: "38px", padding: "0 10px", borderRadius: "6px", border: "1px solid var(--outline-variant)", background: "var(--surface)" };
@@ -85,7 +112,7 @@ function MatriculaDashboard() {
       {showWizard && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 9999 }}>
           <div style={{ width: "90%", maxWidth: "1000px", maxHeight: "90vh", overflowY: "auto", background: "white", borderRadius: "10px" }}>
-            <WizardMatricula onCancel={() => setShowWizard(false)} onSaveSuccess={() => { setShowWizard(false); refrescarTablas(); }} />
+            <WizardMatricula onCancel={() => setShowWizard(false)} onSaveSuccess={(nueva: any) => { console.log("[Dashboard] onSaveSuccess llamado, nueva:", nueva); setShowWizard(false); if (nueva) { console.log("[Dashboard] llamando agregarMatricula"); agregarMatricula(nueva); } else { console.warn("[Dashboard] nueva es null/undefined"); } }} />
           </div>
         </div>
       )}
@@ -95,12 +122,15 @@ function MatriculaDashboard() {
           <div style={{ width: "100%", maxWidth: "1200px", background: "white", borderRadius: "10px", overflow: "hidden" }}>
             <RevisarRequisitos 
               matriculaId={matriculaToRevisar} 
+              aspiranteNombre={aspiranteActual?.estudiante_nombre || ""}
               onClose={() => setShowRevisar(false)} 
-              onLegalizado={() => { setShowRevisar(false); refrescarTablas(); }} 
+              onLegalizado={() => { if (matriculaToRevisar) updateMatriculaState(matriculaToRevisar, "Legalizada"); setShowRevisar(false); refrescarTablas(); }} 
+              onRechazo={(id) => updateMatriculaState(id, "Prematricula")}
             />
           </div>
         </div>
       )}
+      <ToastContainer />
     </div>
   );
 } export { MatriculaDashboard };

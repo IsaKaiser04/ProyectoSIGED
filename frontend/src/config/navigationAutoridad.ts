@@ -46,6 +46,7 @@ export const NAVIGATION_AUTORIDAD: NavGroup[] = [
     items: [
       { view: "distributivo-docente", label: "Distributivo Docente", icon: "🧑‍🏫" },
       { view: "carga-horaria", label: "Carga Horaria Semanal", icon: "⏰" },
+      { view: "horarios-paralelos", label: "Horarios Cursos", icon: "📅" },
       { view: "pca", label: "Planificación Curricular (PCA)", icon: "📋" },
     ],
   },
@@ -58,9 +59,23 @@ export const NAVIGATION_AUTORIDAD: NavGroup[] = [
     ],
   },
   {
+    groupLabel: "Gestión de Matrículas",
+    items: [
+      { view: "periodos-matricula", label: "Periodos de Matrícula", icon: "📅" },
+      { view: "requisitos-config", label: "Requisitos por Periodo", icon: "📋" },
+      { view: "control-matriculas", label: "Control de Matrículas", icon: "📝" },
+    ],
+  },
+  {
+    groupLabel: "Población Estudiantil",
+    items: [
+      { view: "estudiantes-registrados", label: "Estudiantes Registrados", icon: "👥" },
+    ],
+  },
+  {
     groupLabel: "Supervisión y Gobernanza",
     items: [
-      { view: "seguimiento-eva", label: "Seguimiento EVA", icon: "💻" },
+      { view: "aulas-virtuales", label: "Aulas Virtuales", icon: "💻" },
       { view: "documentacion-gobernanza", label: "Documentación (PEI/CC/PGR)", icon: "📁" },
     ],
   },

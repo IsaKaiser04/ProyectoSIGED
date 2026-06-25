@@ -7,7 +7,12 @@ class HorarioRepository:
         return Horario.objects.select_related(
             'distributivo', 'distributivo__docente',
             'distributivo_asignatura', 'distributivo_asignatura__asignatura_ofertada',
-            'jornada_hora',
+            'distributivo_asignatura__asignatura_ofertada__gradoOfertado',
+            'distributivo_asignatura__asignatura_ofertada__gradoOfertado__grado',
+            'distributivo_asignatura__paralelo',
+            'distributivo_asignatura__paralelo__gradoOfertado',
+            'distributivo_asignatura__paralelo__gradoOfertado__grado',
+            'jornada_hora', 'bloque_horario',
         ).all()
 
     @staticmethod
@@ -15,21 +20,43 @@ class HorarioRepository:
         return Horario.objects.select_related(
             'distributivo', 'distributivo__docente',
             'distributivo_asignatura', 'distributivo_asignatura__asignatura_ofertada',
-            'jornada_hora',
+            'distributivo_asignatura__paralelo',
+            'jornada_hora', 'bloque_horario',
         ).filter(pk=pk).first()
 
     @staticmethod
     def filter_by_distributivo(distributivo_id):
         return Horario.objects.select_related(
             'distributivo_asignatura', 'distributivo_asignatura__asignatura_ofertada',
-            'jornada_hora',
+            'distributivo_asignatura__paralelo',
+            'jornada_hora', 'bloque_horario',
         ).filter(distributivo_id=distributivo_id)
 
     @staticmethod
     def filter_by_distributivo_asignatura(distributivo_asignatura_id):
-        return Horario.objects.select_related('jornada_hora').filter(
+        return Horario.objects.select_related(
+            'jornada_hora', 'bloque_horario',
+        ).filter(
             distributivo_asignatura_id=distributivo_asignatura_id
         )
+
+    @staticmethod
+    def filter_by_paralelo(paralelo_id):
+        return Horario.objects.select_related(
+            'distributivo', 'distributivo__docente',
+            'distributivo_asignatura', 'distributivo_asignatura__asignatura_ofertada',
+            'distributivo_asignatura__paralelo',
+            'jornada_hora', 'bloque_horario',
+        ).filter(distributivo_asignatura__paralelo_id=paralelo_id)
+
+    @staticmethod
+    def filter_by_docente_cuenta(cuenta_id):
+        return Horario.objects.select_related(
+            'distributivo', 'distributivo__docente',
+            'distributivo_asignatura', 'distributivo_asignatura__asignatura_ofertada',
+            'distributivo_asignatura__paralelo',
+            'jornada_hora', 'bloque_horario', 'bloque_horario__paralelo',
+        ).filter(distributivo__docente__cuenta_id=cuenta_id)
 
     @staticmethod
     def create(data):

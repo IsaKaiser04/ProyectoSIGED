@@ -8,8 +8,18 @@ class AsignaturaEvaluacion(models.Model):
     fecha_fin = models.DateField(null=True, blank=True)
     activo = models.BooleanField(default=True)
 
-    distributivo_asignatura_id = models.PositiveBigIntegerField()
-    entrega_id = models.PositiveBigIntegerField(null=True, blank=True)
+    distributivo_asignatura = models.ForeignKey(
+        'distributivos.DistributivoAsignatura',
+        on_delete=models.CASCADE,
+        related_name='evaluaciones',
+    )
+    periodo_academico = models.ForeignKey(
+        'planificacion.PeriodoAcademico',
+        on_delete=models.PROTECT,
+        related_name='evaluaciones',
+        null=True,
+        blank=True,
+    )
 
     def __str__(self):
         return self.nombre

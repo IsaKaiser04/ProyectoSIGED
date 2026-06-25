@@ -1,13 +1,13 @@
 // src/config/navigationDocente.ts
 //
 // Este archivo define la estructura de navegación exclusiva para el rol de Docente.
-// El archivo DocenteLayout.tsx lo recorre para renderizar el sidebar dinámico,
-// incluyendo condicionalmente la sección de Tutoría según el distributivo.
+// Los iconos usan la librería Lucide-react y se renderizan a través del componente <NavIcon />.
+// Los nombres disponibles están definidos en el tipo NavIconName.
 
 export interface NavItem {
   view: string;
   label: string;
-  icon: string;
+  icon: NavIconName;
 }
 
 export interface NavGroup {
@@ -15,56 +15,66 @@ export interface NavGroup {
   items: NavItem[];
 }
 
+// Catálogo de nombres de icono disponibles (tipo estricto, evita typos)
+export type NavIconName =
+  | "home"
+  | "building"
+  | "monitor"
+  | "clipboard-list"
+  | "calendar-check"
+  | "layout-list"
+  | "file-up"
+  | "bell"
+  | "users";
+
 // Función que genera la navegación dependiendo de si el docente es tutor o no
 export const getNavigationDocente = (esTutor: boolean): NavGroup[] => {
   const navigation: NavGroup[] = [
     {
       groupLabel: "General",
       items: [
-        { view: "inicio", label: "Inicio (Clases)", icon: "🏠" },
-        { view: "mis-instituciones", label: "Mis Instituciones", icon: "🏫" },
+        { view: "inicio",            label: "Inicio",              icon: "home"           },
+        { view: "mis-instituciones", label: "Mis instituciones",   icon: "building"       },
       ],
     },
     {
-      groupLabel: "Gestión Académica (EVA)",
+      groupLabel: "Gestión académica",
       items: [
-        { view: "aulas-virtuales", label: "Mis Aulas Virtuales", icon: "💻" },
-        { view: "banco-recursos", label: "Banco de Recursos", icon: "📁" },
+        { view: "aulas-virtuales",   label: "Aulas virtuales",     icon: "monitor"        },
+        { view: "registro-notas",    label: "Registro de notas",   icon: "clipboard-list" },
       ],
     },
     {
-      groupLabel: "Evaluación y Seguimiento",
+      groupLabel: "Evaluación y seguimiento",
       items: [
-        { view: "registro-notas", label: "Registro de Notas", icon: "📝" },
-        { view: "control-asistencia", label: "Asistencia e Incidencias", icon: "📅" },
+        { view: "control-asistencia", label: "Asistencia e incidencias", icon: "calendar-check" },
       ],
     },
     {
-      groupLabel: "Planificación (Lectura)",
+      groupLabel: "Planificación",
       items: [
-        { view: "pca-horarios", label: "PCA y Horarios", icon: "⏰" },
+        { view: "pca-horarios", label: "PCA y horarios", icon: "layout-list" },
       ],
     },
     {
-      groupLabel: "Vinculación Curricular",
+      groupLabel: "Vinculación curricular",
       items: [
-        { view: "vinculacion-curricular", label: "Subir PCA", icon: "📄" },
+        { view: "vinculacion-curricular", label: "Subir PCA", icon: "file-up" },
       ],
     },
     {
       groupLabel: "Comunicación",
       items: [
-        { view: "buzon-notificaciones", label: "Buzón de Notificaciones", icon: "✉️" },
+        { view: "buzon-notificaciones", label: "Buzón de Notificaciones", icon: "bell" },
       ],
     },
   ];
 
-  // ──► INYECCIÓN CONDICIONAL: Si es tutor, se le añade la consola de acompañamiento integral
   if (esTutor) {
     navigation.push({
-      groupLabel: "Docente Tutor",
+      groupLabel: "Docente tutor",
       items: [
-        { view: "consola-tutoria", label: "Consola de Tutoría", icon: "🧑‍🤝‍🧑" },
+        { view: "consola-tutoria", label: "Consola de tutoría", icon: "users" },
       ],
     });
   }

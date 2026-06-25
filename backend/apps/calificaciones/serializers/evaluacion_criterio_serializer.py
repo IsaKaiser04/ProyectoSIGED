@@ -4,10 +4,16 @@ from apps.calificaciones.models.evaluacionEquivalencia import EvaluacionEquivale
 from apps.calificaciones.models.evaluacionRubrica import EvaluacionRubrica
 
 class EvaluacionCriterioSerializer(serializers.ModelSerializer):
-    
+    evaluacion_rubrica_label = serializers.SerializerMethodField(read_only=True)
+    evaluacion_equivalencia_label = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = EvaluacionCriterio
-        fields = ['id','cuantitativaMinima','cuantitativaMaxima','cualitativa','descripcion','evaluacion_rubrica','evaluacion_equivalencia']
+        fields = [
+            'id', 'cuantitativaMinima', 'cuantitativaMaxima', 'cualitativa',
+            'descripcion', 'evaluacion_rubrica', 'evaluacion_equivalencia',
+            'evaluacion_rubrica_label', 'evaluacion_equivalencia_label',
+        ]
 
     def get_evaluacion_rubrica_label(self, obj):
         return obj.evaluacion_rubrica.nombre if obj.evaluacion_rubrica else None
@@ -16,8 +22,11 @@ class EvaluacionCriterioSerializer(serializers.ModelSerializer):
         if not EvaluacionRubrica.objects.filter(id=value.id).exists():
             raise serializers.ValidationError(f"Evaluación Rubrica con id '{value.id}' no existe.")
         return value
-    
-    def get_evaluacion_equivalencia_label(self, value):
+
+    def get_evaluacion_equivalencia_label(self, obj):
+        return obj.evaluacion_equivalencia.nombre if obj.evaluacion_equivalencia else None
+
+    def validate_evaluacion_equivalencia(self, value):
         if not EvaluacionEquivalencia.objects.filter(id=value.id).exists():
             raise serializers.ValidationError(f"Evaluación Equivalencia con id '{value.id}' no existe.")
         return value

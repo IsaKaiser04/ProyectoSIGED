@@ -1,4 +1,5 @@
 import React from "react";
+import "../../../styles/calificaciones.css";
 
 interface Props {
   credenciales: {
@@ -11,14 +12,6 @@ interface Props {
 }
 
 export default function CredencialesModal({ credenciales, estudianteNombre, onClose }: Props) {
-  const overlay: React.CSSProperties = {
-    position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
-    display: "flex", justifyContent: "center", alignItems: "center", zIndex: 99999
-  };
-  const card: React.CSSProperties = {
-    background: "white", borderRadius: "12px", padding: "32px", width: "480px",
-    maxWidth: "90vw", boxShadow: "0 8px 32px rgba(0,0,0,0.3)"
-  };
   const fieldBox: React.CSSProperties = {
     background: "#f0fdf4", border: "1px solid #86efac", borderRadius: "8px",
     padding: "16px", marginBottom: "12px"
@@ -31,8 +24,8 @@ export default function CredencialesModal({ credenciales, estudianteNombre, onCl
   };
 
   return (
-    <div style={overlay} onClick={onClose}>
-      <div style={card} onClick={(e) => e.stopPropagation()}>
+    <div className="glassmorphic-modal-overlay" onClick={onClose}>
+      <div className="glassmorphic-card" style={{ padding: "32px", width: "480px", maxWidth: "90vw" }} onClick={(e) => e.stopPropagation()}>
         <div style={{ textAlign: "center", marginBottom: "20px" }}>
           <div style={{ fontSize: "40px" }}>🎉</div>
           <h2 style={{ margin: "8px 0 4px", color: "#166534" }}>Matrícula Legalizada</h2>

@@ -1,5 +1,4 @@
 from django.db import models
-from django.conf import settings
 from .enums import MatriculaEstado
 
 
@@ -71,8 +70,8 @@ class Matricula(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='matriculas_creadas', on_delete=models.SET_NULL, null=True, blank=True)
-    legalizada_por = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='matriculas_legalizadas', on_delete=models.SET_NULL, null=True, blank=True)
+    creado_por = models.ForeignKey('actoresAcademicos.Cuenta', related_name='matriculas_creadas', on_delete=models.SET_NULL, null=True, blank=True)
+    legalizada_por = models.ForeignKey('actoresAcademicos.Cuenta', related_name='matriculas_legalizadas', on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         db_table = 'matricula'

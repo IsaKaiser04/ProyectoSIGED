@@ -8,7 +8,8 @@ interface MatriculaConEstudiante {
   asp_nombres: string;
   asp_apellidos: string;
   asp_correo_personal: string;
-  estudiante: number | null;
+  estudiante_id: number | null;
+  estudiante_nombre: string | null;
   institucion: number | null;
   paralelo: number | null;
   paralelo_nombre?: string;
@@ -19,10 +20,11 @@ interface EstudianteData {
   id: number;
   nombres: string;
   apellidos: string;
-  identificacion: string;
   correo_personal: string;
   celular: string;
   institucion: number | null;
+  grado?: string;
+  paralelo?: string;
 }
 
 const th: React.CSSProperties = {
@@ -39,6 +41,7 @@ export const EstudiantesListado: React.FC = () => {
   const [estudiantes, setEstudiantes] = useState<EstudianteData[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
+  const [refrescar, setRefrescar] = useState(0);
 
   useEffect(() => {
     const cargar = async () => {
@@ -46,45 +49,57 @@ export const EstudiantesListado: React.FC = () => {
       try {
         const institucionId = usuario?.institucion_id;
 
-        // 1. Obtener estudiantes con perfil Estudiante en la BD
+        // 1. Cargar paralelos para resolver grado y nombre del paralelo
+        const paralelosApi = await apiGet<any[]>("/planificacion/paralelos/").catch(() => []);
+        const paraleloMap = new Map(paralelosApi.map((p: any) => [p.id, p]));
+
+        // 2. Obtener estudiantes con perfil de usuario ya creado en el sistema
         let estudiantesApi = await apiGet<EstudianteData[]>("/actoresAcademicos/estudiantes/").catch(() => []);
         if (institucionId) {
-          estudiantesApi = (estudiantesApi || []).filter(
-            (e) => e.institucion === institucionId
-          );
+          estudiantesApi = (estudiantesApi || []).filter((e) => e.institucion === institucionId);
         }
 
-        // 2. Obtener matrículas legalizadas para complementar
+        // 3. Obtener SOLO matrículas Legalizadas del servidor (sin localStorage)
         const matriculas = await apiGet<MatriculaConEstudiante[]>("/matricula/matriculas/").catch(() => []);
-        const matriculasInst = institucionId
-          ? (matriculas || []).filter((m) => m.institucion === institucionId)
-          : (matriculas || []);
-
-        const legalizadas = matriculasInst.filter((m) => m.estado === "Legalizada");
-
-        // 3. Mezclar: estudiantes con perfil + aspirantes de legalizadas
-        const idsPerfil = new Set(estudiantesApi.map((e) => e.id));
-
-        for (const m of legalizadas) {
-          if (m.estudiante && !idsPerfil.has(m.estudiante)) {
-            const perfil = estudiantesApi.find((e) => e.id === m.estudiante);
-            if (perfil) idsPerfil.add(perfil.id);
-          }
+        let legalizadas = (matriculas || []).filter((m) => m.estado === "Legalizada");
+        if (institucionId) {
+          legalizadas = legalizadas.filter((m) => m.institucion === institucionId);
         }
 
-        setEstudiantes(estudiantesApi);
-      } catch { setEstudiantes([]); }
-      finally { setLoading(false); }
+        // 4. Complementar con aspirantes legalizados que aún no tienen perfil creado
+        const idsPerfil = new Set(estudiantesApi.map((e) => e.id));
+        const deMatriculas: EstudianteData[] = legalizadas
+          .filter((m) => !(m.estudiante_id && idsPerfil.has(m.estudiante_id)))
+          .map((m) => {
+            const p = paraleloMap.get(Number(m.paralelo));
+            return {
+              id: -(m.id),
+              nombres: m.asp_nombres || "—",
+              apellidos: m.asp_apellidos || "—",
+              correo_personal: m.asp_correo_personal || "",
+              celular: "",
+              institucion: institucionId ?? null,
+              grado: p?.gradoOfertadoGradoNombre || p?.gradoOfertadoNombre || "",
+              paralelo: m.paralelo_nombre || p?.nombre || "",
+            };
+          });
+
+        setEstudiantes([...estudiantesApi, ...deMatriculas]);
+      } catch {
+        setEstudiantes([]);
+      } finally {
+        setLoading(false);
+      }
     };
     cargar();
-  }, [usuario?.institucion_id]);
+  }, [usuario?.institucion_id, refrescar]);
+
 
   const filtrados = estudiantes.filter(
     (e) =>
       !busqueda ||
       e.nombres.toLowerCase().includes(busqueda.toLowerCase()) ||
-      e.apellidos.toLowerCase().includes(busqueda.toLowerCase()) ||
-      e.identificacion.includes(busqueda)
+      e.apellidos.toLowerCase().includes(busqueda.toLowerCase())
   );
 
   return (
@@ -96,19 +111,27 @@ export const EstudiantesListado: React.FC = () => {
         </p>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
         <p style={{ margin: 0, fontSize: "var(--font-body-sm)", color: "var(--on-surface-variant)" }}>
           {filtrados.length} estudiante(s)
         </p>
-        <input
-          placeholder="Buscar por nombre, apellido o c&eacute;dula..."
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          style={{
-            width: 300, height: 38, padding: "0 12px", borderRadius: 8,
-            border: "1px solid var(--outline-variant)", fontSize: 14,
-          }}
-        />
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button onClick={() => setRefrescar(prev => prev + 1)} disabled={loading} style={{
+            padding: "6px 14px", borderRadius: 6, border: "1px solid var(--outline)",
+            background: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600,
+          }}>
+            {loading ? "Cargando..." : "Refrescar"}
+          </button>
+          <input
+            placeholder="Buscar por nombre o apellido..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            style={{
+              width: 300, height: 38, padding: "0 12px", borderRadius: 8,
+              border: "1px solid var(--outline-variant)", fontSize: 14,
+            }}
+          />
+        </div>
       </div>
 
       {loading ? (
@@ -127,9 +150,9 @@ export const EstudiantesListado: React.FC = () => {
                 <th style={th}>#</th>
                 <th style={th}>Nombres</th>
                 <th style={th}>Apellidos</th>
-                <th style={th}>C&eacute;dula</th>
+                <th style={th}>Grado</th>
+                <th style={th}>Paralelo</th>
                 <th style={th}>Correo Personal</th>
-                <th style={th}>Celular</th>
               </tr>
             </thead>
             <tbody>
@@ -138,9 +161,9 @@ export const EstudiantesListado: React.FC = () => {
                   <td style={td}>{i + 1}</td>
                   <td style={{ ...td, fontWeight: 600 }}>{e.nombres}</td>
                   <td style={td}>{e.apellidos}</td>
-                  <td style={td}>{e.identificacion}</td>
-                  <td style={td}>{e.correo_personal || "—"}</td>
-                  <td style={td}>{e.celular || "—"}</td>
+                  <td style={td}>{e.grado || ""}</td>
+                  <td style={td}>{e.paralelo || ""}</td>
+                  <td style={td}>{e.correo_personal || ""}</td>
                 </tr>
               ))}
             </tbody>

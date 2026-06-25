@@ -9,7 +9,7 @@ class EvaluacionCategoriaSerializer(serializers.ModelSerializer):
     class Meta:
         model = EvaluacionCategoria
         fields = ['id', 'nombre', 'nota_minima', 'nota_maxima', 
-        'subcategorias', 'periodoAcademico_id', 'tipo_calculo']
+        'subcategorias', 'periodoAcademico_id', 'tipo_calculo', 'padre']
 
     def get_subcategorias(self, obj):
         # Retorna las subcategorías hijas directas

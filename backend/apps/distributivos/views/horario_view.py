@@ -48,3 +48,40 @@ class HorarioViewSet(viewsets.ViewSet):
     def por_distributivo_asignatura(self, request):
         distributivo_asignatura_id = request.query_params.get('distributivo_asignatura_id')
         return Response(HorarioService.por_distributivo_asignatura(distributivo_asignatura_id))
+
+    @action(detail=False, methods=['get'], url_path='por-paralelo')
+    def por_paralelo(self, request):
+        paralelo_id = request.query_params.get('paralelo_id')
+        if not paralelo_id:
+            return Response({'error': 'paralelo_id es obligatorio'}, status=400)
+        return Response(HorarioService.por_paralelo(paralelo_id))
+
+    @action(detail=False, methods=['get'], url_path='mi-horario')
+    def mi_horario(self, request):
+        cuenta_id = request.user.id
+        return Response(HorarioService.por_docente_actual(cuenta_id))
+
+    @action(detail=False, methods=['get'], url_path='por-estudiante')
+    def por_estudiante(self, request):
+        from apps.actoresAcademicos.models.estudiante import Estudiante
+        from apps.matricula.models import Matricula
+
+        estudiante = Estudiante.objects.filter(cuenta_id=request.user.id).first()
+        if not estudiante:
+            return Response({'error': 'Perfil de estudiante no encontrado'}, status=404)
+
+        matricula = Matricula.objects.filter(
+            estudiante=estudiante,
+            estado__iexact='LEGALIZADA'
+        ).select_related('paralelo').first()
+        if not matricula:
+            return Response({'error': 'No tienes una matrícula legalizada'}, status=404)
+
+        return Response(HorarioService.por_paralelo(matricula.paralelo_id))
+
+    @action(detail=False, methods=['get'], url_path='todos-paralelos')
+    def todos_paralelos(self, request):
+        anio_lectivo_id = request.query_params.get('anio_lectivo_id')
+        if anio_lectivo_id:
+            anio_lectivo_id = int(anio_lectivo_id)
+        return Response(HorarioService.todos_paralelos(anio_lectivo_id))

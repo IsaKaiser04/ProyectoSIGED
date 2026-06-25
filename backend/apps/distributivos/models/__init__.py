@@ -1,3 +1,4 @@
+from .bloque_horario import BloqueHorario
 from .distributivo import Distributivo
 from .distributivo_asignatura import DistributivoAsignatura
 from .enums import DiasSemana, HorarioTipo, PlanificacionEstado

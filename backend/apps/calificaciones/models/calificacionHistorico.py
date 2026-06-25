@@ -7,7 +7,6 @@ class CalificacionHistorico(models.Model):
     observacion = models.TextField(blank=True)
     fecha_registro = models.DateTimeField(auto_now_add=True)
 
-    entrega_id = models.PositiveBigIntegerField(null=True, blank=True)
     calificacion = models.ForeignKey(
         'Calificacion',
         on_delete=models.CASCADE,

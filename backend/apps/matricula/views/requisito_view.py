@@ -38,6 +38,21 @@ class RequisitoViewSet(viewsets.ViewSet):
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
         return Response(data)
 
+    @action(detail=True, methods=['post'])
+    def solicitar_correccion(self, request, pk=None):
+        data, errors = RequisitoService.solicitar_correccion(pk)
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(data)
+
+    @action(detail=True, methods=['post'])
+    def subir_archivo(self, request, pk=None):
+        archivo = request.FILES.get('archivo')
+        data, errors = RequisitoService.subir_archivo(pk, archivo)
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(data)
+
     def destroy(self, request, pk=None):
         if not RequisitoService.delete(pk):
             return Response({'error': 'Requisito no encontrado'}, status=status.HTTP_404_NOT_FOUND)
