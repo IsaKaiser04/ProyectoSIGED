@@ -46,7 +46,7 @@ export const NAVIGATION_AUTORIDAD: NavGroup[] = [
     items: [
       { view: "distributivo-docente", label: "Distributivo Docente", icon: "🧑‍🏫" },
       { view: "carga-horaria", label: "Carga Horaria Semanal", icon: "⏰" },
-      { view: "horarios-paralelos", label: "Horarios por Paralelo", icon: "📅" },
+      { view: "horarios-paralelos", label: "Horarios Cursos", icon: "📅" },
       { view: "pca", label: "Planificación Curricular (PCA)", icon: "📋" },
     ],
   },
@@ -62,7 +62,7 @@ export const NAVIGATION_AUTORIDAD: NavGroup[] = [
   {
     groupLabel: "Supervisión y Gobernanza",
     items: [
-      { view: "seguimiento-eva", label: "Seguimiento EVA", icon: "💻" },
+      { view: "aulas-virtuales", label: "Aulas Virtuales", icon: "💻" },
       { view: "documentacion-gobernanza", label: "Documentación (PEI/CC/PGR)", icon: "📁" },
     ],
   },

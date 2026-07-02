@@ -1,6 +1,6 @@
 from django.urls import path
 from apps.actoresAcademicos.views.administrador_view import AdministradorListCreateView, AdministradorDetailView
-from apps.actoresAcademicos.views.estudiante_view import EstudianteListCreateView, EstudianteDetailView    
+from apps.actoresAcademicos.views.estudiante_view import EstudianteListCreateView, EstudianteDetailView, ListaEstudiantesRegistroNotasView    
 from apps.actoresAcademicos.views.docente_view import DocenteListCreateView, DocenteDetailView
 from apps.actoresAcademicos.views.autoridad_view import AutoridadListCreateView, AutoridadDetailView
 from apps.actoresAcademicos.views.secretaria_view import SecretariaListCreateView, SecretariaDetailView
@@ -11,8 +11,6 @@ from apps.actoresAcademicos.views.usuario_actual_view import UsuarioActualView
 from apps.actoresAcademicos.views.usuario_registro_view import UsuarioRegistroAdminView
 from apps.actoresAcademicos.views.primer_admin_view import PrimerAdminView
 urlpatterns = [
-    # ... tus rutas anteriores de estudiantes, docentes, etc. ...
-
     # Gestión de Cuentas del Sistema
     path('cuentas/', CuentaListAPIView.as_view(), name='cuenta-list'),
     path('cuentas/<int:pk>/', CuentaDetailUpdateDestroyAPIView.as_view(), name='cuenta-detail'),
@@ -24,6 +22,9 @@ urlpatterns = [
     # Estudiantes
     path('estudiantes/', EstudianteListCreateView.as_view(), name='estudiante-list-create'),
     path('estudiantes/<int:pk>/', EstudianteDetailView.as_view(), name='estudiante-detail'),
+    
+    # Estudiantes para Registro de Notas (Docente)
+    path('estudiantes/para-registro-notas/', ListaEstudiantesRegistroNotasView.as_view(), name='estudiante-para-registro-notas'),
     
     # Docentes
     path('docentes/', DocenteListCreateView.as_view(), name='docente-list-create'),

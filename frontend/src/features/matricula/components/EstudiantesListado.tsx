@@ -49,27 +49,26 @@ export const EstudiantesListado: React.FC = () => {
       try {
         const institucionId = usuario?.institucion_id;
 
-        // 0. Cargar paralelos para resolver grado y paralelo de matrículas existentes
+        // 1. Cargar paralelos para resolver grado y nombre del paralelo
         const paralelosApi = await apiGet<any[]>("/planificacion/paralelos/").catch(() => []);
         const paraleloMap = new Map(paralelosApi.map((p: any) => [p.id, p]));
 
-        // 1. Obtener estudiantes con perfil Estudiante en la BD
+        // 2. Obtener estudiantes con perfil de usuario ya creado en el sistema
         let estudiantesApi = await apiGet<EstudianteData[]>("/actoresAcademicos/estudiantes/").catch(() => []);
         if (institucionId) {
-          estudiantesApi = (estudiantesApi || []).filter(
-            (e) => e.institucion === institucionId
-          );
+          estudiantesApi = (estudiantesApi || []).filter((e) => e.institucion === institucionId);
         }
 
-        // 2. Obtener matrículas legalizadas para complementar
+        // 3. Obtener SOLO matrículas Legalizadas del servidor (sin localStorage)
         const matriculas = await apiGet<MatriculaConEstudiante[]>("/matricula/matriculas/").catch(() => []);
         let legalizadas = (matriculas || []).filter((m) => m.estado === "Legalizada");
         if (institucionId) {
           legalizadas = legalizadas.filter((m) => m.institucion === institucionId);
         }
 
-        // 3. Mezclar: estudiantes con perfil + aspirantes de legalizadas sin perfil
+        // 4. Complementar con aspirantes legalizados que aún no tienen perfil creado
         const idsPerfil = new Set(estudiantesApi.map((e) => e.id));
+<<<<<<< HEAD
 
         const deMatriculas: EstudianteData[] = [];
         const vistos = new Set<string>();
@@ -118,13 +117,34 @@ export const EstudiantesListado: React.FC = () => {
             if (modificado) localStorage.setItem("siged_matriculas_v2", JSON.stringify(locales));
           }
         } catch {}
+=======
+        const deMatriculas: EstudianteData[] = legalizadas
+          .filter((m) => !(m.estudiante_id && idsPerfil.has(m.estudiante_id)))
+          .map((m) => {
+            const p = paraleloMap.get(Number(m.paralelo));
+            return {
+              id: -(m.id),
+              nombres: m.asp_nombres || "—",
+              apellidos: m.asp_apellidos || "—",
+              correo_personal: m.asp_correo_personal || "",
+              celular: "",
+              institucion: institucionId ?? null,
+              grado: p?.gradoOfertadoGradoNombre || p?.gradoOfertadoNombre || "",
+              paralelo: m.paralelo_nombre || p?.nombre || "",
+            };
+          });
+>>>>>>> 6b0e3da07951ba87377cb197e4fe05ed3a0c4937
 
         setEstudiantes([...estudiantesApi, ...deMatriculas]);
-      } catch { setEstudiantes([]); }
-      finally { setLoading(false); }
+      } catch {
+        setEstudiantes([]);
+      } finally {
+        setLoading(false);
+      }
     };
     cargar();
   }, [usuario?.institucion_id, refrescar]);
+
 
   const filtrados = estudiantes.filter(
     (e) =>

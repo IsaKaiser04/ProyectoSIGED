@@ -7,7 +7,11 @@ class HorarioRepository:
         return Horario.objects.select_related(
             'distributivo', 'distributivo__docente',
             'distributivo_asignatura', 'distributivo_asignatura__asignatura_ofertada',
+            'distributivo_asignatura__asignatura_ofertada__gradoOfertado',
+            'distributivo_asignatura__asignatura_ofertada__gradoOfertado__grado',
             'distributivo_asignatura__paralelo',
+            'distributivo_asignatura__paralelo__gradoOfertado',
+            'distributivo_asignatura__paralelo__gradoOfertado__grado',
             'jornada_hora', 'bloque_horario',
         ).all()
 
