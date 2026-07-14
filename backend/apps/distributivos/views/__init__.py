@@ -1,7 +1,0 @@
-from .bloque_horario_view import BloqueHorarioViewSet
-from .distributivo_asignatura_view import DistributivoAsignaturaViewSet
-from .distributivo_view import DistributivoViewSet
-from .horario_view import HorarioViewSet
-from .jornada_hora_view import JornadaHoraViewSet
-from .planificacion_curricular_historial_view import PlanificacionCurricularHistorialViewSet
-from .planificacion_curricular_view import PlanificacionCurricularViewSet

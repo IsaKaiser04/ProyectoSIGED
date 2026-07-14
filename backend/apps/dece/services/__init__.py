@@ -1,3 +1,0 @@
-from .adaptacion_curricular_evidencia_service import AdaptacionCurricularEvidenciaService
-from .adaptacion_curricular_planificacion_service import AdaptacionCurricularPlanificacionService
-from .adaptacion_curricular_service import AdaptacionCurricularService

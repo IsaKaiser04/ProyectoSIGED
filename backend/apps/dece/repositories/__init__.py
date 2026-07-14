@@ -1,3 +1,0 @@
-from .adaptacion_curricular_evidencia_repository import AdaptacionCurricularEvidenciaRepository
-from .adaptacion_curricular_planificacion_repository import AdaptacionCurricularPlanificacionRepository
-from .adaptacion_curricular_repository import AdaptacionCurricularRepository

@@ -1,1 +1,0 @@
-export { AulaVirtualApp } from "./AulaVirtualApp";
