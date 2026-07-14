@@ -23,12 +23,15 @@ El sistema se desarrollará bajo una arquitectura basada en el patrón: Modelo -
 ## 1. Clonar el repositorio
 
 git clone -b develop https://github.com/IsaKaiser04/ProyectoSIGED.git
+
 cd ProyectoSIGED
 
 También puedes clonar el repositorio completo y cambiar a la rama de desarrollo:
 
 git clone https://github.com/IsaKaiser04/ProyectoSIGED.git
+
 cd ProyectoSIGED
+
 git checkout develop
 
 ## 2. Dependencias requeridas
