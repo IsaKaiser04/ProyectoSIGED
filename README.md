@@ -18,130 +18,30 @@ El sistema está diseñado para ser escalable, permitiendo integrar nuevas funci
 
 El sistema se desarrollará bajo una arquitectura basada en el patrón: Modelo - Vista - Controlador (MVC) (adaptado en Django como MVT)
 
-# Instalación y Ejecución
 
-## 1. Clonar el repositorio
+> ⚠️ **Este repositorio se encuentra en desarrollo activo en la rama `develop`.**
+> La rama `main` no contiene la versión funcional ni actualizada del proyecto.
 
+## 📌 Ir a la rama de desarrollo
+
+Todo el código, la documentación completa, la arquitectura, las instrucciones de instalación y el estado actual del sistema se encuentran en:
+
+🔗 **[https://github.com/IsaKaiser04/ProyectoSIGED/tree/develop](https://github.com/IsaKaiser04/ProyectoSIGED/tree/develop)**
+
+### Clonar directamente en la rama develop
+
+```bash
 git clone -b develop https://github.com/IsaKaiser04/ProyectoSIGED.git
-
 cd ProyectoSIGED
+```
 
-También puedes clonar el repositorio completo y cambiar a la rama de desarrollo:
+O si ya clonaste el repositorio completo:
 
-git clone https://github.com/IsaKaiser04/ProyectoSIGED.git
-
-cd ProyectoSIGED
-
+```bash
 git checkout develop
+```
 
-## 2. Dependencias requeridas
+---
 
-### Backend
-
-* Python 3.10+
-* Django 5.2.13
-* djangorestframework
-* PyJWT
-* django-cors-headers
-* django-filter
-* Pillow
-
-### Frontend
-
-* Node.js 18+
-* npm
-* React 19
-* TypeScript 5.8
-* Vite 8.1
-* Tailwind CSS 4.3
-
-
-# Ejecución del Backend
-
-## Windows
-
-cd backend
-
-python -m venv venv
-
-venv\Scripts\activate
-
-pip install django djangorestframework PyJWT django-cors-headers django-filter Pillow
-
-python manage.py migrate
-
-python manage.py createsuperuser
-
-python manage.py runserver
-
-
-## Linux
-cd backend
-
-python3 -m venv venv
-
-source venv/bin/activate
-
-pip install django djangorestframework PyJWT django-cors-headers django-filter Pillow
-
-python manage.py migrate
-
-python manage.py createsuperuser
-
-python manage.py runserver
-
-
-
-Backend disponible en:
-
-
-http://localhost:8000
-
-
-# Ejecución del Frontend
-
-## Windows y Linux
-
-
-cd frontend
-
-npm install
-
-npm run dev
-
-
-Frontend disponible en:
-
-http://localhost:5173
-
-
-
-# Estructura General del Proyecto
-
-ProyectoSIGED/
-├── backend/
-│   ├── manage.py
-│   ├── sga/
-│   └── apps/
-│       ├── actoresAcademicos/
-│       ├── planificacion/
-│       ├── calificaciones/
-│       ├── distributivos/
-│       ├── matricula/
-│       ├── asistencia/
-│       ├── comunicacion/
-│       ├── dece/
-│       ├── gobernanza/
-│       ├── institucion/
-│       └── ubicacion/
-└── frontend/
-    ├── package.json
-    └── src/
-        ├── app/
-        ├── features/
-        ├── services/
-        └── components/
-
-
-
-
+Proyecto académico - Universidad Nacional de Loja (UNL)
+Carrera: 5to Ciclo - Desarrollo Basado en Plataformas
