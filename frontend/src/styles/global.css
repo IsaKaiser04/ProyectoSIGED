@@ -1,0 +1,388 @@
+@import "tailwindcss";
+
+/* =========================================================================
+   VARIABLES GLOBALES - SISTEMA DE DISEÑO "PROFESSIONAL TRUST"
+   ========================================================================= */
+:root {
+  /* Paleta de Colores Core */
+  --primary: #0a192f;                  /* Midnight Navy Base (Fondo Sidebar Oscuro) */
+  --primary-container: #0a192f;
+  --on-primary: #ffffff;
+  --on-primary-container: #94a3b8;     /* Gris claro para ítems inactivos */
+  
+  --secondary: #006d43;                /* Forest Emerald Base (Botones activos y Nueva Matrícula) */
+  --on-secondary: #ffffff;
+  --secondary-container: #d1fae5;      /* Verde claro para badges de legalizada/activo */
+  --on-secondary-container: #065f46;
+
+  /* Estados de Matrículas específicos de tu captura */
+  --info-container: #eff6ff;           /* Azul claro para "Total Matrículas" */
+  --info-text: #1d4ed8;
+  --warning-container: #fef3c7;        /* Amarillo claro para "Pendientes" */
+  --warning-text: #b45309;
+  --error-container: #fee2e2;          /* Rojo claro para "Rechazadas" */
+  --error: #ba1a1a;
+
+  /* Escala Neutra de Superficies */
+  --background: #f8fafc;               /* Gris premium de fondo de pantalla */
+  --surface: #ffffff;
+  --surface-container-low: #f1f5f9;
+  --on-surface: #0f172a;               /* Slate 900 para textos principales */
+  --on-surface-variant: #64748b;       /* Slate 500 para subtítulos */
+  
+  --outline-variant: #e2e8f0;          /* Bordes limpios de tablas y cards */
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { 
+  min-height: 100vh; 
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--on-surface);
+  background-color: var(--background);
+}
+
+/* =========================================================================
+   ESTRUCTURA MAESTRA DEL LAYOUT
+   ========================================================================= */
+.app-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--background);
+}
+
+.content-layout {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.page-content {
+  flex: 1;
+  padding: 24px 32px;
+  overflow-y: auto;
+}
+
+/* =========================================================================
+   SIDEBAR AJUSTADO A TU CAPTURA REAL
+   ========================================================================= */
+.sidebar {
+  width: 260px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  flex-shrink: 0;
+  background: var(--primary);
+  color: var(--on-primary);
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-header {
+  padding: 24px 20px;
+}
+
+.sidebar-header h1 {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--on-primary);
+  letter-spacing: 0.5px;
+}
+
+.sidebar-header p {
+  color: var(--on-primary-container);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 10px 14px;
+  overflow-y: auto;
+}
+
+/* Botón Destacado de "NUEVA MATRÍCULA" */
+.btn-sidebar-action {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--secondary);
+  color: var(--on-secondary);
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 24px;
+  transition: background 0.2s ease;
+}
+
+.btn-sidebar-action:hover {
+  background: #005635;
+}
+
+/* Ítems normales del menú */
+.sidebar-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--on-primary-container);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  transition: all 0.15s ease;
+  margin-bottom: 4px;
+}
+
+.sidebar-item:hover {
+  color: var(--on-primary);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Estado Activo fiel a tu captura (Fondo Verde con Letras Blancas) */
+.sidebar-item.active {
+  background: var(--secondary);
+  color: var(--on-secondary);
+  font-weight: 600;
+}
+
+/* =========================================================================
+   SIDEBAR COLAPSADO (MENÚ HAMBURGUESA)
+   ========================================================================= */
+.app-layout.sidebar-collapsed .sidebar {
+  width: 70px;
+}
+.app-layout.sidebar-collapsed .sidebar-header h1 {
+  font-size: 18px;
+  text-align: center;
+}
+.app-layout.sidebar-collapsed .sidebar-header p,
+.app-layout.sidebar-collapsed .sidebar-group-title,
+.app-layout.sidebar-collapsed .sidebar-item span:nth-child(2) {
+  display: none;
+}
+.app-layout.sidebar-collapsed .sidebar-item {
+  justify-content: center;
+  padding: 12px;
+}
+.app-layout.sidebar-collapsed .sidebar-header {
+  padding: 24px 10px;
+  text-align: center;
+}
+
+/* =========================================================================
+   TOPBAR Y CABECERAS
+   ========================================================================= */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 32px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--outline-variant);
+}
+
+.topbar-title-group h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.topbar-title-group p {
+  font-size: 13px;
+  color: var(--on-surface-variant);
+  margin-top: 2px;
+}
+
+.topbar-user {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.topbar-info {
+  text-align: right;
+}
+
+.topbar-name {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.topbar-role {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+}
+
+/* =========================================================================
+   COMPONENTES NUEVOS PARA RECTIFICAR TU CONTROL DE MATRÍCULAS
+   ========================================================================= */
+
+/* 1. Fila de Tarjetas KPI superiores */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--outline-variant);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  border-left: 4px solid var(--outline-variant);
+}
+
+/* Inyección de colores de bordes dinámicos de tu captura */
+.kpi-card.total { border-left-color: var(--info-text); }
+.kpi-card.pendiente { border-left-color: var(--warning-text); }
+.kpi-card.legalizada { border-left-color: var(--on-secondary-container); }
+.kpi-card.rechazada { border-left-color: var(--error); }
+
+.kpi-card .number {
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.kpi-card.total .number { color: var(--info-text); }
+.kpi-card.pendiente .number { color: var(--warning-text); }
+.kpi-card.legalizada .number { color: var(--on-secondary-container); }
+.kpi-card.rechazada .number { color: var(--error); }
+
+.kpi-card .label {
+  font-size: 14px;
+  color: var(--on-surface-variant);
+  font-weight: 500;
+}
+
+/* 2. Barra de Filtros y Búsqueda */
+.filter-bar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+.search-input-wrapper {
+  flex: 1;
+  position: relative;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--outline-variant);
+  font-size: 14px;
+  background: var(--surface);
+}
+
+.filter-select {
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--outline-variant);
+  font-size: 14px;
+  background: var(--surface);
+  color: var(--on-surface);
+  cursor: pointer;
+}
+
+.btn-inline-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: var(--secondary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* 3. Estructura de Tablas Corregida */
+.table-container {
+  background: var(--surface);
+  border: 1px solid var(--outline-variant);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  background: #0f172a; /* Cabecera oscura idéntica a tu foto */
+  color: white;
+  padding: 14px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.table td {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--outline-variant);
+  font-size: 14px;
+}
+
+.table tbody tr:hover {
+  background: var(--surface-container-low);
+}
+
+/* 4. Badges de Estado Exactas */
+.badge {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  display: inline-block;
+}
+
+.badge.solicitud {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.badge.legalizada {
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
+}
+
+/* Botones de acción pequeños de la tabla */
+.row-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--outline-variant);
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+}

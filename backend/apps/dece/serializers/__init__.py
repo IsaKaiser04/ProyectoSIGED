@@ -1,0 +1,3 @@
+from .adaptacion_curricular_evidencia_serializer import AdaptacionCurricularEvidenciaSerializer
+from .adaptacion_curricular_planificacion_serializer import AdaptacionCurricularPlanificacionSerializer
+from .adaptacion_curricular_serializer import AdaptacionCurricularSerializer
