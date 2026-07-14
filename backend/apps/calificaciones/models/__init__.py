@@ -1,0 +1,17 @@
+from apps.calificaciones.models.tipoCalculo import TipoCalculo
+from apps.calificaciones.models.evaluacionTipo import EvaluacionTipo
+from apps.calificaciones.models.incidenciaTipo import IncidenciaTipo
+from apps.calificaciones.models.calificacionesMejoraTipo import CalificacionMejoraTipo
+
+from apps.calificaciones.models.evaluacionCategoria import EvaluacionCategoria
+from apps.calificaciones.models.evaluacionRubrica import EvaluacionRubrica
+from apps.calificaciones.models.evaluacionEquivalencia import EvaluacionEquivalencia
+from apps.calificaciones.models.evaluacionCriterio import EvaluacionCriterio
+from apps.calificaciones.models.evaluacionLibro import EvaluacionLibro
+from apps.calificaciones.models.asignaturaEvaluacion import AsignaturaEvaluacion
+from apps.calificaciones.models.calificacion import Calificacion
+from apps.calificaciones.models.calificacionHistorico import CalificacionHistorico
+from apps.calificaciones.models.calificacionMejora import CalificacionMejora
+from apps.calificaciones.models.Incidencia import Incidencia
+from apps.calificaciones.models.promedio import Promedio
+from apps.calificaciones.models.promedioCategoria import PromedioCategoria
