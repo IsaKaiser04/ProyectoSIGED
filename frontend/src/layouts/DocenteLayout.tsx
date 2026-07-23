@@ -5,6 +5,7 @@
 
 import React, { useState } from "react";
 import { getNavigationDocente } from "../config/navigationDocente";
+import { NavIcon } from "../config/NavIcon";
 import { UserMenu } from "../components/UserMenu";
 
 interface DocenteLayoutProps {
@@ -59,7 +60,7 @@ export const DocenteLayout: React.FC<DocenteLayoutProps> = ({
                     className={`sidebar-item ${isActive ? "active" : ""}`}
                     aria-current={isActive ? "page" : undefined}
                   >
-                    <span>{item.icon}</span>
+                    <NavIcon name={item.icon} size={18} />
                     <span>{item.label}</span>
                   </button>
                 );

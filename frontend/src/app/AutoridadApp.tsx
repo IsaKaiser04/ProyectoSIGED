@@ -16,6 +16,7 @@ import { MatriculaDashboard } from "../features/matricula/MatriculaDashboard";
 import { PeriodosMatriculaPage } from "../features/matricula/PeriodosMatriculaPage";
 import { RequisitosConfigPage } from "../features/matricula/RequisitosConfigPage";
 import { EstudiantesListado } from "../features/matricula/components/EstudiantesListado";
+import { AulaVirtualApp } from "../features/aula-virtual";
 import { useAuth } from "../features/autenticacion/context/AuthContext";
 import { apiGet } from "../services/apiClient";
 
@@ -175,10 +176,6 @@ export function AutoridadApp() {
       case "horarios-paralelos":
         return <HorariosParalelosPage />;
       // --- Gestión de Matrículas ---
-      case "periodos-matricula":
-        return <PeriodosMatriculaPage />;
-      case "requisitos-config":
-        return <RequisitosConfigPage />;
       case "control-matriculas":
         return <MatriculaDashboard />;
 
@@ -190,12 +187,8 @@ export function AutoridadApp() {
       case "documentacion-gobernanza":
         return <GobernanzaDashboard readOnly={false} />;
 
-      case "seguimiento-eva":
-        return (
-          <div className="content-heading" style={{ padding: "24px" }}>
-            <h2>Módulo en desarrollo</h2>
-          </div>
-        );
+      case "aulas-virtuales":
+        return <AulaVirtualApp />;
 
       default:
         return <InicioAutoridad institucionNombre={institucionNombre} />;
