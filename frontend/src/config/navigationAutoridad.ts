@@ -58,7 +58,10 @@ export const NAVIGATION_AUTORIDAD: NavGroup[] = [
       { view: "jornadas", label: "Jornadas Horarias", icon: "🌅" },
     ],
   },
+<<<<<<< HEAD
+=======
 
+>>>>>>> 3786df1e8f724880a8ab8bb655eda906c6e45619
   {
     groupLabel: "Supervisión y Gobernanza",
     items: [
