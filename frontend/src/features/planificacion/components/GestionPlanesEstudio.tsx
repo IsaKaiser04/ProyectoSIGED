@@ -4,6 +4,7 @@ import type { PlanEstudio, EducacionNivel, EducacionSubNivel } from '../../../ty
 import { useAuth } from '../../autenticacion/context/AuthContext';
 import { ConfirmDeleteModal } from '../../../components/ConfirmDeleteModal';
 import { showSuccess, showError, showWarning } from '../../../components/Toast';
+import ToggleConConfirmacion from './ToggleConConfirmacion';
 
 const labelStyle: React.CSSProperties = {
   display: 'block', marginBottom: 6, fontWeight: 600, fontSize: 'var(--font-body-sm)', color: 'var(--on-surface)',
@@ -146,15 +147,6 @@ const SubPlanes: React.FC = () => {
     }
   };
 
-  const handleToggleActivo = async (item: PlanEstudio) => {
-    try {
-      await planificacionApi.updatePlanEstudio(item.id, { esActivo: !item.esActivo });
-      const accion = item.esActivo ? 'desactivado' : 'activado';
-      showSuccess(`"${item.nombre}" ${accion} exitosamente`);
-      await cargar();
-    } catch { showError(`Error al cambiar estado de "${item.nombre}"`); }
-  };
-
   const handleEliminar = (id: number) => {
     const plan = data.find(item => item.id === id);
     setDeleteTarget({ id, nombre: plan?.nombre || '', type: 'plan' });
@@ -197,10 +189,17 @@ const SubPlanes: React.FC = () => {
               <tr key={d.id}>
                 <td style={{ ...tdStyle, fontWeight: 600 }}>{d.nombre}</td>
                 <td style={tdStyle}>{d.duracionAnios} año(s)</td>
-                <td style={tdStyle} onClick={() => handleToggleActivo(d)}>
-                  <div style={toggleTrack(d.esActivo)} title={d.esActivo ? 'Activo' : 'Inactivo'}>
-                    <div style={{ ...toggleThumb, left: d.esActivo ? 26 : 2 }} />
-                  </div>
+                <td style={tdStyle}>
+                  <ToggleConConfirmacion
+                    id={d.id}
+                    nombre={d.nombre}
+                    estadoInicial={d.esActivo}
+                    tipo="plan"
+                    onConfirmar={async (id, estado) => {
+                      await planificacionApi.updatePlanEstudio(id, { esActivo: estado });
+                      await cargar();
+                    }}
+                  />
                 </td>
                 <td style={tdStyle}>{d.descripcion || '—'}</td>
                 <td style={tdStyle}>

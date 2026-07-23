@@ -11,6 +11,7 @@ class AnioLectivo(models.Model):
         choices=AnioLectivoEstado.choices,
         default=AnioLectivoEstado.INACTIVO
     )
+    eliminado = models.BooleanField(default=False)
 
     institucion = models.ForeignKey('institucion.Institucion', on_delete=models.CASCADE, related_name='anios_lectivos', null=True, blank=True)
 

@@ -1,5 +1,5 @@
 import { apiGet, apiPost, apiPatch, apiDelete, buildModulePath } from '../../../services/apiClient';
-import type { AnioLectivo, Paralelo, PeriodoAcademico, OfertaAcademica, GradoOfertado, AsignaturaOfertada, PlanEstudio, EducacionNivel, EducacionSubNivel, Grado, Asignatura } from '../../../types/entities/planificacion';
+import type { AnioLectivo, Paralelo, PeriodoAcademico, OfertaAcademica, GradoOfertado, AsignaturaOfertada, PlanEstudio, EducacionNivel, EducacionSubNivel, Grado, Asignatura, PeriodoGradoInfo, PeriodoGradoDetalle } from '../../../types/entities/planificacion';
 
 const apiPost2 = <T>(path: string, data: Partial<T>) => apiPost<Partial<T>, T>(path, data);
 const apiPatch2 = <T>(path: string, data: Partial<T>) => apiPatch<Partial<T>, T>(path, data);
@@ -60,4 +60,7 @@ export const planificacionApi = {
   createParalelo: (data: Partial<Paralelo>) => apiPost2<Paralelo>(P('paralelos'), data),
   updateParalelo: (id: number, data: Partial<Paralelo>) => apiPatch2<Paralelo>(P(`paralelos/${id}`), data),
   deleteParalelo: (id: number) => apiDelete(P(`paralelos/${id}`)),
+
+  getGradosPeriodosInfo: () => apiGet<PeriodoGradoInfo[]>(P('grados/periodos-info')),
+  getGradoPeriodosInfo: (id: number) => apiGet<PeriodoGradoDetalle>(P(`grados/${id}/periodos-info`)),
 };

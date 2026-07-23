@@ -5,21 +5,21 @@ from ..models.enums import AnioLectivoEstado
 class AnioLectivoRepository:
     @staticmethod
     def get_all(institucion_id=None):
-        qs = AnioLectivo.objects.all()
+        qs = AnioLectivo.objects.filter(eliminado=False)
         if institucion_id is not None:
             qs = qs.filter(institucion_id=institucion_id)
         return qs.order_by('-fechaInicio')
 
     @staticmethod
     def get_activos(institucion_id=None):
-        qs = AnioLectivo.objects.filter(estado=AnioLectivoEstado.ACTIVO)
+        qs = AnioLectivo.objects.filter(estado=AnioLectivoEstado.ACTIVO, eliminado=False)
         if institucion_id is not None:
             qs = qs.filter(institucion_id=institucion_id)
         return qs
 
     @staticmethod
     def get_by_id(pk, institucion_id=None):
-        qs = AnioLectivo.objects.filter(pk=pk)
+        qs = AnioLectivo.objects.filter(pk=pk, eliminado=False)
         if institucion_id is not None:
             qs = qs.filter(institucion_id=institucion_id)
         return qs.first()
@@ -41,5 +41,5 @@ class AnioLectivoRepository:
         return instance
 
     @staticmethod
-    def delete(pk):
-        return AnioLectivo.objects.filter(pk=pk).delete()
+    def soft_delete(pk):
+        return AnioLectivo.objects.filter(pk=pk).update(eliminado=True)

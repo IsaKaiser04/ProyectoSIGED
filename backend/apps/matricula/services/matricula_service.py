@@ -1,5 +1,6 @@
 ﻿from django.utils import timezone
 from django.db import transaction
+from django.db.models import F
 from apps.matricula.repositories.matricula_repository import MatriculaRepository
 from apps.matricula.repositories.requisito_repository import RequisitoRepository
 from apps.matricula.serializers.matricula_serializer import (
@@ -99,17 +100,15 @@ class MatriculaService:
         if pendientes > 0:
             return None, {"error": f"No se puede legalizar. Hay {pendientes} requisito(s) pendiente(s) o rechazado(s)."}
 
-        # 2. Validar Cupos
+        # 2. Validar Cupos (actualización atómica con F() para prevenir race conditions)
         if matricula.paralelo_id and not matricula.exceder_cupo_autorizado:
-            try:
-                from apps.planificacion.models import Paralelo
-                paralelo = Paralelo.objects.select_for_update().get(pk=matricula.paralelo_id)
-                if paralelo.cuposOcupados >= paralelo.cuposMaximo:
-                    return None, {"error": "El paralelo no tiene cupos disponibles."}
-                paralelo.cuposOcupados += 1
-                paralelo.save()
-            except Paralelo.DoesNotExist:
-                pass
+            from apps.planificacion.models import Paralelo
+            actualizados = Paralelo.objects.filter(
+                pk=matricula.paralelo_id,
+                cuposOcupados__lt=F('cuposMaximo')
+            ).update(cuposOcupados=F('cuposOcupados') + 1)
+            if actualizados == 0:
+                return None, {"error": "El paralelo no tiene cupos disponibles."}
 
         # 3. Generar Codigo y Legalizar
         if not matricula.codigo_unico:
@@ -210,14 +209,11 @@ class MatriculaService:
             return False, {"error": "Matrícula no encontrada"}
 
         if matricula.estado == MatriculaEstado.LEGALIZADA and matricula.paralelo_id:
-            try:
-                from apps.planificacion.models import Paralelo
-                paralelo = Paralelo.objects.select_for_update().get(pk=matricula.paralelo_id)
-                if paralelo.cuposOcupados > 0:
-                    paralelo.cuposOcupados -= 1
-                    paralelo.save()
-            except Paralelo.DoesNotExist:
-                pass
+            from apps.planificacion.models import Paralelo
+            Paralelo.objects.filter(
+                pk=matricula.paralelo_id,
+                cuposOcupados__gt=0
+            ).update(cuposOcupados=F('cuposOcupados') - 1)
 
         matricula.estado = MatriculaEstado.ANULADA
         matricula.save()

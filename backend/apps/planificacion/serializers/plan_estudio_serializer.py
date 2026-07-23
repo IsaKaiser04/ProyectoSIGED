@@ -61,6 +61,18 @@ class GradoSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({
                     "planEstudio": "El plan de estudio seleccionado no pertenece a su institución."
                 })
+
+        nombre = attrs.get('nombre')
+        plan = attrs.get('planEstudio') or (self.instance.planEstudio if self.instance else None)
+        if nombre and plan:
+            qs = Grado.objects.filter(nombre=nombre, planEstudio=plan)
+            if self.instance:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise serializers.ValidationError({
+                    "nombre": f'Ya existe un grado con el nombre "{nombre}" en el plan de estudio "{plan.nombre}".'
+                })
+
         return attrs
 
 
@@ -69,13 +81,14 @@ class PlanEstudioSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PlanEstudio
-        fields = ['id', 'nombre', 'esActivo', 'descripcion', 'duracionAnios', 'institucion', 'grados']
+        fields = ['id', 'nombre', 'esActivo', 'descripcion', 'duracionAnios', 'institucion', 'eliminado', 'grados']
         extra_kwargs = {
             'nombre': {'required': True, 'max_length': 200},
             'esActivo': {'default': True},
             'descripcion': {'required': False},
             'duracionAnios': {'required': False, 'min_value': 1},
             'institucion': {'required': False},
+            'eliminado': {'read_only': True},
         }
 
     def validate(self, attrs):

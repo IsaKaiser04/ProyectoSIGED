@@ -7,7 +7,7 @@ from .views.paralelo_view import ParaleloViewSet
 
 # Importaciones antiguas (Las que no hemos tocado aún)
 from .views.educacion_view import EducacionNivelListCreateView, EducacionNivelDetailView, EducacionSubNivelListCreateView, EducacionSubNivelDetailView
-from .views.plan_estudio_view import PlanEstudioListCreateView, PlanEstudioDetailView, GradoListCreateView, GradoDetailView, AsignaturaListCreateView, AsignaturaDetailView
+from .views.plan_estudio_view import PlanEstudioListCreateView, PlanEstudioDetailView, GradoListCreateView, GradoDetailView, AsignaturaListCreateView, AsignaturaDetailView, grados_periodos_info, grado_periodos_detail
 from .views.calificacion_view import CalificacionListCreateView, CalificacionDetailView
 from .views.oferta_view import OfertaAcademicaListCreateView, OfertaAcademicaDetailView, GradoOfertadoListCreateView, GradoOfertadoDetailView, AsignaturaOfertadaListCreateView, AsignaturaOfertadaDetailView, preview_asignaturas, crear_grado_con_asignaturas
 
@@ -27,7 +27,9 @@ urlpatterns = [
     path('planes-estudio/', PlanEstudioListCreateView.as_view(), name='planestudio-list-create'),
     path('planes-estudio/<int:pk>/', PlanEstudioDetailView.as_view(), name='planestudio-detail'),
     path('grados/', GradoListCreateView.as_view(), name='grado-list-create'),
+    path('grados/periodos-info/', grados_periodos_info, name='grados-periodos-info'),
     path('grados/<int:pk>/', GradoDetailView.as_view(), name='grado-detail'),
+    path('grados/<int:pk>/periodos-info/', grado_periodos_detail, name='grado-periodos-detail'),
     path('asignaturas/', AsignaturaListCreateView.as_view(), name='asignatura-list-create'),
     path('asignaturas/<int:pk>/', AsignaturaDetailView.as_view(), name='asignatura-detail'),
     path('calificaciones/', CalificacionListCreateView.as_view(), name='calificacion-list-create'),

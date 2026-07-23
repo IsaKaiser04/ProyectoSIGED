@@ -24,6 +24,7 @@ class GradoOfertado(models.Model):
     class Meta:
         verbose_name = 'Grado Ofertado'
         verbose_name_plural = 'Grados Ofertados'
+        unique_together = [('grado', 'ofertaAcademica')]
 
 
 class AsignaturaOfertada(models.Model):

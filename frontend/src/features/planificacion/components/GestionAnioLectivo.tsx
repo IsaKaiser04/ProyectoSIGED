@@ -5,6 +5,7 @@ import { useAuth } from '../../autenticacion/context/AuthContext';
 import { ModalGobernanzaPorAnio } from '../../gobernanza/components/ModalGobernanzaPorAnio';
 import { ConfirmDeleteModal } from '../../../components/ConfirmDeleteModal';
 import { showSuccess, showError, showWarning } from '../../../components/Toast';
+import ToggleAnioLectivo from './ToggleAnioLectivo';
 
 const labelStyle: React.CSSProperties = {
   display: 'block', marginBottom: 6, fontWeight: 600, fontSize: 'var(--font-body-sm)', color: 'var(--on-surface)',
@@ -108,8 +109,8 @@ const GestionAnioLectivo: React.FC = () => {
         if (inicio >= fin) errs.fechaFin = '⚠️ Debe ser posterior a la fecha de inicio';
         else {
           const diffDays = Math.round((fin.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24));
-          if (diffDays < 270) errs.fechaFin = `⚠️ Muy corto: ${diffDays} días. El año lectivo en Ecuador dura ~10 meses (mín. 270 días)`;
-          if (diffDays > 330) errs.fechaFin = `⚠️ Muy largo: ${diffDays} días. El año lectivo no debe exceder 11 meses (330 días)`;
+          if (diffDays < 240) errs.fechaFin = `⚠️ Muy corto: ${diffDays} días. El mínimo permitido es 240 días (~8 meses)`;
+          if (diffDays > 365) errs.fechaFin = `⚠️ Muy largo: ${diffDays} días. El máximo permitido es 365 días (12 meses)`;
         }
       }
       const duplicado = data.some(a => a.nombre === form.nombre.trim() && (!editando || a.id !== editando.id));
@@ -179,15 +180,6 @@ const GestionAnioLectivo: React.FC = () => {
     }
   };
 
-  const handleToggleEstado = async (a: AnioLectivo) => {
-    try {
-      const nuevoEstado = a.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO';
-      await planificacionApi.updateAnioLectivo(a.id, { estado: nuevoEstado } as any);
-      showSuccess(`Año lectivo ${nuevoEstado === 'ACTIVO' ? 'activado' : 'desactivado'} exitosamente`);
-      await cargar();
-    } catch { showError('Error al cambiar el estado del año lectivo'); }
-  };
-
   const handleEliminar = async (id: number) => {
     const a = data.find(item => item.id === id);
     if (a && a.estado === 'ACTIVO') {
@@ -252,24 +244,24 @@ const GestionAnioLectivo: React.FC = () => {
                 </td>
                 <td style={td}>
                   {a.estado !== 'CERRADO' && (
-                    <div
-                      style={{
-                        width: 48, height: 24, borderRadius: 12, position: 'relative',
-                        cursor: 'pointer', display: 'inline-block', marginRight: 10,
-                        background: a.estado === 'ACTIVO' ? '#22c55e' : '#9ca3af',
-                        transition: 'all 0.2s',
+                    <ToggleAnioLectivo
+                      id={a.id}
+                      nombre={a.nombre}
+                      estadoInicial={a.estado === 'ACTIVO'}
+                      datosAnio={{
+                        ofertasCount: 0,
+                        gradosOfertadosCount: 0,
+                        paralelosCount: 0,
+                        estudiantesMatriculados: 0,
+                        docentesAsignados: 0,
+                        periodosConfigurados: a.periodosAcademicos?.length || 0,
+                        esUnicoActivo: data.filter(x => x.estado === 'ACTIVO').length <= 1,
                       }}
-                      onClick={() => handleToggleEstado(a)}
-                      title={a.estado === 'ACTIVO' ? 'Desactivar' : 'Activar'}
-                    >
-                      <div style={{
-                        width: 20, height: 20, borderRadius: '50%', background: '#fff',
-                        position: 'absolute', top: 2,
-                        left: a.estado === 'ACTIVO' ? 26 : 2,
-                        transition: 'left 0.2s',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                      }} />
-                    </div>
+                      onCambioEstado={async (id, estado) => {
+                        await planificacionApi.updateAnioLectivo(id, { estado: estado ? 'ACTIVO' : 'INACTIVO' } as any);
+                        await cargar();
+                      }}
+                    />
                   )}
                   <button type="button" onClick={() => abrirEditar(a)} title="Editar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: 6, fontSize: 15 }}>✏️</button>
                   <button type="button" onClick={() => a.estado === 'ACTIVO' ? showWarning('Desactive el año antes de eliminar') : handleEliminar(a.id)} title={a.estado === 'ACTIVO' ? 'Desactive para eliminar' : 'Eliminar'} style={{ background: 'transparent', border: 'none', cursor: a.estado === 'ACTIVO' ? 'not-allowed' : 'pointer', fontSize: 15, opacity: a.estado === 'ACTIVO' ? 0.3 : 1 }} disabled={a.estado === 'ACTIVO'}>🗑️</button>
@@ -320,7 +312,7 @@ const GestionAnioLectivo: React.FC = () => {
                 const m = (d / 30).toFixed(1);
                 return (
                   <div style={{ fontSize: 12, color: '#166534', fontWeight: 600, marginBottom: 16, padding: '8px 12px', background: '#dcfce7', borderRadius: 6 }}>
-                    Duración: {d} días (~{m} meses) — ideal ~10 meses (300-310 días)
+                    Duración: {d} días (~{m} meses) — rango permitido: 240-365 días
                   </div>
                 );
               })()

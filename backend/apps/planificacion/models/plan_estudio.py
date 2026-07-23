@@ -6,6 +6,7 @@ class PlanEstudio(models.Model):
     esActivo = models.BooleanField(default=True)
     descripcion = models.TextField(blank=True)
     duracionAnios = models.IntegerField(default=1)
+    eliminado = models.BooleanField(default=False)
 
     institucion = models.ForeignKey('institucion.Institucion', on_delete=models.CASCADE, related_name='planes_estudio', null=True, blank=True)
 
@@ -30,6 +31,7 @@ class Grado(models.Model):
     class Meta:
         verbose_name = 'Grado'
         verbose_name_plural = 'Grados'
+        unique_together = [('nombre', 'planEstudio')]
 
 
 class Asignatura(models.Model):

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { planificacionApi } from '../services/planificacionApi';
-import type { Grado, Asignatura, PlanEstudio, EducacionNivel, EducacionSubNivel } from '../../../types/entities/planificacion';
+import type { Grado, Asignatura, PlanEstudio, EducacionNivel, EducacionSubNivel, EstadoMalla, PeriodoGradoInfo } from '../../../types/entities/planificacion';
 import { ConfirmDeleteModal } from '../../../components/ConfirmDeleteModal';
 import { showSuccess, showError } from '../../../components/Toast';
 
@@ -59,11 +59,29 @@ const errorFieldStyle: React.CSSProperties = {
 // ============================================================
 // Sub-tab: Grados
 // ============================================================
-const SubGrados: React.FC = () => {
+
+const ESTADO_CONFIG: Record<EstadoMalla, { label: string; bg: string; color: string; icon: string }> = {
+  SIN_ASIGNATURAS: { label: 'Sin asignaturas', bg: '#f3f4f6', color: '#6b7280', icon: '○' },
+  INSUFICIENTE: { label: 'Insuficiente', bg: '#fee2e2', color: '#991b1b', icon: '◔' },
+  PARCIAL: { label: 'Parcial', bg: '#fef9c3', color: '#854d0e', icon: '◑' },
+  COMPLETO: { label: 'Completo', bg: '#dcfce7', color: '#166534', icon: '●' },
+  EXCEDIDO: { label: 'Excedido', bg: '#fce7f3', color: '#9d174d', icon: '◉' },
+};
+
+const getMensajeEstado = (info: PeriodoGradoInfo): string => {
+  if (info.estado === 'SIN_ASIGNATURAS') return 'Agregue asignaturas para configurar este grado';
+  if (info.estado === 'EXCEDIDO') return `Se exceden ${info.asignados - info.maximos} periodos. Elimine asignaturas`;
+  const faltan = info.maximos - info.asignados;
+  if (info.estado === 'COMPLETO') return 'Malla completa. Puede continuar con la Oferta Académica';
+  return `Faltan ${faltan} periodo${faltan !== 1 ? 's' : ''} para completar el grado`;
+};
+
+const SubGrados: React.FC<{ refreshTrigger?: number }> = ({ refreshTrigger = 0 }) => {
   const [data, setData] = useState<Grado[]>([]);
   const [planes, setPlanes] = useState<PlanEstudio[]>([]);
   const [niveles, setNiveles] = useState<EducacionNivel[]>([]);
   const [subniveles, setSubniveles] = useState<EducacionSubNivel[]>([]);
+  const [periodosMap, setPeriodosMap] = useState<Map<number, PeriodoGradoInfo>>(new Map());
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState<Grado | null>(null);
@@ -86,6 +104,15 @@ const SubGrados: React.FC = () => {
     return Object.keys(errs).length === 0;
   };
 
+  const cargarPeriodos = useCallback(async () => {
+    try {
+      const info = await planificacionApi.getGradosPeriodosInfo();
+      const map = new Map<number, PeriodoGradoInfo>();
+      (info || []).forEach(p => map.set(p.gradoId, p));
+      setPeriodosMap(map);
+    } catch { /* silent */ }
+  }, []);
+
   const cargar = async () => {
     setLoading(true);
     try {
@@ -96,10 +123,12 @@ const SubGrados: React.FC = () => {
         planificacionApi.getSubNiveles(),
       ]);
       setData(g || []); setPlanes(p || []); setNiveles(n || []); setSubniveles(s || []);
+      await cargarPeriodos();
     } catch { setData([]); }
     finally { setLoading(false); }
   };
   useEffect(() => { cargar(); }, []);
+  useEffect(() => { if (refreshTrigger > 0) cargarPeriodos(); }, [refreshTrigger]);
 
   const abrirCrear = () => {
     setEditando(null);
@@ -158,16 +187,20 @@ const SubGrados: React.FC = () => {
   const getPlanNombre = (id: number) => planes.find(p => p.id === id)?.nombre || `ID ${id}`;
   const getNivelNombre = (id: number) => niveles.find(n => n.id === id)?.nombre || `ID ${id}`;
   const getSubNombre = (id: number) => subniveles.find(s => s.id === id)?.nombre || `ID ${id}`;
-  const getPeriodosInfo = (g: Grado) => {
-    const totalSemana = g.asignaturas?.reduce((acc, curr) => acc + curr.periodoPedagogicoSemanaMinimo, 0) || 0;
-    const sub = subniveles.find(s => s.id === g.educacionSubNivel);
-    const niv = niveles.find(n => n.id === g.educacionNivel);
-    const minSemana = sub?.periodoPedagogicoSemanaMinimo || niv?.periodoPedagogicoSemanaMinimo || 0;
-    return {
-      total: totalSemana,
-      min: minSemana,
-      cumple: totalSemana >= minSemana
-    };
+
+  const getPorcentaje = (info: PeriodoGradoInfo): number => {
+    if (info.maximos === 0) return 0;
+    return Math.min(Math.round((info.asignados / info.maximos) * 100), 100);
+  };
+
+  const getBarColor = (estado: EstadoMalla): string => {
+    switch (estado) {
+      case 'COMPLETO': return '#22c55e';
+      case 'PARCIAL': return '#eab308';
+      case 'EXCEDIDO': return '#ec4899';
+      case 'INSUFICIENTE': return '#ef4444';
+      default: return '#d1d5db';
+    }
   };
 
   return (
@@ -184,14 +217,22 @@ const SubGrados: React.FC = () => {
             <th style={th}>Nivel</th>
             <th style={th}>Subnivel</th>
             <th style={th}>Periodos Semanales</th>
-            <th style={th}>Estado Malla</th>
+            <th style={{ ...th, minWidth: 200 }}>Estado Malla</th>
             <th style={th}>Acciones</th>
           </tr></thead>
           <tbody>
             {loading ? <tr><td colSpan={7} style={{ ...td, textAlign: 'center' }}>Cargando...</td></tr>
             : data.length === 0 ? <tr><td colSpan={7} style={{ ...td, textAlign: 'center', color: 'var(--on-surface-variant)' }}>Sin grados.</td></tr>
             : data.map(g => {
-              const info = getPeriodosInfo(g);
+              const info = periodosMap.get(g.id);
+              const asignados = info?.asignados ?? 0;
+              const maximos = info?.maximos ?? 0;
+              const estado: EstadoMalla = info?.estado ?? 'SIN_ASIGNATURAS';
+              const cfg = ESTADO_CONFIG[estado];
+              const pct = info ? getPorcentaje(info) : 0;
+              const barColor = getBarColor(estado);
+              const msg = info ? getMensajeEstado(info) : '';
+
               return (
                 <tr key={g.id}>
                   <td style={{ ...td, fontWeight: 600 }}>{g.nombre}</td>
@@ -199,17 +240,25 @@ const SubGrados: React.FC = () => {
                   <td style={td}>{getNivelNombre(g.educacionNivel)}</td>
                   <td style={td}>{getSubNombre(g.educacionSubNivel)}</td>
                   <td style={td}>
-                    {info.total} / {info.min} per.
+                    <span style={{ fontWeight: 600 }}>{asignados}</span>
+                    <span style={{ color: 'var(--on-surface-variant)' }}> / {maximos} per.</span>
                   </td>
-                  <td style={td}>
-                    <span style={{
-                      padding: '4px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600,
-                      background: info.cumple ? '#dcfce7' : '#fee2e2',
-                      color: info.cumple ? '#166534' : '#991b1b',
-                      display: 'inline-block'
-                    }}>
-                      {info.cumple ? 'Mínimo Cumplido' : 'Insuficiente'}
-                    </span>
+                  <td style={{ ...td }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{
+                          padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600,
+                          background: cfg.bg, color: cfg.color, display: 'inline-flex', alignItems: 'center', gap: 4,
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {cfg.icon} {cfg.label}
+                        </span>
+                      </div>
+                      <div style={{ width: '100%', height: 6, background: '#e5e7eb', borderRadius: 3, overflow: 'hidden' }}>
+                        <div style={{ width: `${pct}%`, height: '100%', background: barColor, borderRadius: 3, transition: 'width 0.4s ease' }} />
+                      </div>
+                      <span style={{ fontSize: 11, color: 'var(--on-surface-variant)' }}>{msg}</span>
+                    </div>
                   </td>
                   <td style={td}>
                     <button type="button" onClick={() => abrirEditar(g)} title="Editar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>✏️</button>
@@ -283,7 +332,7 @@ const SubGrados: React.FC = () => {
 // ============================================================
 // Sub-tab: Asignaturas
 // ============================================================
-const SubAsignaturas: React.FC = () => {
+const SubAsignaturas: React.FC<{ onDataChanged?: () => void }> = ({ onDataChanged }) => {
   const [data, setData] = useState<Asignatura[]>([]);
   const [grados, setGrados] = useState<Grado[]>([]);
   const [loading, setLoading] = useState(true);
@@ -360,6 +409,7 @@ const SubAsignaturas: React.FC = () => {
       setEditando(null);
       setForm({ nombre: '', periodoPedagogicoSemanaMinimo: 0, grado: 0 });
       await cargar();
+      onDataChanged?.();
     } catch { showError(editando ? 'Error al actualizar asignatura' : 'Error al crear asignatura'); }
   };
 
@@ -374,6 +424,7 @@ const SubAsignaturas: React.FC = () => {
       showSuccess('Asignatura eliminada exitosamente');
       setEliminarId(null);
       await cargar();
+      onDataChanged?.();
     } catch (err) {
       showError('Error al eliminar la asignatura.');
       setEliminarId(null);
@@ -477,6 +528,11 @@ const SubAsignaturas: React.FC = () => {
 // ============================================================
 const GestionGradosAsignaturas: React.FC = () => {
   const [subtab, setSubtab] = useState<'grados' | 'asignaturas'>('grados');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const handleAsignaturasChanged = useCallback(() => {
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
 
   const tabStyle = (active: boolean): React.CSSProperties => ({
     padding: '10px 20px', fontSize: 'var(--font-body-sm)', fontWeight: 600,
@@ -497,8 +553,8 @@ const GestionGradosAsignaturas: React.FC = () => {
         <button onClick={() => setSubtab('grados')} style={tabStyle(subtab === 'grados')}>Grados</button>
         <button onClick={() => setSubtab('asignaturas')} style={tabStyle(subtab === 'asignaturas')}>Asignaturas</button>
       </div>
-      {subtab === 'grados' && <SubGrados />}
-      {subtab === 'asignaturas' && <SubAsignaturas />}
+      {subtab === 'grados' && <SubGrados refreshTrigger={refreshTrigger} />}
+      {subtab === 'asignaturas' && <SubAsignaturas onDataChanged={handleAsignaturasChanged} />}
     </div>
   );
 };

@@ -93,3 +93,17 @@ export interface Paralelo {
   docenteTutor: number | null;
   docenteTutorNombre?: string | null;
 }
+
+export type EstadoMalla = 'SIN_ASIGNATURAS' | 'INSUFICIENTE' | 'PARCIAL' | 'COMPLETO' | 'EXCEDIDO';
+
+export interface PeriodoGradoInfo {
+  gradoId: number;
+  gradoNombre: string;
+  asignados: number;
+  maximos: number;
+  estado: EstadoMalla;
+}
+
+export interface PeriodoGradoDetalle extends PeriodoGradoInfo {
+  asignaturas: { id: number; nombre: string; periodoPedagogicoSemanaMinimo: number }[];
+}
