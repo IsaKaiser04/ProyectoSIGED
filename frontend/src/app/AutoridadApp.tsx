@@ -176,10 +176,6 @@ export function AutoridadApp() {
       case "horarios-paralelos":
         return <HorariosParalelosPage />;
       // --- Gestión de Matrículas ---
-      case "periodos-matricula":
-        return <PeriodosMatriculaPage />;
-      case "requisitos-config":
-        return <RequisitosConfigPage />;
       case "control-matriculas":
         return <MatriculaDashboard />;
 

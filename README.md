@@ -1,35 +1,37 @@
-# SIGED - Sistema Integral de Gestión Educativa Digital
+# Proyecto SIGED
 
-SIGED es una plataforma desarrollada para ayudar a las instituciones educativas municipales del cantón Loja a gestionar de manera digital sus procesos académicos y administrativos. El sistema reúne en un solo lugar información de estudiantes, docentes y autoridades, facilitando la organización, el seguimiento académico y la comunicación dentro de una comunidad educativa.
+El **Sistema de Gestión Académica (SIGED)** es una aplicación web orientada a la administración eficiente de la información académica de los estudiantes. Su objetivo principal es facilitar la gestión, consulta y seguimiento del rendimiento académico, así como mejorar la comunicación entre docentes, estudiantes y representantes legales.
 
-## Funciones principales
+El sistema está diseñado para ser escalable, permitiendo integrar nuevas funcionalidades en el futuro sin afectar su rendimiento o estructura. Además, SIGED garantiza el manejo responsable de los datos personales, asegurando su uso adecuado, almacenamiento seguro y disponibilidad para la toma de decisiones.
 
-* Gestión de usuarios y perfiles por rol (Administrador, Autoridad Académica, Secretaría, DECE, Docente, Estudiante).
-* Planificación académica: niveles educativos, planes de estudio, grados, asignaturas, años lectivos, períodos académicos, jornadas y paralelos.
-* Oferta académica: creación de grados ofertados y asignaturas ofertadas con asignación de paralelos.
-* Gestión distributiva: distribución docente, bloques horarios, horarios por paralelo y planificación curricular (PCA).
-* Matrícula y registro de estudiantes con wizard de matrícula, requisitos y control de períodos.
-* Control de asistencia: registro de clases, asistencia e incidencias.
-* Sistema de calificaciones: categorías de evaluación, rúbricas, equivalencias, criterios, libros de calificaciones, registro de notas por docente, mejora de calificaciones e históricos.
-* Gestión de gobernanza institucional por año lectivo.
-* Gestión de instituciones educativas con datos de ubicación (provincias, cantones, parroquias).
-* Seguimiento de estudiantes con necesidades educativas especiales (DECE): adaptaciones curriculares, evidencias y planificaciones.
-* Aula virtual para actividades y recursos educativos.
-* Comunicación: notificaciones y destinatarios (parcial).
+---
 
-## Funciones en desarrollo
+## Funcionamiento general del sistema
 
-* Aplicación móvil con Flutter.
-* Gestión de documentos institucionales.
-* Buzón de notificaciones y comunicados (frontend).
-* Adaptaciones curriculares DECE (frontend completo).
+- Comunicación en tiempo real entre docentes y representantes.
+- Consulta de notas (trimestrales, finales, actividades, exámenes).
+- Gestión docente: registro de tareas, subida de calificaciones, control de asistencia.
+- Acceso para representantes: visualización del rendimiento académico, seguimiento del estudiante.
+- Sistema de notificaciones: alertas por inasistencia, falta de tareas, bajo rendimiento académico.
 
-## Tecnologías utilizadas
+## Roles del sistema
 
-* **Backend:** Python 3, Django 5.2, Django REST Framework, django-filter, django-cors-headers, Pillow.
+* **Autoridad Académica** - Planificación académica, oferta, distributivos, matrícula, calificaciones y gobernanza.
+* **Secretaría** - Gestión de docentes, estudiantes, matrícula y seguimiento.
+* **Docente** - Registro de asistencia, calificaciones, aula virtual y vinculación curricular.
+* **Estudiante** - Consulta de notas, horario, aula virtual.
+* **Personal DECE** - Adaptaciones curriculares y seguimiento de casos.
+
+## Arquitectura del sistema
+
+El sistema se desarrolla bajo una arquitectura basada en el patrón **Modelo - Vista - Controlador (MVC)**, adaptado en Django como **MVT (Modelo - Vista - Template)**.
+
+### Stack tecnológico
+
 * **Frontend Web:** React 19, TypeScript 5.8, Vite 8.1, Tailwind CSS 4.3, Recharts, Lucide React.
+* **Backend:** Django 5.2.13, Django REST Framework.
 * **Base de datos:** SQLite3 (desarrollo), PostgreSQL (producción planificada).
-* **Autenticación:** JWT personalizado con control de acceso por roles.
+* **Autenticación:** JWT personalizado con control de acceso por roles (PyJWT).
 
 ## Enfoque de desarrollo
 
@@ -61,138 +63,121 @@ Cada módulo en `navigation.ts` incluye:
 - `module`: Nombre del módulo en backend y frontend
 - `status`: Estado de implementación (`expuesto` o `pendiente`)
 
-## Arquitectura
+---
 
-### Backend
-Arquitectura por módulos (apps) siguiendo el patrón:
-`Models → Services → Repositories → Serializers → Views → URLs`
+# Instalación y ejecución
 
-Apps principales:
-* `actoresAcademicos` - Gestión de usuarios, docentes, estudiantes, administrativos, autoridades, DECE
-* `planificacion` - Niveles educativos, planes de estudio, grados, asignaturas, años lectivos, períodos, paralelos, oferta académica
-* `calificaciones` - Sistema completo de evaluación y calificaciones
-* `distributivos` - Distribución docente, horarios y planificación curricular
-* `matricula` - Proceso de matrícula, requisitos, representantes, retiros
-* `asistencia` - Registro de clases, asistencia e incidencias
-* `comunicacion` - Notificaciones y destinatarios
-* `dece` - Adaptaciones curriculares y seguimiento DECE
-* `gobernanza` - Gestión de gobernanza institucional
-* `institucion` - Datos de instituciones educativas
-* `ubicacion` - Países, provincias, cantones, parroquias, direcciones
-
-### Frontend
-Arquitectura Feature Driven:
-* `features/actores-academicos` - CRUD de usuarios
-* `features/planificacion` - Gestión académica completa
-* `features/calificaciones` - Registro y consulta de notas
-* `features/distributivos` - Gestión de docentes y distributivo
-* `features/planificacion-curricular` - PCA, carga horaria, horarios
-* `features/matricula` - Wizard de matrícula y control
-* `features/asistencia` - Registro de asistencia
-* `features/gobernanza` - Gestión de gobernanza
-* `features/institucion` - Gestión de instituciones
-* `features/ubicacion` - Gestión de ubicaciones
-* `features/dece` - Panel DECE
-* `features/comunicacion` - Notificaciones
-* `features/aula-virtual` - Aula virtual
-* `features/autenticacion` - Login y autenticación
-
-## Usuarios del sistema
-
-SIGED está diseñado para los siguientes roles:
-
-* **Administrador** - Gestión global de instituciones, usuarios, ubicaciones y configuración del sistema.
-* **Autoridad Académica** - Planificación académica, oferta, distributivos, matrícula, calificaciones y gobernanza.
-* **Secretaría** - Gestión de docentes, estudiantes, matrícula y seguimiento.
-* **Docente** - Registro de asistencia, calificaciones, aula virtual y vinculación curricular.
-* **Estudiante** - Consulta de notas, horario, aula virtual.
-* **Personal DECE** - Adaptaciones curriculares y seguimiento de casos.
-
-## Instalación y ejecución
-
-### Clonar el repositorio
+## 1. Clonar el repositorio (rama develop)
 
 ```bash
-git clone https://github.com/tu-usuario/ProyectoSIGED.git
+git clone -b develop https://github.com/IsaKaiser04/ProyectoSIGED.git
 cd ProyectoSIGED
 ```
 
-### Backend (Django)
+También puedes clonar el repositorio completo y cambiar a la rama de desarrollo:
+
+```bash
+git clone https://github.com/IsaKaiser04/ProyectoSIGED.git
+cd ProyectoSIGED
+git checkout develop
+```
+
+## 2. Dependencias requeridas
+
+### Backend
+* Python 3.10+
+* Django 5.2.13
+* djangorestframework
+* PyJWT
+* django-cors-headers
+* django-filter
+* Pillow
+
+### Frontend
+* Node.js 18+
+* npm
+* React 19
+* TypeScript 5.8
+* Vite 8.1
+* Tailwind CSS 4.3
+
+## 3. Ejecución del backend
+
+### Windows
 
 ```bash
 cd backend
-
-# Crear entorno virtual
 python -m venv venv
-
-# Activar entorno virtual
-# Windows:
 venv\Scripts\activate
-# Linux/Mac:
-source venv/bin/activate
-
-# Instalar dependencias
-pip install django djangorestframework Pillow django-filter django-cors-headers
-
-# Ejecutar migraciones
+pip install django djangorestframework PyJWT django-cors-headers django-filter Pillow
 python manage.py migrate
-
-# Crear superusuario (opcional)
 python manage.py createsuperuser
-
-# Ejecutar servidor
 python manage.py runserver
 ```
 
-El backend estará disponible en `http://localhost:8000/api/`
+### Linux / Mac
 
-### Frontend (React)
+```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+pip install django djangorestframework PyJWT django-cors-headers django-filter Pillow
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
+```
+
+Backend disponible en: `http://localhost:8000/api/`
+
+## 4. Ejecución del frontend
+
+### Windows y Linux
 
 ```bash
 cd frontend
-
-# Instalar dependencias
 npm install
-
-# Ejecutar en modo desarrollo
 npm run dev
 ```
 
-El frontend estará disponible en `http://localhost:5173`
+Frontend disponible en: `http://localhost:5173`
 
-### Variables de entorno
+## 5. Variables de entorno
 
 | Variable | Valor por defecto | Descripción |
 |---|---|---|
 | `VITE_API_BASE_URL` | `http://localhost:8000/api` | URL base del backend |
 
-## Estructura del proyecto
+---
+
+# Estructura del proyecto
 
 ```
 ProyectoSIGED/
 ├── backend/                    # API REST (Django 5.2)
-│   ├── apps/                   # 11 apps Django
-│   │   ├── actoresAcademicos/  # Usuarios, docentes, estudiantes, roles
-│   │   ├── planificacion/      # Planes, grados, asignaturas, períodos
-│   │   ├── calificaciones/     # Sistema de evaluación y notas
-│   │   ├── distributivos/      # Distribución docente y horarios
-│   │   ├── matricula/          # Proceso de matrícula
-│   │   ├── asistencia/         # Control de asistencia
-│   │   ├── comunicacion/       # Notificaciones
-│   │   ├── dece/               # Adaptaciones curriculares
-│   │   ├── gobernanza/         # Gestión institucional
-│   │   ├── institucion/        # Datos institucionales
-│   │   └── ubicacion/          # Catálogos geográficos
+│   ├── manage.py
 │   ├── sga/                    # Configuración Django
-│   └── media/                  # Archivos multimedia
+│   ├── media/                  # Archivos multimedia
+│   └── apps/                   # 11 apps Django
+│       ├── actoresAcademicos/  # Usuarios, docentes, estudiantes, roles
+│       ├── planificacion/      # Planes, grados, asignaturas, períodos
+│       ├── calificaciones/     # Sistema de evaluación y notas
+│       ├── distributivos/      # Distribución docente y horarios
+│       ├── matricula/          # Proceso de matrícula
+│       ├── asistencia/         # Control de asistencia
+│       ├── comunicacion/       # Notificaciones
+│       ├── dece/               # Adaptaciones curriculares
+│       ├── gobernanza/         # Gestión institucional
+│       ├── institucion/        # Datos institucionales
+│       └── ubicacion/          # Catálogos geográficos
 ├── frontend/                   # SPA (React 19 + Vite + TypeScript)
+│   ├── package.json
 │   └── src/
 │       ├── app/                # Apps por rol (AdminApp, AutoridadApp, etc.)
-│       ├── features/           # 20 features Feature Driven
+│       ├── features/           # Features (Feature Driven)
 │       ├── components/         # Componentes compartidos
 │       ├── config/             # Navegación y configuración
 │       ├── services/           # Servicios API
-│       ├── types/              # Tipos TypeScript
+│       ├── types/               # Tipos TypeScript
 │       └── layouts/            # Layouts por rol
 ├── docs/                       # Documentación SDD y arquitectura
 │   ├── architecture_backend/   # Reportes de arquitectura backend
@@ -200,7 +185,6 @@ ProyectoSIGED/
 └── AGENTS.md                   # Instrucciones para agentes de código
 ```
 
-## Licencia
 
 Proyecto académico - Universidad Nacional de Loja (UNL)
 Carrera: 5to Ciclo - Desarrollo Basado en Plataformas
