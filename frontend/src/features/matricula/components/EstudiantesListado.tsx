@@ -68,56 +68,6 @@ export const EstudiantesListado: React.FC = () => {
 
         // 4. Complementar con aspirantes legalizados que aún no tienen perfil creado
         const idsPerfil = new Set(estudiantesApi.map((e) => e.id));
-<<<<<<< HEAD
-
-        const deMatriculas: EstudianteData[] = [];
-        const vistos = new Set<string>();
-        const procesarMatricula = (m: any) => {
-          if (m.estudiante_id && idsPerfil.has(m.estudiante_id)) return;
-          const nombres = m.asp_nombres || m.estudiante_nombre?.split(" ")[0] || "—";
-          const apellidos = m.asp_apellidos || m.estudiante_nombre?.split(" ").slice(1).join(" ") || "—";
-          const key = `${nombres} ${apellidos}|${m.paralelo_id || ""}`;
-          if (vistos.has(key)) return;
-          vistos.add(key);
-          let correo = m.asp_correo_personal || m.correo_personal || "";
-          if (correo && !correo.includes("@")) {
-            correo += "@gmail.com";
-            m.asp_correo_personal = correo;
-          }
-          const p = paraleloMap.get(Number(m.paralelo_id));
-          deMatriculas.push({
-            id: -(m.id),
-            nombres,
-            apellidos,
-            correo_personal: correo,
-            celular: m.asp_celular || m.celular || "",
-            institucion: institucionId ?? null,
-            grado: m.grado_nombre || p?.gradoOfertadoGradoNombre || p?.gradoOfertadoNombre || "",
-            paralelo: m.paralelo_nombre || p?.nombre || "",
-          });
-        };
-        for (const m of legalizadas) procesarMatricula(m);
-
-        // 4. También leer matrículas legalizadas desde localStorage
-        try {
-          const raw = localStorage.getItem("siged_matriculas_v2");
-          if (raw) {
-            const locales = JSON.parse(raw);
-            let modificado = false;
-            for (const m of locales) {
-              if (m.estado === "Legalizada") {
-                const correo = m.asp_correo_personal || m.correo_personal || "";
-                if (correo && !correo.includes("@")) {
-                  m.asp_correo_personal = correo + "@gmail.com";
-                  modificado = true;
-                }
-                procesarMatricula(m);
-              }
-            }
-            if (modificado) localStorage.setItem("siged_matriculas_v2", JSON.stringify(locales));
-          }
-        } catch {}
-=======
         const deMatriculas: EstudianteData[] = legalizadas
           .filter((m) => !(m.estudiante_id && idsPerfil.has(m.estudiante_id)))
           .map((m) => {
@@ -133,7 +83,6 @@ export const EstudiantesListado: React.FC = () => {
               paralelo: m.paralelo_nombre || p?.nombre || "",
             };
           });
->>>>>>> 6b0e3da07951ba87377cb197e4fe05ed3a0c4937
 
         setEstudiantes([...estudiantesApi, ...deMatriculas]);
       } catch {
