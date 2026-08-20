@@ -9,6 +9,8 @@ import { PcaHorariosDocente } from "../features/planificacion-curricular/compone
 import { CalificacionesDocentePage } from "../features/calificaciones";
 import { AulaVirtualApp } from "../features/aula-virtual";
 import { DocenteInicioDashboard } from "../features/docente-panel/DocenteInicioDashboard";
+import { BuzonNotificaciones } from "../features/comunicacion/BuzonNotificaciones";
+import { ConsolaTutoria } from "../features/tutoria";
 // ──────────────────────────────────────────────────────────────────────────
 
 
@@ -58,11 +60,11 @@ export function DocenteApp() {
 
       // Comunicación
       case "buzon-notificaciones":
-        return <EnDesarrollo titulo="Buzón de Notificaciones e Intercambio con Padres de Familia" />;
+        return <BuzonNotificaciones />;
 
       // Funcionalidad Adicional Exclusiva de Tutor
       case "consola-tutoria":
-        return <EnDesarrollo titulo="Consola de Tutoría — Rendimiento Consolidado y Acompañamiento del Paralelo" />;
+        return <ConsolaTutoria />;
 
       default:
         return <DocenteInicioDashboard />;

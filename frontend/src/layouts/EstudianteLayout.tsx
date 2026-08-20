@@ -5,6 +5,7 @@
 
 import React, { useState } from "react";
 import { NAVIGATION_ESTUDIANTE } from "../config/navigationEstudiante";
+import { NavIcon } from "../config/NavIcon";
 import { UserMenu } from "../components/UserMenu";
 
 interface EstudianteLayoutProps {
@@ -54,7 +55,7 @@ export const EstudianteLayout: React.FC<EstudianteLayoutProps> = ({
                     className={`sidebar-item ${isActive ? "active" : ""}`}
                     aria-current={isActive ? "page" : undefined}
                   >
-                    <span>{item.icon}</span>
+                    <NavIcon name={item.icon} size={18} />
                     <span>{item.label}</span>
                   </button>
                 );

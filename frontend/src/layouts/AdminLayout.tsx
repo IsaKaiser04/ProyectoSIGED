@@ -1,5 +1,6 @@
-// src/layouts/AdminLayout.tsx
 import React, { useState } from "react";
+import { NavIcon } from "../config/NavIcon";
+import type { NavIconName } from "../config/NavIcon";
 import { ToastContainer } from "../components/Toast";
 import { UserMenu } from "../components/UserMenu";
 
@@ -11,20 +12,31 @@ const VIEW_DESC: Record<string, string> = {
   seguridad: "Configuración de seguridad y autenticación.",
 };
 
+interface NavItem {
+  view: string;
+  label: string;
+  icon: NavIconName;
+}
+
+interface NavGroup {
+  groupLabel: string;
+  items: NavItem[];
+}
+
 interface AdminLayoutProps {
   children: React.ReactNode;
   currentView: string;
   onNavigate: (view: string) => void;
 }
 
-const NAVIGATION_ADMIN = [
+const NAVIGATION_ADMIN: NavGroup[] = [
   {
     groupLabel: "Principal",
     items: [
       {
         view: "inicio",
         label: "Inicio",
-        icon: "🏠",
+        icon: "home",
       },
     ],
   },
@@ -34,17 +46,17 @@ const NAVIGATION_ADMIN = [
       {
         view: "instituciones",
         label: "Gobernanza Institucional",
-        icon: "🏫",
+        icon: "building",
       },
       {
         view: "usuarios",
         label: "Gestión de Usuarios",
-        icon: "👥",
+        icon: "users",
       },
       {
         view: "ubicaciones",
         label: "Ubicación Geográfica",
-        icon: "🌎",
+        icon: "globe",
       },
     ],
   },
@@ -54,7 +66,7 @@ const NAVIGATION_ADMIN = [
       {
         view: "seguridad",
         label: "Seguridad y Autenticación",
-        icon: "🔒",
+        icon: "shield",
       },
     ],
   },
@@ -78,15 +90,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   return (
     <div className={`app-layout ${collapsed ? "sidebar-collapsed" : ""}`}>
       
-      {/* SIDEBAR - Estilo Midnight Navy Corregido */}
       <aside className="sidebar">
-        {/* Encabezado del Sistema */}
         <div className="sidebar-header">
           <h1>SIGED</h1>
           <p>Administrador Global</p>
         </div>
 
-        {/* Menú de Navegación Dinámico */}
         <nav className="sidebar-nav">
           {NAVIGATION_ADMIN.map((group) => (
             <div key={group.groupLabel} className="sidebar-group">
@@ -102,7 +111,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                     className={`sidebar-item ${isActive ? "active" : ""}`}
                     aria-current={isActive ? "page" : undefined}
                   >
-                    <span>{item.icon}</span>
+                    <NavIcon name={item.icon} size={18} />
                     <span>{item.label}</span>
                   </button>
                 );
@@ -112,10 +121,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         </nav>
       </aside>
 
-      {/* BLOQUE DERECHO OPERATIVO */}
       <div className="content-layout">
         
-        {/* TOPBAR - Cabecera Superior Corporativa */}
         <header className="topbar" style={{ display: "flex", gap: "16px", alignItems: "center" }}>
           <button 
             onClick={toggleSidebar} 
@@ -134,7 +141,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           <UserMenu />
         </header>
 
-        {/* CONTENEDOR DE PÁGINAS DINÁMICAS */}
         <main className="page-content">
           {children}
         </main>

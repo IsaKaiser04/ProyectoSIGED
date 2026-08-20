@@ -1,12 +1,9 @@
-// src/config/navigationEstudiante.ts
-//
-// Estructura de navegación exclusiva para el rol de Estudiante.
-// Diseñado para el consumo de información académica y participación en el EVA.
+import type { NavIconName } from "./NavIcon";
 
 export interface NavItem {
   view: string;
   label: string;
-  icon: string;
+  icon: NavIconName;
 }
 
 export interface NavGroup {
@@ -18,29 +15,29 @@ export const NAVIGATION_ESTUDIANTE: NavGroup[] = [
   {
     groupLabel: "General",
     items: [
-      { view: "inicio", label: "Inicio (Resumen)", icon: "🏠" },
-      { view: "mis-instituciones", label: "Mis Instituciones", icon: "🏫" },
+      { view: "inicio", label: "Inicio (Resumen)", icon: "home" },
+      { view: "mis-instituciones", label: "Mis Instituciones", icon: "building" },
     ],
   },
   {
     groupLabel: "Académico",
     items: [
-      { view: "mis-notas", label: "Mis Notas", icon: "📊" },
-      { view: "mi-asistencia", label: "Mi Asistencia", icon: "📅" },
-      { view: "horario-escolar", label: "Horario Escolar", icon: "⏰" },
+      { view: "mis-notas", label: "Mis Notas", icon: "file-text" },
+      { view: "mi-asistencia", label: "Mi Asistencia", icon: "calendar-check" },
+      { view: "horario-escolar", label: "Horario Escolar", icon: "clock" },
     ],
   },
   {
     groupLabel: "Entorno Virtual",
     items: [
-      { view: "aulas-virtuales", label: "Aulas Virtuales", icon: "💻" },
+      { view: "aulas-virtuales", label: "Aulas Virtuales", icon: "monitor" },
     ],
   },
   {
     groupLabel: "Institucional",
     items: [
-      { view: "manuales-usuario", label: "Manuales", icon: "📚" },
-      { view: "notificaciones-buzon", label: "Notificaciones", icon: "🔔" },
+      { view: "manuales-usuario", label: "Manuales", icon: "book" },
+      { view: "notificaciones-buzon", label: "Notificaciones", icon: "bell" },
     ],
   },
 ];

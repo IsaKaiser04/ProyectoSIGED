@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Users, GraduationCap, BookOpen, LayoutList, Building2, Shield, CheckCircle2 } from "lucide-react";
 import { AutoridadLayout } from "../layouts/AutoridadLayout";
 import GestionPlanesEstudio from "../features/planificacion/components/GestionPlanesEstudio";
 import GestionGradosAsignaturas from "../features/planificacion/components/GestionGradosAsignaturas";
@@ -19,6 +20,7 @@ import { EstudiantesListado } from "../features/matricula/components/Estudiantes
 import { AulaVirtualApp } from "../features/aula-virtual";
 import { useAuth } from "../features/autenticacion/context/AuthContext";
 import { apiGet } from "../services/apiClient";
+import { DialogCard, GlassInfoCard } from "../components/DashboardCards";
 
 interface InicioProps {
   institucionNombre: string;
@@ -49,49 +51,126 @@ const InicioAutoridad = ({ institucionNombre }: InicioProps) => {
     cargarStats();
   }, []);
 
-  const kpiCard: React.CSSProperties = {
-    background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)",
-    borderRadius: "8px", padding: "16px", flex: "1", minWidth: "150px"
-  };
-
   return (
-    <div className="content-heading" style={{ padding: "24px" }}>
-      <h2>Bienvenido, {nombreCompleto}</h2>
-      <p style={{ fontWeight: 600, color: "var(--secondary)", marginTop: "4px" }}>
-        Autoridad académica de {institucionNombre}
-      </p>
+    <div style={{ padding: 24 }}>
+      <div
+        style={{
+          position: "relative",
+          borderRadius: 16,
+          padding: "24px 28px",
+          overflow: "hidden",
+          background: "var(--surface-container-lowest)",
+          border: "1px solid var(--outline-variant)",
+          boxShadow: "0 8px 32px -8px rgba(0,0,0,0.06)",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            top: -60,
+            right: -40,
+            width: 200,
+            height: 200,
+            borderRadius: "50%",
+            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            filter: "blur(50px)",
+            pointerEvents: "none",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            bottom: -50,
+            left: "25%",
+            width: 160,
+            height: 160,
+            borderRadius: "50%",
+            background: "color-mix(in srgb, var(--secondary) 6%, transparent)",
+            filter: "blur(40px)",
+            pointerEvents: "none",
+          }}
+        />
 
-      <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginTop: "24px" }}>
-        <div style={{ ...kpiCard, borderTop: "4px solid var(--primary)" }}>
-          <div style={{ fontSize: "28px", fontWeight: "700", color: "var(--primary)" }}>
-            {loadingStats ? "—" : stats.docentes}
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div>
+              <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "var(--on-surface)" }}>
+                Bienvenido, {nombreCompleto}
+              </h2>
+              <p style={{ marginTop: 4, color: "var(--on-surface-variant)", fontSize: 13, fontWeight: 600 }}>
+                Autoridad académica de {institucionNombre}
+              </p>
+            </div>
+            <div
+              style={{
+                padding: "6px 14px",
+                borderRadius: 8,
+                background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+                fontSize: 12,
+                fontWeight: 900,
+                color: "var(--primary)",
+              }}
+            >
+              Autoridad
+            </div>
           </div>
-          <div style={{ fontSize: "13px", color: "var(--on-surface-variant)", marginTop: "4px" }}>
-            Docentes Registrados
-          </div>
-        </div>
-        <div style={{ ...kpiCard, borderTop: "4px solid #8b5cf6" }}>
-          <div style={{ fontSize: "28px", fontWeight: "700", color: "#8b5cf6" }}>
-            {loadingStats ? "—" : stats.paralelos}
-          </div>
-          <div style={{ fontSize: "13px", color: "var(--on-surface-variant)", marginTop: "4px" }}>
-            Paralelos Asignados
-          </div>
-        </div>
-        <div style={{ ...kpiCard, borderTop: "4px solid #16a34a" }}>
-          <div style={{ fontSize: "28px", fontWeight: "700", color: "#16a34a" }}>
-            {loadingStats ? "—" : stats.cuposDisponibles}
-          </div>
-          <div style={{ fontSize: "13px", color: "var(--on-surface-variant)", marginTop: "4px" }}>
-            Cupos Disponibles
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(165px, 1fr))",
+              gap: 10,
+              marginTop: 18,
+            }}
+          >
+            <GlassInfoCard icon={Shield} label="Rol" value="Autoridad Académica" iconBg="#eff6ff" iconBorder="#93c5fd" iconColor="#1d4ed8" />
+            <GlassInfoCard icon={Building2} label="Institución" value={institucionNombre} iconBg="#f0fdf4" iconBorder="#86efac" iconColor="#16a34a" />
+            <GlassInfoCard icon={CheckCircle2} label="Estado" value="Período Activo" iconBg="#d1fae5" iconBorder="#34d399" iconColor="#065f46" />
+            <GlassInfoCard icon={GraduationCap} label="Gestión" value="Planificación" iconBg="#fef3c7" iconBorder="#fcd34d" iconColor="#b45309" />
           </div>
         </div>
       </div>
 
-      <p style={{ marginTop: "24px", color: "var(--on-surface-variant)" }}>
-        Seleccione un módulo en el menú lateral para gestionar la planificación
-        académica de su institución.
-      </p>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(12, 1fr)",
+          gap: 16,
+          marginTop: 18,
+        }}
+      >
+        <div style={{ gridColumn: "span 4" }}>
+          <DialogCard
+            title="Docentes"
+            subtitle="Registrados en el sistema"
+            value={loadingStats ? "—" : String(stats.docentes)}
+            icon={Users}
+            colorKey={stats.docentes > 0 ? "success" : "info"}
+            loading={loadingStats}
+          />
+        </div>
+        <div style={{ gridColumn: "span 4" }}>
+          <DialogCard
+            title="Paralelos"
+            subtitle="Asignados en la institución"
+            value={loadingStats ? "—" : String(stats.paralelos)}
+            icon={LayoutList}
+            colorKey={stats.paralelos > 0 ? "success" : "info"}
+            loading={loadingStats}
+          />
+        </div>
+        <div style={{ gridColumn: "span 4" }}>
+          <DialogCard
+            title="Cupos"
+            subtitle="Disponibles para matrícula"
+            value={loadingStats ? "—" : String(stats.cuposDisponibles)}
+            icon={BookOpen}
+            colorKey={stats.cuposDisponibles > 0 ? "success" : "warning"}
+            loading={loadingStats}
+          />
+        </div>
+      </div>
     </div>
   );
 };

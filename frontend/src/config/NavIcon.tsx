@@ -1,8 +1,3 @@
-// src/config/NavIcon.tsx
-//
-// Componente para renderizar iconos de Lucide-react en la navegación.
-// Importa los iconos necesarios y los renderiza según el nombre pasado.
-
 import React from "react";
 import {
   Home,
@@ -14,10 +9,24 @@ import {
   FileUp,
   Bell,
   Users,
+  BookOpen,
+  Book,
+  Layers,
+  User,
+  GraduationCap,
+  Clock,
+  Calendar,
+  Hourglass,
+  Sunrise,
+  Folder,
+  FileText,
+  BarChart3,
+  Globe,
+  Shield,
+  Mail,
   LucideIcon,
 } from "lucide-react";
 
-// Catálogo de nombres de icono disponibles (tipo estricto, evita typos)
 export type NavIconName =
   | "home"
   | "building"
@@ -27,7 +36,22 @@ export type NavIconName =
   | "layout-list"
   | "file-up"
   | "bell"
-  | "users";
+  | "users"
+  | "book-open"
+  | "book"
+  | "layers"
+  | "user"
+  | "graduation-cap"
+  | "clock"
+  | "calendar"
+  | "hourglass"
+  | "sunrise"
+  | "folder"
+  | "file-text"
+  | "bar-chart"
+  | "globe"
+  | "shield"
+  | "mail";
 
 interface NavIconProps {
   name: NavIconName;
@@ -35,7 +59,6 @@ interface NavIconProps {
   className?: string;
 }
 
-// Mapeo de nombres a componentes de iconos
 const iconMap: Record<NavIconName, LucideIcon> = {
   home: Home,
   building: Building2,
@@ -46,6 +69,21 @@ const iconMap: Record<NavIconName, LucideIcon> = {
   "file-up": FileUp,
   bell: Bell,
   users: Users,
+  "book-open": BookOpen,
+  book: Book,
+  layers: Layers,
+  user: User,
+  "graduation-cap": GraduationCap,
+  clock: Clock,
+  calendar: Calendar,
+  hourglass: Hourglass,
+  sunrise: Sunrise,
+  folder: Folder,
+  "file-text": FileText,
+  "bar-chart": BarChart3,
+  globe: Globe,
+  shield: Shield,
+  mail: Mail,
 };
 
 export const NavIcon: React.FC<NavIconProps> = ({ name, size = 20, className = "" }) => {

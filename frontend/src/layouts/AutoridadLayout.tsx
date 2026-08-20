@@ -5,6 +5,7 @@
 // El diseño es limpio y profesional, utilizando la hoja de estilos global unificada.
 import React, { useState } from "react";
 import { NAVIGATION_AUTORIDAD } from "../config/navigationAutoridad";
+import { NavIcon } from "../config/NavIcon";
 import { UserMenu } from "../components/UserMenu";
 
 interface AutoridadLayoutProps {
@@ -67,7 +68,7 @@ export const AutoridadLayout: React.FC<AutoridadLayoutProps> = ({
                     className={`sidebar-item ${isActive ? "active" : ""}`}
                     aria-current={isActive ? "page" : undefined}
                   >
-                    <span>{item.icon}</span>
+                    <NavIcon name={item.icon} size={18} />
                     <span>{item.label}</span>
                   </button>
                 );

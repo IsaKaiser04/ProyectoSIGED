@@ -1,18 +1,9 @@
-// src/config/navigationAutoridad.ts
-//
-// A diferencia de navigation.ts (catálogo referencial de módulos del backend,
-// sin uso directo en UI), este archivo SÍ se consume directamente:
-// AutoridadLayout.tsx lo recorre para construir el sidebar, y cada `view`
-// corresponde a una key manejada en el switch de AutoridadApp.tsx (renderView).
-//
-// Patrón pensado para que cada rol tenga su propio archivo de navegación
-// (ej. más adelante: navigationDocente.ts, navigationSecretaria.ts, etc.)
-// sin mezclar la navegación de un rol con la de otro.
+import type { NavIconName } from "./NavIcon";
 
 export interface NavItem {
   view: string;
   label: string;
-  icon: string;
+  icon: NavIconName;
 }
 
 export interface NavGroup {
@@ -24,46 +15,44 @@ export const NAVIGATION_AUTORIDAD: NavGroup[] = [
   {
     groupLabel: "General",
     items: [
-      { view: "inicio", label: "Inicio", icon: "🏠" },
+      { view: "inicio", label: "Inicio", icon: "home" },
     ],
   },
   {
     groupLabel: "Currículo e Infraestructura",
     items: [
-      { view: "planes-estudio", label: "Planes de Estudio", icon: "📘" },
-      { view: "grados-asignaturas", label: "Grados y Asignaturas", icon: "📚" },
-      { view: "oferta-paralelos", label: "Oferta y Paralelos", icon: "🏫" },
+      { view: "planes-estudio", label: "Planes de Estudio", icon: "book-open" },
+      { view: "grados-asignaturas", label: "Grados y Asignaturas", icon: "layers" },
+      { view: "oferta-paralelos", label: "Oferta y Paralelos", icon: "building" },
     ],
   },
   {
     groupLabel: "Gestión de Docentes",
     items: [
-      { view: "gestion-docente", label: "Gestión Docente", icon: "👤" },
+      { view: "gestion-docente", label: "Gestión Docente", icon: "user" },
     ],
   },
   {
     groupLabel: "Distributivo y Carga Horaria",
     items: [
-      { view: "distributivo-docente", label: "Distributivo Docente", icon: "🧑‍🏫" },
-      { view: "carga-horaria", label: "Carga Horaria Semanal", icon: "⏰" },
-      { view: "horarios-paralelos", label: "Horarios Cursos", icon: "📅" },
-      { view: "pca", label: "Planificación Curricular (PCA)", icon: "📋" },
+      { view: "distributivo-docente", label: "Distributivo Docente", icon: "graduation-cap" },
+      { view: "carga-horaria", label: "Carga Horaria Semanal", icon: "clock" },
+      { view: "horarios-paralelos", label: "Horarios Cursos", icon: "calendar" },
+      { view: "pca", label: "Planificación Curricular (PCA)", icon: "clipboard-list" },
     ],
   },
   {
     groupLabel: "Planificación Temporal",
     items: [
-      { view: "anios-lectivos", label: "Año Lectivo", icon: "📅" },
-      { view: "periodos-academicos", label: "Período Académico", icon: "⏳" },
-      { view: "jornadas", label: "Jornadas Horarias", icon: "🌅" },
+      { view: "anios-lectivos", label: "Año Lectivo", icon: "calendar" },
+      { view: "periodos-academicos", label: "Período Académico", icon: "hourglass" },
+      { view: "jornadas", label: "Jornadas Horarias", icon: "sunrise" },
     ],
   },
-
   {
     groupLabel: "Supervisión y Gobernanza",
     items: [
-      { view: "aulas-virtuales", label: "Aulas Virtuales", icon: "💻" },
-      { view: "documentacion-gobernanza", label: "Documentación (PEI/CC/PGR)", icon: "📁" },
+      { view: "documentacion-gobernanza", label: "Documentación (PEI/CC/PGR)", icon: "folder" },
     ],
   },
 ];

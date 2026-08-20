@@ -1,0 +1,1 @@
+export { ConsolaTutoria } from "./ConsolaTutoria";

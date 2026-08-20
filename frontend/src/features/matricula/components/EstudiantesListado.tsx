@@ -2,29 +2,35 @@ import { useState, useEffect } from "react";
 import { apiGet } from "../../../services/apiClient";
 import { useAuth } from "../../autenticacion/context/AuthContext";
 
-interface MatriculaConEstudiante {
+interface MatriculaItem {
   id: number;
+  codigo_unico: string | null;
   estado: string;
+  estudiante_id: number | null;
+  estudiante_nombre: string | null;
+  paralelo_id: number | null;
+  anio_lectivo_id: number | null;
+  matricula_periodo: number | null;
+  fecha_registro: string;
+  institucion: number | null;
   asp_nombres: string;
   asp_apellidos: string;
   asp_correo_personal: string;
-  estudiante_id: number | null;
-  estudiante_nombre: string | null;
-  institucion: number | null;
-  paralelo: number | null;
-  paralelo_nombre?: string;
-  created_at: string;
+  rep_nombres: string;
+  rep_apellidos: string;
+  rep_identificacion: string;
+  requisitos_count: number;
 }
 
-interface EstudianteData {
-  id: number;
+interface EstudianteListado {
+  key: string;
+  codigo: string;
   nombres: string;
   apellidos: string;
-  correo_personal: string;
-  celular: string;
-  institucion: number | null;
-  grado?: string;
-  paralelo?: string;
+  grado: string;
+  paralelo: string;
+  periodo: string;
+  fecha: string;
 }
 
 const th: React.CSSProperties = {
@@ -38,7 +44,7 @@ const td: React.CSSProperties = {
 
 export const EstudiantesListado: React.FC = () => {
   const { usuario } = useAuth();
-  const [estudiantes, setEstudiantes] = useState<EstudianteData[]>([]);
+  const [estudiantes, setEstudiantes] = useState<EstudianteListado[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [refrescar, setRefrescar] = useState(0);
@@ -49,42 +55,52 @@ export const EstudiantesListado: React.FC = () => {
       try {
         const institucionId = usuario?.institucion_id;
 
-        // 1. Cargar paralelos para resolver grado y nombre del paralelo
-        const paralelosApi = await apiGet<any[]>("/planificacion/paralelos/").catch(() => []);
+        const [paralelosApi, periodosApi, todasLasMatriculas] = await Promise.all([
+          apiGet<any[]>("/planificacion/paralelos/").catch(() => []),
+          apiGet<any[]>("/matricula/periodos/").catch(() => []),
+          apiGet<MatriculaItem[]>("/matricula/matriculas/").catch(() => []),
+        ]);
+
         const paraleloMap = new Map(paralelosApi.map((p: any) => [p.id, p]));
+        const periodoMap = new Map(periodosApi.map((p: any) => [p.id, p]));
 
-        // 2. Obtener estudiantes con perfil de usuario ya creado en el sistema
-        let estudiantesApi = await apiGet<EstudianteData[]>("/actoresAcademicos/estudiantes/").catch(() => []);
+        let legalizadas = (todasLasMatriculas || []).filter(
+          (m) => m.estado === "Legalizada"
+        );
+
         if (institucionId) {
-          estudiantesApi = (estudiantesApi || []).filter((e) => e.institucion === institucionId);
+          legalizadas = legalizadas.filter(
+            (m) => m.institucion === institucionId
+          );
         }
 
-        // 3. Obtener SOLO matrículas Legalizadas del servidor (sin localStorage)
-        const matriculas = await apiGet<MatriculaConEstudiante[]>("/matricula/matriculas/").catch(() => []);
-        let legalizadas = (matriculas || []).filter((m) => m.estado === "Legalizada");
-        if (institucionId) {
-          legalizadas = legalizadas.filter((m) => m.institucion === institucionId);
-        }
+        const listado: EstudianteListado[] = legalizadas.map((m) => {
+          const p = paraleloMap.get(Number(m.paralelo_id));
+          const periodo = periodoMap.get(Number(m.matricula_periodo));
 
-        // 4. Complementar con aspirantes legalizados que aún no tienen perfil creado
-        const idsPerfil = new Set(estudiantesApi.map((e) => e.id));
-        const deMatriculas: EstudianteData[] = legalizadas
-          .filter((m) => !(m.estudiante_id && idsPerfil.has(m.estudiante_id)))
-          .map((m) => {
-            const p = paraleloMap.get(Number(m.paralelo));
-            return {
-              id: -(m.id),
-              nombres: m.asp_nombres || "—",
-              apellidos: m.asp_apellidos || "—",
-              correo_personal: m.asp_correo_personal || "",
-              celular: "",
-              institucion: institucionId ?? null,
-              grado: p?.gradoOfertadoGradoNombre || p?.gradoOfertadoNombre || "",
-              paralelo: m.paralelo_nombre || p?.nombre || "",
-            };
-          });
+          const nombreCompleto =
+            m.estudiante_nombre ||
+            [m.asp_nombres, m.asp_apellidos].filter(Boolean).join(" ") ||
+            "—";
 
-        setEstudiantes([...estudiantesApi, ...deMatriculas]);
+          const partes = nombreCompleto.trim().split(/\s+/);
+          const mid = Math.ceil(partes.length / 2);
+          const nombres = partes.slice(0, mid).join(" ");
+          const apellidos = partes.slice(mid).join(" ") || "—";
+
+          return {
+            key: `m${m.id}`,
+            codigo: m.codigo_unico || "—",
+            nombres,
+            apellidos,
+            grado: p?.gradoOfertadoGradoNombre || p?.gradoOfertadoNombre || "",
+            paralelo: p?.nombre || "",
+            periodo: periodo?.nombre || periodo?.tipo || "",
+            fecha: m.fecha_registro || "",
+          };
+        });
+
+        setEstudiantes(listado);
       } catch {
         setEstudiantes([]);
       } finally {
@@ -94,26 +110,26 @@ export const EstudiantesListado: React.FC = () => {
     cargar();
   }, [usuario?.institucion_id, refrescar]);
 
-
   const filtrados = estudiantes.filter(
     (e) =>
       !busqueda ||
       e.nombres.toLowerCase().includes(busqueda.toLowerCase()) ||
-      e.apellidos.toLowerCase().includes(busqueda.toLowerCase())
+      e.apellidos.toLowerCase().includes(busqueda.toLowerCase()) ||
+      e.codigo.toLowerCase().includes(busqueda.toLowerCase())
   );
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div>
-        <h3 style={{ margin: 0, color: "var(--primary)" }}>Estudiantes Registrados</h3>
+        <h3 style={{ margin: 0, color: "var(--primary)" }}>Estudiantes Legalizados</h3>
         <p style={{ margin: "4px 0 0", fontSize: 14, color: "var(--on-surface-variant)" }}>
-          Listado de estudiantes registrados en la instituci&oacute;n.
+          Listado de estudiantes que han completado el proceso de legalización en control de matrículas.
         </p>
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
         <p style={{ margin: 0, fontSize: "var(--font-body-sm)", color: "var(--on-surface-variant)" }}>
-          {filtrados.length} estudiante(s)
+          {filtrados.length} estudiante(s) legalizado(s)
         </p>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button onClick={() => setRefrescar(prev => prev + 1)} disabled={loading} style={{
@@ -123,7 +139,7 @@ export const EstudiantesListado: React.FC = () => {
             {loading ? "Cargando..." : "Refrescar"}
           </button>
           <input
-            placeholder="Buscar por nombre o apellido..."
+            placeholder="Buscar por nombre o código..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             style={{
@@ -140,7 +156,7 @@ export const EstudiantesListado: React.FC = () => {
         </div>
       ) : filtrados.length === 0 ? (
         <div style={{ padding: 40, textAlign: "center", borderRadius: 8, border: "1px solid var(--outline-variant)", background: "var(--surface-container-lowest)", color: "var(--on-surface-variant)" }}>
-          {busqueda ? "No se encontraron estudiantes con ese criterio." : "No hay estudiantes registrados en esta instituci&oacute;n."}
+          {busqueda ? "No se encontraron estudiantes con ese criterio." : "No hay estudiantes legalizados en esta institución."}
         </div>
       ) : (
         <div style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)", borderRadius: 8, overflowX: "auto" }}>
@@ -148,22 +164,26 @@ export const EstudiantesListado: React.FC = () => {
             <thead>
               <tr>
                 <th style={th}>#</th>
+                <th style={th}>Código Único</th>
                 <th style={th}>Nombres</th>
                 <th style={th}>Apellidos</th>
                 <th style={th}>Grado</th>
                 <th style={th}>Paralelo</th>
-                <th style={th}>Correo Personal</th>
+                <th style={th}>Periodo</th>
+                <th style={th}>Fecha Legalización</th>
               </tr>
             </thead>
             <tbody>
               {filtrados.map((e, i) => (
-                <tr key={e.id}>
+                <tr key={e.key}>
                   <td style={td}>{i + 1}</td>
+                  <td style={{ ...td, fontFamily: "monospace", fontWeight: 600, fontSize: 12 }}>{e.codigo}</td>
                   <td style={{ ...td, fontWeight: 600 }}>{e.nombres}</td>
                   <td style={td}>{e.apellidos}</td>
-                  <td style={td}>{e.grado || ""}</td>
-                  <td style={td}>{e.paralelo || ""}</td>
-                  <td style={td}>{e.correo_personal || ""}</td>
+                  <td style={td}>{e.grado}</td>
+                  <td style={td}>{e.paralelo}</td>
+                  <td style={td}>{e.periodo}</td>
+                  <td style={td}>{e.fecha}</td>
                 </tr>
               ))}
             </tbody>

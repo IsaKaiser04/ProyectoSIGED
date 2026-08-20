@@ -4,6 +4,8 @@
 // Los iconos usan la librería Lucide-react y se renderizan a través del componente <NavIcon />.
 // Los nombres disponibles están definidos en el tipo NavIconName.
 
+import type { NavIconName } from "./NavIcon";
+
 export interface NavItem {
   view: string;
   label: string;
@@ -15,18 +17,6 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-// Catálogo de nombres de icono disponibles (tipo estricto, evita typos)
-export type NavIconName =
-  | "home"
-  | "building"
-  | "monitor"
-  | "clipboard-list"
-  | "calendar-check"
-  | "layout-list"
-  | "file-up"
-  | "bell"
-  | "users";
-
 // Función que genera la navegación dependiendo de si el docente es tutor o no
 export const getNavigationDocente = (esTutor: boolean): NavGroup[] => {
   const navigation: NavGroup[] = [
@@ -34,7 +24,6 @@ export const getNavigationDocente = (esTutor: boolean): NavGroup[] => {
       groupLabel: "General",
       items: [
         { view: "inicio",            label: "Inicio",              icon: "home"           },
-        { view: "mis-instituciones", label: "Mis instituciones",   icon: "building"       },
       ],
     },
     {

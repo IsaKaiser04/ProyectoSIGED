@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
+import { Building2, Users, Globe, Hash, MapPin, BookOpen, Shield, CheckCircle2 } from "lucide-react";
 import { useAuth } from "../autenticacion/context/AuthContext";
 import { apiGet, buildModulePath } from "../../services/apiClient";
 import { obtenerAutoridades, obtenerSecretarias, obtenerDece, obtenerAdministradores, obtenerDocentes } from "../actores-academicos/services/usuariosApi";
+import { DialogCard, GlassInfoCard } from "../../components/DashboardCards";
 import type { Institucion } from "../../types/entities/institucion";
 
 interface ProvinciaFlat {
@@ -68,7 +70,6 @@ export const InicioAdmin: React.FC = () => {
           }))
         );
       } catch {
-        // fallback vacío
       } finally {
         setLoading(false);
       }
@@ -78,16 +79,6 @@ export const InicioAdmin: React.FC = () => {
 
   const nombres = usuario?.datos_personales?.nombres ?? "Administrador";
   const apellidos = usuario?.datos_personales?.apellidos ?? "";
-
-  const cardBase: React.CSSProperties = {
-    background: "var(--surface-container-lowest)",
-    border: "1px solid var(--outline-variant)",
-    borderRadius: "12px",
-    padding: "24px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "16px",
-  };
 
   const MiniTable: React.FC<{
     columns: string[];
@@ -125,23 +116,84 @@ export const InicioAdmin: React.FC = () => {
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      {/* Bienvenida */}
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div
         style={{
+          position: "relative",
+          borderRadius: 16,
+          padding: "24px 28px",
+          overflow: "hidden",
           background: "var(--surface-container-lowest)",
           border: "1px solid var(--outline-variant)",
-          borderRadius: "12px",
-          padding: "28px 32px",
+          boxShadow: "0 8px 32px -8px rgba(0,0,0,0.06)",
         }}
       >
-        <h2 style={{ margin: 0, fontSize: "24px", fontWeight: 700, color: "var(--primary)" }}>
-          Bienvenido, {nombres} {apellidos}
-        </h2>
-        <p style={{ marginTop: "8px", color: "var(--on-surface-variant)", fontSize: "14px" }}>
-          Panel de control general del sistema. Seleccione un módulo en el menú lateral para gestionar
-          instituciones, usuarios o ubicaciones geográficas.
-        </p>
+        <div
+          style={{
+            position: "absolute",
+            top: -60,
+            right: -40,
+            width: 200,
+            height: 200,
+            borderRadius: "50%",
+            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            filter: "blur(50px)",
+            pointerEvents: "none",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            bottom: -50,
+            left: "25%",
+            width: 160,
+            height: 160,
+            borderRadius: "50%",
+            background: "color-mix(in srgb, var(--secondary) 6%, transparent)",
+            filter: "blur(40px)",
+            pointerEvents: "none",
+          }}
+        />
+
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div>
+              <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "var(--on-surface)" }}>
+                Bienvenido, {nombres} {apellidos}
+              </h2>
+              <p style={{ marginTop: 4, color: "var(--on-surface-variant)", fontSize: 13, fontWeight: 600 }}>
+                Panel de control general del sistema
+              </p>
+            </div>
+            <div
+              style={{
+                padding: "6px 14px",
+                borderRadius: 8,
+                background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+                fontSize: 12,
+                fontWeight: 900,
+                color: "var(--primary)",
+              }}
+            >
+              Administrador
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(165px, 1fr))",
+              gap: 10,
+              marginTop: 18,
+            }}
+          >
+            <GlassInfoCard icon={Shield} label="Rol" value="Administrador del Sistema" iconBg="#eff6ff" iconBorder="#93c5fd" iconColor="#1d4ed8" />
+            <GlassInfoCard icon={CheckCircle2} label="Estado" value="Sistema Activo" iconBg="#d1fae5" iconBorder="#34d399" iconColor="#065f46" />
+            <GlassInfoCard icon={Building2} label="Institución" value="Sede Central" iconBg="#f0fdf4" iconBorder="#86efac" iconColor="#16a34a" />
+            <GlassInfoCard icon={BookOpen} label="Módulos" value="7 Módulos" iconBg="#fef3c7" iconBorder="#fcd34d" iconColor="#b45309" />
+          </div>
+        </div>
       </div>
 
       {loading ? (
@@ -149,20 +201,15 @@ export const InicioAdmin: React.FC = () => {
           Cargando información del sistema...
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "20px" }}>
-          {/* Tarjeta Instituciones */}
-          <div style={cardBase}>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <span style={{ fontSize: "32px" }}>🏫</span>
-              <div>
-                <div style={{ fontSize: "28px", fontWeight: 700, color: "var(--primary)", lineHeight: 1 }}>
-                  {instituciones.length}
-                </div>
-                <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--on-surface)" }}>
-                  Instituciones
-                </div>
-              </div>
-            </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))", gap: 16 }}>
+          <DialogCard
+            title="Instituciones"
+            subtitle="Total registradas en el sistema"
+            value={String(instituciones.length)}
+            icon={Building2}
+            colorKey="info"
+            loading={loading}
+          >
             <MiniTable
               columns={["#", "Nombre", "AMIE", "RUC"]}
               rows={instituciones.map((inst, i) => [
@@ -172,21 +219,16 @@ export const InicioAdmin: React.FC = () => {
                 inst.ruc,
               ])}
             />
-          </div>
+          </DialogCard>
 
-          {/* Tarjeta Usuarios */}
-          <div style={cardBase}>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <span style={{ fontSize: "32px" }}>👥</span>
-              <div>
-                <div style={{ fontSize: "28px", fontWeight: 700, color: "var(--secondary)", lineHeight: 1 }}>
-                  {usuarios.length}
-                </div>
-                <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--on-surface)" }}>
-                  Usuarios
-                </div>
-              </div>
-            </div>
+          <DialogCard
+            title="Usuarios"
+            subtitle="Total de cuentas activas"
+            value={String(usuarios.length)}
+            icon={Users}
+            colorKey={usuarios.length > 0 ? "success" : "info"}
+            loading={loading}
+          >
             <MiniTable
               columns={["#", "Nombres", "Rol"]}
               rows={usuarios.map((u, i) => [
@@ -195,21 +237,16 @@ export const InicioAdmin: React.FC = () => {
                 u.rol,
               ])}
             />
-          </div>
+          </DialogCard>
 
-          {/* Tarjeta Ubicaciones */}
-          <div style={cardBase}>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <span style={{ fontSize: "32px" }}>🌎</span>
-              <div>
-                <div style={{ fontSize: "28px", fontWeight: 700, color: "#7c3aed", lineHeight: 1 }}>
-                  {provincias.length}
-                </div>
-                <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--on-surface)" }}>
-                  Provincias
-                </div>
-              </div>
-            </div>
+          <DialogCard
+            title="Provincias"
+            subtitle="Ubicaciones geográficas"
+            value={String(provincias.length)}
+            icon={Globe}
+            colorKey={provincias.length > 0 ? "success" : "info"}
+            loading={loading}
+          >
             <MiniTable
               columns={["#", "Provincia", "País"]}
               rows={provincias.map((p, i) => [
@@ -218,7 +255,7 @@ export const InicioAdmin: React.FC = () => {
                 p.pais_nombre,
               ])}
             />
-          </div>
+          </DialogCard>
         </div>
       )}
     </div>
