@@ -17,6 +17,7 @@ class GradoOfertado(models.Model):
     nombre = models.CharField(max_length=100)
     ofertaAcademica = models.ForeignKey(OfertaAcademica, on_delete=models.CASCADE, related_name='grados_ofertados')
     grado = models.ForeignKey('Grado', on_delete=models.CASCADE, related_name='grados_ofertados')
+    esActivo = models.BooleanField(default=True)
 
     def __str__(self):
         return self.nombre
@@ -30,6 +31,7 @@ class AsignaturaOfertada(models.Model):
     nombre = models.CharField(max_length=200)
     gradoOfertado = models.ForeignKey(GradoOfertado, on_delete=models.CASCADE, related_name='asignaturas_ofertadas')
     asignatura = models.ForeignKey('Asignatura', on_delete=models.CASCADE, related_name='asignaturas_ofertadas')
+    esActivo = models.BooleanField(default=True)
 
     def __str__(self):
         return self.nombre

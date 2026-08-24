@@ -6,13 +6,15 @@ from ..serializers.paralelo_serializer import ParaleloSerializer
 
 class ParaleloService:
     @staticmethod
-    def list_all():
-        return ParaleloSerializer(ParaleloRepository.get_all(), many=True).data
+    def list_all(institucion_id=None):
+        return ParaleloSerializer(
+            ParaleloRepository.get_all(institucion_id), many=True
+        ).data
 
     @staticmethod
-    def por_grado_ofertado(grado_ofertado_id):
+    def por_grado_ofertado(grado_ofertado_id, institucion_id=None):
         return ParaleloSerializer(
-            ParaleloRepository.get_by_grado_ofertado(grado_ofertado_id), many=True
+            ParaleloRepository.get_by_grado_ofertado(grado_ofertado_id, institucion_id), many=True
         ).data
 
     @staticmethod

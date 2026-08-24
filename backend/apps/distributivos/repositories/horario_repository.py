@@ -41,13 +41,16 @@ class HorarioRepository:
         )
 
     @staticmethod
-    def filter_by_paralelo(paralelo_id):
-        return Horario.objects.select_related(
-            'distributivo', 'distributivo__docente',
+    def filter_by_paralelo(paralelo_id, institucion_id=None):
+        qs = Horario.objects.select_related(
+            'distributivo', 'distributivo__docente', 'distributivo__anio_lectivo',
             'distributivo_asignatura', 'distributivo_asignatura__asignatura_ofertada',
             'distributivo_asignatura__paralelo',
             'jornada_hora', 'bloque_horario',
         ).filter(distributivo_asignatura__paralelo_id=paralelo_id)
+        if institucion_id is not None:
+            qs = qs.filter(distributivo__anio_lectivo__institucion_id=institucion_id)
+        return qs
 
     @staticmethod
     def filter_by_docente_cuenta(cuenta_id):

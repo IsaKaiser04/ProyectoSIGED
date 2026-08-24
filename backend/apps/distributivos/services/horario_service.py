@@ -61,8 +61,8 @@ class HorarioService:
         return HorarioListSerializer(instances, many=True).data
 
     @staticmethod
-    def por_paralelo(paralelo_id):
-        instances = HorarioRepository.filter_by_paralelo(paralelo_id)
+    def por_paralelo(paralelo_id, institucion_id=None):
+        instances = HorarioRepository.filter_by_paralelo(paralelo_id, institucion_id)
         return HorarioParaleloSerializer(instances, many=True).data
 
     @staticmethod
@@ -71,7 +71,7 @@ class HorarioService:
         return HorarioDocenteSerializer(instances, many=True).data
 
     @staticmethod
-    def todos_paralelos(anio_lectivo_id=None):
+    def todos_paralelos(anio_lectivo_id=None, institucion_id=None):
         """Devuelve horarios agrupados por paralelo, opcionalmente filtrados por año lectivo"""
         from collections import OrderedDict
 
@@ -83,6 +83,14 @@ class HorarioService:
                 continue
             if anio_lectivo_id and h.distributivo and h.distributivo.anio_lectivo_id != anio_lectivo_id:
                 continue
+            if institucion_id is not None:
+                dist_inst = (
+                    h.distributivo.anio_lectivo.institucion_id
+                    if h.distributivo and h.distributivo.anio_lectivo
+                    else None
+                )
+                if dist_inst != institucion_id:
+                    continue
             paralelo = da.paralelo
             if paralelo is None:
                 continue

@@ -1,5 +1,4 @@
-from .enums import PeriodoTipo, AnioLectivoEstado
-from .educacion import EducacionNivel, EducacionSubNivel
+from .enums import PeriodoTipo, AnioLectivoEstado, NivelEducativo, SubNivelEducativo, ModalidadBachillerato
 from .plan_estudio import PlanEstudio, Grado, Asignatura
 from .anio_lectivo import AnioLectivo, PeriodoAcademico
 from .oferta import OfertaAcademica, GradoOfertado, AsignaturaOfertada
@@ -8,8 +7,9 @@ from .calificacion import Calificacion
 
 __all__ = [
     'PeriodoTipo',
-    'EducacionNivel',
-    'EducacionSubNivel',
+    'NivelEducativo',
+    'SubNivelEducativo',
+    'ModalidadBachillerato',
     'PlanEstudio',
     'Grado',
     'Asignatura',

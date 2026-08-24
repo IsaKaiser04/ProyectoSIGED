@@ -75,7 +75,7 @@ if not DOCENTE_ID or not ASIG_OFERTADA_ID:
     django.setup()
     from apps.planificacion.models import AnioLectivo, OfertaAcademica, GradoOfertado, AsignaturaOfertada
     from apps.planificacion.models.plan_estudio import PlanEstudio, Grado, Asignatura
-    from apps.planificacion.models.educacion import EducacionNivel, EducacionSubNivel
+    from apps.planificacion.models.enums import NivelEducativo, SubNivelEducativo
     from apps.actoresAcademicos.models import Docente, Cuenta
     from apps.actoresAcademicos.models.enums import RolTipo, TipoIdentificacion, TipoContrato, TipoDedicacion
     from apps.institucion.models import Institucion
@@ -85,21 +85,21 @@ if not DOCENTE_ID or not ASIG_OFERTADA_ID:
         anio_obj = AnioLectivo.objects.create(nombre='2024-2025', fechaInicio='2024-09-01', fechaFin='2025-06-30', estado='ACTIVO')
         ANIO_ID = anio_obj.id
 
-    nivel_obj = EducacionNivel.objects.filter(codigo='EGB').first()
-    if not nivel_obj:
-        nivel_obj = EducacionNivel.objects.create(nombre='EGB', codigo='EGB')
-    subnivel_obj = EducacionSubNivel.objects.filter(nombre='EGB Media').first()
-    if not subnivel_obj:
-        subnivel_obj = EducacionSubNivel.objects.create(nombre='EGB Media', nivel=nivel_obj)
     plan_obj = PlanEstudio.objects.filter(nombre='Plan EGB').first()
     if not plan_obj:
         plan_obj = PlanEstudio.objects.create(nombre='Plan EGB')
     grado_obj = Grado.objects.filter(nombre='5to EGB').first()
     if not grado_obj:
-        grado_obj = Grado.objects.create(nombre='5to EGB', subnivel=subnivel_obj, plan_estudio=plan_obj)
+        grado_obj = Grado.objects.create(
+            nombre='5to EGB',
+            planEstudio=plan_obj,
+            nivel=NivelEducativo.EGB.value,
+            subnivel=SubNivelEducativo.BASICA_MEDIA.value,
+            anioGrado=5
+        )
     asig_obj = Asignatura.objects.filter(nombre='Matematicas').first()
     if not asig_obj:
-        asig_obj = Asignatura.objects.create(nombre='Matematicas', codigo='MAT01', grado=grado_obj, horas_semanales=5, carga_horaria=40)
+        asig_obj = Asignatura.objects.create(nombre='Matematicas', periodoPedagogicoSemanaMinimo=5, grado=grado_obj)
 
     oferta_obj = OfertaAcademica.objects.filter(anio_lectivo=anio_obj).first()
     if not oferta_obj:

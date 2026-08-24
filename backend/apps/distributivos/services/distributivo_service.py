@@ -8,8 +8,8 @@ from ..serializers.distributivo_serializer import (
 
 class DistributivoService:
     @staticmethod
-    def list_all():
-        instances = DistributivoRepository.get_all()
+    def list_all(institucion_id=None):
+        instances = DistributivoRepository.get_all(institucion_id)
         return DistributivoListSerializer(instances, many=True).data
 
     @staticmethod
@@ -47,11 +47,11 @@ class DistributivoService:
         return True, None
 
     @staticmethod
-    def por_anio_lectivo(anio_lectivo_id):
-        instances = DistributivoRepository.filter_by_anio_lectivo(anio_lectivo_id)
+    def por_anio_lectivo(anio_lectivo_id, institucion_id=None):
+        instances = DistributivoRepository.filter_by_anio_lectivo(anio_lectivo_id, institucion_id)
         return DistributivoListSerializer(instances, many=True).data
 
     @staticmethod
-    def por_docente(docente_id):
-        instances = DistributivoRepository.filter_by_docente(docente_id)
+    def por_docente(docente_id, institucion_id=None):
+        instances = DistributivoRepository.filter_by_docente(docente_id, institucion_id)
         return DistributivoListSerializer(instances, many=True).data

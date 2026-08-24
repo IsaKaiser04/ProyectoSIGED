@@ -7,7 +7,9 @@ from ..services import DistributivoService
 
 class DistributivoViewSet(viewsets.ViewSet):
     def list(self, request):
-        return Response(DistributivoService.list_all())
+        auth = getattr(request, 'auth', None)
+        institucion_id = auth.get('institucion_id') if auth else None
+        return Response(DistributivoService.list_all(institucion_id))
 
     def retrieve(self, request, pk=None):
         data = DistributivoService.retrieve(pk)
@@ -41,10 +43,14 @@ class DistributivoViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'])
     def por_anio_lectivo(self, request):
+        auth = getattr(request, 'auth', None)
+        institucion_id = auth.get('institucion_id') if auth else None
         anio_lectivo_id = request.query_params.get('anio_lectivo_id')
-        return Response(DistributivoService.por_anio_lectivo(anio_lectivo_id))
+        return Response(DistributivoService.por_anio_lectivo(anio_lectivo_id, institucion_id))
 
     @action(detail=False, methods=['get'])
     def por_docente(self, request):
+        auth = getattr(request, 'auth', None)
+        institucion_id = auth.get('institucion_id') if auth else None
         docente_id = request.query_params.get('docente_id')
-        return Response(DistributivoService.por_docente(docente_id))
+        return Response(DistributivoService.por_docente(docente_id, institucion_id))

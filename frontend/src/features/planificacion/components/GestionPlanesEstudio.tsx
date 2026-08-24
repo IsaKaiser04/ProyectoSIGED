@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { planificacionApi } from '../services/planificacionApi';
-import type { PlanEstudio, EducacionNivel, EducacionSubNivel } from '../../../types/entities/planificacion';
+import type { PlanEstudio } from '../../../types/entities/planificacion';
+import { JERARQUIA_NIVELES } from '../../../config/nivelesEducativos';
 import { useAuth } from '../../autenticacion/context/AuthContext';
 
 const labelStyle: React.CSSProperties = {
@@ -214,314 +215,49 @@ const SubPlanes: React.FC = () => {
   );
 };
 
-const SubNiveles: React.FC = () => {
-  const [data, setData] = useState<EducacionNivel[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editando, setEditando] = useState<EducacionNivel | null>(null);
-  const [notif, setNotif] = useState<{msg: string; type: 'success' | 'error'} | null>(null);
-  const [form, setForm] = useState({ nombre: '', codigo: '', periodoPedagogicoMinutos: 0, periodoPedagogicoSemanaMinimo: 0 });
-  const [errorForm, setErrorForm] = useState("");
-  const show = (msg: string, type: 'success' | 'error') => { setNotif({ msg, type }); setTimeout(() => setNotif(null), 4000); };
-
-  const cargar = async () => {
-    setLoading(true);
-    try { setData(await planificacionApi.getNiveles() || []); } catch { setData([]); }
-    finally { setLoading(false); }
-  };
-  useEffect(() => { cargar(); }, []);
-
-  const abrirCrear = () => {
-    setEditando(null);
-    setForm({ nombre: '', codigo: '', periodoPedagogicoMinutos: 0, periodoPedagogicoSemanaMinimo: 0 });
-    setErrorForm("");
-    setShowForm(true);
-  };
-
-  const abrirEditar = (n: EducacionNivel) => {
-    setEditando(n);
-    setForm({
-      nombre: n.nombre,
-      codigo: n.codigo,
-      periodoPedagogicoMinutos: n.periodoPedagogicoMinutos,
-      periodoPedagogicoSemanaMinimo: n.periodoPedagogicoSemanaMinimo,
-    });
-    setErrorForm("");
-    setShowForm(true);
-  };
-
-  const handleGuardar = async () => {
-    setErrorForm("");
-    try {
-      if (editando) {
-        await planificacionApi.updateNivel(editando.id, form);
-        show('Nivel actualizado exitosamente', 'success');
-      } else {
-        await planificacionApi.createNivel(form);
-        show('Nivel creado exitosamente', 'success');
-      }
-      setShowForm(false);
-      setEditando(null);
-      setForm({ nombre: '', codigo: '', periodoPedagogicoMinutos: 0, periodoPedagogicoSemanaMinimo: 0 });
-      await cargar();
-    } catch (e: any) { setErrorForm(e?.data ? (typeof e.data === 'string' ? e.data : JSON.stringify(e.data)) : (e?.message || 'Error al guardar')); }
-  };
-
-  const handleEliminar = async (id: number) => {
-    if (!window.confirm('¿Está seguro de que desea eliminar este nivel educativo? Esta acción no se puede deshacer.')) return;
-    try {
-      await planificacionApi.deleteNivel(id);
-      show('Nivel eliminado exitosamente', 'success');
-      await cargar();
-    } catch (err) {
-      show('Error al eliminar el nivel. Asegúrese de que no tenga subniveles o grados asociados.', 'error');
-    }
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {notif && <div style={notifStyle(notif.type)}>{notif.msg}</div>}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <p style={{ margin: 0, fontSize: 'var(--font-body-sm)', color: 'var(--on-surface-variant)' }}>{data.length} nivel(es)</p>
-        <button onClick={abrirCrear} style={btnPrimario}>+ Nuevo Nivel</button>
-      </div>
-      <div style={containerStyle}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr>
-            <th style={thStyle}>Código</th>
-            <th style={thStyle}>Nombre</th>
-            <th style={thStyle}>Periodos Pedagógicos Semanales</th>
-            <th style={thStyle}>Nro Minutos Periodos Pedagógicos</th>
-            <th style={thStyle}>Acciones</th>
-          </tr></thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={5} style={{ ...tdStyle, textAlign: 'center' }}>Cargando...</td></tr>
-            ) : data.length === 0 ? (
-              <tr><td colSpan={5} style={{ ...tdStyle, textAlign: 'center', color: 'var(--on-surface-variant)' }}>Sin niveles.</td></tr>
-            ) : data.map(d => (
-              <tr key={d.id}>
-                <td style={{ ...tdStyle, fontWeight: 600 }}>{d.codigo}</td>
-                <td style={tdStyle}>{d.nombre}</td>
-                <td style={tdStyle}>{d.periodoPedagogicoSemanaMinimo}</td>
-                <td style={tdStyle}>{d.periodoPedagogicoMinutos}</td>
-                <td style={tdStyle}>
-                  <button type="button" onClick={() => abrirEditar(d)} title="Editar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>✏️</button>
-                  <button type="button" onClick={() => handleEliminar(d.id)} title="Eliminar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>🔴</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {showForm && (
-        <div style={modalWrap}>
-          <div style={modalBox}>
-            <h3 style={{ margin: '0 0 20px', color: 'var(--primary)' }}>
-              {editando ? 'Editar Nivel' : 'Nuevo Nivel'}
-            </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-              <div>
-                <label style={labelStyle}>Código</label>
-                <input style={fieldStyle} placeholder="Ej: BASICA" maxLength={20} value={form.codigo}
-                  onChange={e => setForm({ ...form, codigo: e.target.value })} />
-              </div>
-              <div>
-                <label style={labelStyle}>Nombre</label>
-                <input style={fieldStyle} placeholder="Ej: Educación Básica" maxLength={100} value={form.nombre}
-                  onChange={e => setForm({ ...form, nombre: e.target.value })} />
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
-              <div>
-                <label style={labelStyle}>Periodos Pedagógicos Semanales</label>
-                <input style={fieldStyle} type="number" min={0} max={1200} value={form.periodoPedagogicoSemanaMinimo}
-                  onChange={e => setForm({ ...form, periodoPedagogicoSemanaMinimo: Number(e.target.value) })} />
-              </div>
-              <div>
-                <label style={labelStyle}>Minutos por Período Pedagógico</label>
-                <input style={fieldStyle} type="number" min={0} max={120} value={form.periodoPedagogicoMinutos}
-                  onChange={e => setForm({ ...form, periodoPedagogicoMinutos: Number(e.target.value) })} />
-              </div>
-
-            </div>
-            {errorForm && (
-              <div style={{ padding: '12px 16px', marginBottom: 16, borderRadius: 8, background: '#fef2f2', color: '#dc2626', fontSize: '14px', fontWeight: 500, border: '1px solid #fecaca', textAlign: 'center' }}>
-                {errorForm}
-              </div>
-            )}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-              <button onClick={() => setShowForm(false)} style={btnSecundario}>Cancelar</button>
-              <button onClick={handleGuardar} style={btnPrimario}>Guardar</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+// ============================================================
+// Sub-tab: Niveles y SubNiveles (solo lectura)
+// Espejo de backend/apps/planificacion/models/enums.py
+// ============================================================
+const badgeSubniveles: React.CSSProperties = {
+  background: '#e0e7ff', color: '#3730a3', padding: '2px 10px',
+  borderRadius: 999, fontSize: 11, fontWeight: 600, marginLeft: 8,
 };
 
-const SubSubNiveles: React.FC = () => {
-  const [data, setData] = useState<EducacionSubNivel[]>([]);
-  const [niveles, setNiveles] = useState<EducacionNivel[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editando, setEditando] = useState<EducacionSubNivel | null>(null);
-  const [notif, setNotif] = useState<{msg: string; type: 'success' | 'error'} | null>(null);
-  const [form, setForm] = useState({ nombre: '', codigo: '', periodoPedagogicoSemanaMinimo: 0, nivel: 0 });
-  const [errorForm, setErrorForm] = useState("");
-  const show = (msg: string, type: 'success' | 'error') => { setNotif({ msg, type }); setTimeout(() => setNotif(null), 4000); };
-
-  const cargar = async () => {
-    setLoading(true);
-    try {
-      const [subs, ns] = await Promise.all([
-        planificacionApi.getSubNiveles(),
-        planificacionApi.getNiveles(),
-      ]);
-      setData(subs || []); setNiveles(ns || []);
-    } catch { setData([]); }
-    finally { setLoading(false); }
-  };
-  useEffect(() => { cargar(); }, []);
-
-  const abrirCrear = () => {
-    setEditando(null);
-    setForm({ nombre: '', codigo: '', periodoPedagogicoSemanaMinimo: 0, nivel: 0 });
-    setErrorForm("");
-    setShowForm(true);
-  };
-
-  const abrirEditar = (s: EducacionSubNivel) => {
-    setEditando(s);
-    setForm({
-      nombre: s.nombre,
-      codigo: s.codigo,
-      periodoPedagogicoSemanaMinimo: s.periodoPedagogicoSemanaMinimo,
-      nivel: s.nivel,
-    });
-    setErrorForm("");
-    setShowForm(true);
-  };
-
-  const handleGuardar = async () => {
-    setErrorForm("");
-    if (!form.nivel) { setErrorForm('Seleccione un nivel'); return; }
-    try {
-      if (editando) {
-        await planificacionApi.updateSubNivel(editando.id, form);
-        show('Subnivel actualizado exitosamente', 'success');
-      } else {
-        await planificacionApi.createSubNivel(form);
-        show('Subnivel creado exitosamente', 'success');
-      }
-      setShowForm(false);
-      setEditando(null);
-      setForm({ nombre: '', codigo: '', periodoPedagogicoSemanaMinimo: 0, nivel: 0 });
-      await cargar();
-    } catch (e: any) { setErrorForm(e?.data ? (typeof e.data === 'string' ? e.data : JSON.stringify(e.data)) : (e?.message || 'Error al guardar')); }
-  };
-
-  const handleEliminar = async (id: number) => {
-    if (!window.confirm('¿Está seguro de que desea eliminar este subnivel educativo? Esta acción no se puede deshacer.')) return;
-    try {
-      await planificacionApi.deleteSubNivel(id);
-      show('Subnivel eliminado exitosamente', 'success');
-      await cargar();
-    } catch (err) {
-      show('Error al eliminar el subnivel. Asegúrese de que no tenga grados asociados.', 'error');
-    }
-  };
-
-  const getNivelNombre = (id: number) => niveles.find(n => n.id === id)?.nombre || `ID ${id}`;
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {notif && <div style={notifStyle(notif.type)}>{notif.msg}</div>}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <p style={{ margin: 0, fontSize: 'var(--font-body-sm)', color: 'var(--on-surface-variant)' }}>{data.length} subnivel(es)</p>
-        <button onClick={abrirCrear} style={btnPrimario}>+ Nuevo SubNivel</button>
-      </div>
-      <div style={containerStyle}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr>
-            <th style={thStyle}>Código</th>
-            <th style={thStyle}>Nombre</th>
-            <th style={thStyle}>Periodos/Semana</th>
-            <th style={thStyle}>Nivel</th>
-            <th style={thStyle}>Acciones</th>
-          </tr></thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={5} style={{ ...tdStyle, textAlign: 'center' }}>Cargando...</td></tr>
-            ) : data.length === 0 ? (
-              <tr><td colSpan={5} style={{ ...tdStyle, textAlign: 'center', color: 'var(--on-surface-variant)' }}>Sin subniveles.</td></tr>
-            ) : data.map(d => (
-              <tr key={d.id}>
-                <td style={{ ...tdStyle, fontWeight: 600 }}>{d.codigo}</td>
-                <td style={tdStyle}>{d.nombre}</td>
-                <td style={tdStyle}>{d.periodoPedagogicoSemanaMinimo}</td>
-                <td style={tdStyle}>{getNivelNombre(d.nivel)}</td>
-                <td style={tdStyle}>
-                  <button type="button" onClick={() => abrirEditar(d)} title="Editar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>✏️</button>
-                  <button type="button" onClick={() => handleEliminar(d.id)} title="Eliminar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>🔴</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {showForm && (
-        <div style={modalWrap}>
-          <div style={modalBox}>
-            <h3 style={{ margin: '0 0 20px', color: 'var(--primary)' }}>
-              {editando ? 'Editar SubNivel' : 'Nuevo SubNivel'}
-            </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-              <div>
-                <label style={labelStyle}>Código</label>
-                <input style={fieldStyle} placeholder="Ej: PREPARATORIA" maxLength={20} value={form.codigo}
-                  onChange={e => setForm({ ...form, codigo: e.target.value })} />
-              </div>
-              <div>
-                <label style={labelStyle}>Nombre</label>
-                <input style={fieldStyle} placeholder="Ej: Educación Preparatoria" maxLength={100} value={form.nombre}
-                  onChange={e => setForm({ ...form, nombre: e.target.value })} />
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
-              <div>
-                <label style={labelStyle}>Periodos Pedagógicos Semanales</label>
-                <input style={fieldStyle} type="number" min={0} max={1200} value={form.periodoPedagogicoSemanaMinimo}
-                  onChange={e => setForm({ ...form, periodoPedagogicoSemanaMinimo: Number(e.target.value) })} />
-              </div>
-              <div>
-                <label style={labelStyle}>Nivel</label>
-                <select style={selectStyle} value={form.nivel}
-                  onChange={e => setForm({ ...form, nivel: Number(e.target.value) })}>
-                  <option value={0}>-- Seleccione --</option>
-                  {niveles.map(n => <option key={n.id} value={n.id}>{n.nombre}</option>)}
-                </select>
-              </div>
-            </div>
-            {errorForm && (
-              <div style={{ padding: '12px 16px', marginBottom: 16, borderRadius: 8, background: '#fef2f2', color: '#dc2626', fontSize: '14px', fontWeight: 500, border: '1px solid #fecaca', textAlign: 'center' }}>
-                {errorForm}
-              </div>
-            )}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-              <button onClick={() => setShowForm(false)} style={btnSecundario}>Cancelar</button>
-              <button onClick={handleGuardar} style={btnPrimario}>Guardar</button>
-            </div>
-          </div>
+const SubJerarquiaNiveles: React.FC = () => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <p style={{ margin: 0, fontSize: 'var(--font-body-sm)', color: 'var(--on-surface-variant)' }}>
+      Niveles y subniveles oficiales del sistema educativo ecuatoriano. Todo grado académico se crea seleccionando un nivel, uno de sus subniveles y el año dentro del subnivel.
+    </p>
+    {JERARQUIA_NIVELES.map(({ nivel, subniveles }) => (
+      <div key={nivel} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <h4 style={{ margin: 0, fontSize: 'var(--font-body-sm)', fontWeight: 600, color: 'var(--primary)' }}>
+          {nivel}
+          <span style={badgeSubniveles}>{subniveles.length} subnivel(es)</span>
+        </h4>
+        <div style={containerStyle}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead><tr>
+              <th style={thStyle}>Subnivel</th>
+              <th style={thStyle}>Modalidad</th>
+            </tr></thead>
+            <tbody>
+              {subniveles.map(s => (
+                <tr key={s}>
+                  <td style={{ ...tdStyle, fontWeight: 600 }}>{s}</td>
+                  <td style={tdStyle}>{nivel === 'Bachillerato' ? 'Ciencias / Técnico (obligatoria)' : 'No aplica'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
-    </div>
-  );
-};
+      </div>
+    ))}
+  </div>
+);
 
 const GestionPlanesEstudio: React.FC = () => {
-  const [subtab, setSubtab] = useState<'planes' | 'niveles' | 'subniveles'>('planes');
+  const [subtab, setSubtab] = useState<'planes' | 'jerarquia'>('planes');
   const tabStyle = (active: boolean): React.CSSProperties => ({
     padding: '10px 20px', fontSize: 'var(--font-body-sm)', fontWeight: 600,
     border: 'none', borderBottom: active ? '3px solid var(--secondary)' : '3px solid transparent',
@@ -539,12 +275,10 @@ const GestionPlanesEstudio: React.FC = () => {
       </div>
       <div style={{ background: 'var(--surface-container-lowest)', borderBottom: '1px solid var(--outline-variant)', display: 'flex', gap: 4 }}>
         <button onClick={() => setSubtab('planes')} style={tabStyle(subtab === 'planes')}>Planes de Estudio</button>
-        <button onClick={() => setSubtab('niveles')} style={tabStyle(subtab === 'niveles')}>Niveles</button>
-        <button onClick={() => setSubtab('subniveles')} style={tabStyle(subtab === 'subniveles')}>SubNiveles</button>
+        <button onClick={() => setSubtab('jerarquia')} style={tabStyle(subtab === 'jerarquia')}>Niveles y SubNiveles</button>
       </div>
       {subtab === 'planes' && <SubPlanes />}
-      {subtab === 'niveles' && <SubNiveles />}
-      {subtab === 'subniveles' && <SubSubNiveles />}
+      {subtab === 'jerarquia' && <SubJerarquiaNiveles />}
     </div>
   );
 };

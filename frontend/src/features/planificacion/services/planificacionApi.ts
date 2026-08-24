@@ -1,5 +1,5 @@
 import { apiGet, apiPost, apiPatch, apiDelete, buildModulePath } from '../../../services/apiClient';
-import type { AnioLectivo, Paralelo, PeriodoAcademico, OfertaAcademica, GradoOfertado, AsignaturaOfertada, PlanEstudio, EducacionNivel, EducacionSubNivel, Grado, Asignatura } from '../../../types/entities/planificacion';
+import type { AnioLectivo, Paralelo, PeriodoAcademico, OfertaAcademica, GradoOfertado, AsignaturaOfertada, PlanEstudio, Grado, Asignatura } from '../../../types/entities/planificacion';
 
 const apiPost2 = <T>(path: string, data: Partial<T>) => apiPost<Partial<T>, T>(path, data);
 const apiPatch2 = <T>(path: string, data: Partial<T>) => apiPatch<Partial<T>, T>(path, data);
@@ -20,25 +20,17 @@ export const planificacionApi = {
 
   getGradosOfertados: () => apiGet<GradoOfertado[]>(P('grados-ofertados')),
   createGradoOfertado: (data: Partial<GradoOfertado>) => apiPost2<GradoOfertado>(P('grados-ofertados'), data),
+  updateGradoOfertado: (id: number, data: Partial<GradoOfertado>) => apiPatch2<GradoOfertado>(P(`grados-ofertados/${id}`), data),
 
   getAsignaturasOfertadas: () => apiGet<AsignaturaOfertada[]>(P('asignaturas-ofertadas')),
   createAsignaturaOfertada: (data: Partial<AsignaturaOfertada>) => apiPost2<AsignaturaOfertada>(P('asignaturas-ofertadas'), data),
+  updateAsignaturaOfertada: (id: number, data: Partial<AsignaturaOfertada>) => apiPatch2<AsignaturaOfertada>(P(`asignaturas-ofertadas/${id}`), data),
   deleteAsignaturaOfertada: (id: number) => apiDelete(P(`asignaturas-ofertadas/${id}`)),
 
   getPlanesEstudio: () => apiGet<PlanEstudio[]>(P('planes-estudio')),
   createPlanEstudio: (data: Partial<PlanEstudio>) => apiPost2<PlanEstudio>(P('planes-estudio'), data),
   updatePlanEstudio: (id: number, data: Partial<PlanEstudio>) => apiPatch2<PlanEstudio>(P(`planes-estudio/${id}`), data),
   deletePlanEstudio: (id: number) => apiDelete(P(`planes-estudio/${id}`)),
-
-  getNiveles: () => apiGet<EducacionNivel[]>(P('niveles')),
-  createNivel: (data: Partial<EducacionNivel>) => apiPost2<EducacionNivel>(P('niveles'), data),
-  updateNivel: (id: number, data: Partial<EducacionNivel>) => apiPatch2<EducacionNivel>(P(`niveles/${id}`), data),
-  deleteNivel: (id: number) => apiDelete(P(`niveles/${id}`)),
-
-  getSubNiveles: () => apiGet<EducacionSubNivel[]>(P('subniveles')),
-  createSubNivel: (data: Partial<EducacionSubNivel>) => apiPost2<EducacionSubNivel>(P('subniveles'), data),
-  updateSubNivel: (id: number, data: Partial<EducacionSubNivel>) => apiPatch2<EducacionSubNivel>(P(`subniveles/${id}`), data),
-  deleteSubNivel: (id: number) => apiDelete(P(`subniveles/${id}`)),
 
   getGrados: () => apiGet<Grado[]>(P('grados')),
   createGrado: (data: Partial<Grado>) => apiPost2<Grado>(P('grados'), data),

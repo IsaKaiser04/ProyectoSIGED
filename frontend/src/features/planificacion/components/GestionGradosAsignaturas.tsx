@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { planificacionApi } from '../services/planificacionApi';
-import type { Grado, Asignatura, PlanEstudio, EducacionNivel, EducacionSubNivel } from '../../../types/entities/planificacion';
+import type { Grado, Asignatura, PlanEstudio } from '../../../types/entities/planificacion';
+import { JERARQUIA_NIVELES, MODALIDADES_BACHILLERATO } from '../../../config/nivelesEducativos';
 
 const labelStyle: React.CSSProperties = {
   display: 'block', marginBottom: 6, fontWeight: 600, fontSize: 'var(--font-body-sm)', color: 'var(--on-surface)',
@@ -62,13 +63,11 @@ const notifStyle = (type: 'success' | 'error'): React.CSSProperties => ({
 const SubGrados: React.FC = () => {
   const [data, setData] = useState<Grado[]>([]);
   const [planes, setPlanes] = useState<PlanEstudio[]>([]);
-  const [niveles, setNiveles] = useState<EducacionNivel[]>([]);
-  const [subniveles, setSubniveles] = useState<EducacionSubNivel[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState<Grado | null>(null);
   const [notif, setNotif] = useState<{msg: string; type: 'success' | 'error'} | null>(null);
-  const [form, setForm] = useState({ nombre: '', planEstudio: 0, educacionNivel: 0, educacionSubNivel: 0 });
+  const [form, setForm] = useState({ nombre: '', planEstudio: 0, nivel: '', subnivel: '', modalidad: '', anioGrado: 1 });
 
   const show = (msg: string, type: 'success' | 'error') => {
     setNotif({ msg, type });
@@ -78,21 +77,22 @@ const SubGrados: React.FC = () => {
   const cargar = async () => {
     setLoading(true);
     try {
-      const [g, p, n, s] = await Promise.all([
+      const [g, p] = await Promise.all([
         planificacionApi.getGrados(),
         planificacionApi.getPlanesEstudio(),
-        planificacionApi.getNiveles(),
-        planificacionApi.getSubNiveles(),
       ]);
-      setData(g || []); setPlanes(p || []); setNiveles(n || []); setSubniveles(s || []);
+      setData(g || []); setPlanes(p || []);
     } catch { setData([]); }
     finally { setLoading(false); }
   };
   useEffect(() => { cargar(); }, []);
 
+  const esBachillerato = form.nivel === 'Bachillerato';
+  const subnivelesDelNivel = JERARQUIA_NIVELES.find(j => j.nivel === form.nivel)?.subniveles ?? [];
+
   const abrirCrear = () => {
     setEditando(null);
-    setForm({ nombre: '', planEstudio: 0, educacionNivel: 0, educacionSubNivel: 0 });
+    setForm({ nombre: '', planEstudio: 0, nivel: '', subnivel: '', modalidad: '', anioGrado: 1 });
     setShowForm(true);
   };
 
@@ -101,27 +101,33 @@ const SubGrados: React.FC = () => {
     setForm({
       nombre: g.nombre,
       planEstudio: g.planEstudio,
-      educacionNivel: g.educacionNivel,
-      educacionSubNivel: g.educacionSubNivel,
+      nivel: g.nivel,
+      subnivel: g.subnivel,
+      modalidad: g.modalidad || '',
+      anioGrado: g.anioGrado,
     });
     setShowForm(true);
   };
 
   const handleGuardar = async () => {
-    if (!form.nombre || !form.planEstudio || !form.educacionNivel || !form.educacionSubNivel) {
-      show('Todos los campos son obligatorios', 'error'); return;
+    if (!form.nombre || !form.planEstudio || !form.nivel || !form.subnivel) {
+      show('Nombre, plan de estudio, nivel y subnivel son obligatorios', 'error'); return;
+    }
+    if (esBachillerato && !form.modalidad) {
+      show('El nivel Bachillerato requiere especificar una modalidad', 'error'); return;
     }
     try {
+      const payload = { ...form, modalidad: esBachillerato ? form.modalidad : null };
       if (editando) {
-        await planificacionApi.updateGrado(editando.id, form as any);
+        await planificacionApi.updateGrado(editando.id, payload);
         show('Grado actualizado exitosamente', 'success');
       } else {
-        await planificacionApi.createGrado(form as any);
+        await planificacionApi.createGrado(payload);
         show('Grado creado exitosamente', 'success');
       }
       setShowForm(false);
       setEditando(null);
-      setForm({ nombre: '', planEstudio: 0, educacionNivel: 0, educacionSubNivel: 0 });
+      setForm({ nombre: '', planEstudio: 0, nivel: '', subnivel: '', modalidad: '', anioGrado: 1 });
       await cargar();
     } catch { show(editando ? 'Error al actualizar grado' : 'Error al crear grado', 'error'); }
   };
@@ -138,19 +144,6 @@ const SubGrados: React.FC = () => {
   };
 
   const getPlanNombre = (id: number) => planes.find(p => p.id === id)?.nombre || `ID ${id}`;
-  const getNivelNombre = (id: number) => niveles.find(n => n.id === id)?.nombre || `ID ${id}`;
-  const getSubNombre = (id: number) => subniveles.find(s => s.id === id)?.nombre || `ID ${id}`;
-  const getPeriodosInfo = (g: Grado) => {
-    const totalSemana = g.asignaturas?.reduce((acc, curr) => acc + curr.periodoPedagogicoSemanaMinimo, 0) || 0;
-    const sub = subniveles.find(s => s.id === g.educacionSubNivel);
-    const niv = niveles.find(n => n.id === g.educacionNivel);
-    const minSemana = sub?.periodoPedagogicoSemanaMinimo || niv?.periodoPedagogicoSemanaMinimo || 0;
-    return {
-      total: totalSemana,
-      min: minSemana,
-      cumple: totalSemana >= minSemana
-    };
-  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -166,41 +159,27 @@ const SubGrados: React.FC = () => {
             <th style={th}>Plan de Estudio</th>
             <th style={th}>Nivel</th>
             <th style={th}>Subnivel</th>
-            <th style={th}>Periodos Semanales</th>
-            <th style={th}>Estado Malla</th>
+            <th style={th}>Año</th>
+            <th style={th}>Modalidad</th>
             <th style={th}>Acciones</th>
           </tr></thead>
           <tbody>
             {loading ? <tr><td colSpan={7} style={{ ...td, textAlign: 'center' }}>Cargando...</td></tr>
             : data.length === 0 ? <tr><td colSpan={7} style={{ ...td, textAlign: 'center', color: 'var(--on-surface-variant)' }}>Sin grados.</td></tr>
-            : data.map(g => {
-              const info = getPeriodosInfo(g);
-              return (
-                <tr key={g.id}>
-                  <td style={{ ...td, fontWeight: 600 }}>{g.nombre}</td>
-                  <td style={td}>{getPlanNombre(g.planEstudio)}</td>
-                  <td style={td}>{getNivelNombre(g.educacionNivel)}</td>
-                  <td style={td}>{getSubNombre(g.educacionSubNivel)}</td>
-                  <td style={td}>
-                    {info.total} / {info.min} per.
-                  </td>
-                  <td style={td}>
-                    <span style={{
-                      padding: '4px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600,
-                      background: info.cumple ? '#dcfce7' : '#fee2e2',
-                      color: info.cumple ? '#166534' : '#991b1b',
-                      display: 'inline-block'
-                    }}>
-                      {info.cumple ? 'Mínimo Cumplido' : 'Insuficiente'}
-                    </span>
-                  </td>
-                  <td style={td}>
-                    <button type="button" onClick={() => abrirEditar(g)} title="Editar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>✏️</button>
-                    <button type="button" onClick={() => handleEliminar(g.id)} title="Eliminar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>🔴</button>
-                  </td>
-                </tr>
-              );
-            })}
+            : data.map(g => (
+              <tr key={g.id}>
+                <td style={{ ...td, fontWeight: 600 }}>{g.nombre}</td>
+                <td style={td}>{getPlanNombre(g.planEstudio)}</td>
+                <td style={td}>{g.nivel_display || g.nivel}</td>
+                <td style={td}>{g.subnivel_display || g.subnivel}</td>
+                <td style={td}>{g.anioGrado}</td>
+                <td style={td}>{g.modalidad_display || '—'}</td>
+                <td style={td}>
+                  <button type="button" onClick={() => abrirEditar(g)} title="Editar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>✏️</button>
+                  <button type="button" onClick={() => handleEliminar(g.id)} title="Eliminar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>🔴</button>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -224,23 +203,40 @@ const SubGrados: React.FC = () => {
                 {planes.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
               </select>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
               <div>
                 <label style={labelStyle}>Nivel</label>
-                <select style={selectStyle} value={form.educacionNivel}
-                  onChange={e => setForm({ ...form, educacionNivel: Number(e.target.value) })}>
-                  <option value={0}>-- Seleccione --</option>
-                  {niveles.map(n => <option key={n.id} value={n.id}>{n.nombre}</option>)}
+                <select style={selectStyle} value={form.nivel}
+                  onChange={e => setForm({ ...form, nivel: e.target.value, subnivel: '', modalidad: '' })}>
+                  <option value="">-- Seleccione --</option>
+                  {JERARQUIA_NIVELES.map(j => <option key={j.nivel} value={j.nivel}>{j.nivel}</option>)}
                 </select>
               </div>
               <div>
                 <label style={labelStyle}>Subnivel</label>
-                <select style={selectStyle} value={form.educacionSubNivel}
-                  onChange={e => setForm({ ...form, educacionSubNivel: Number(e.target.value) })}>
-                  <option value={0}>-- Seleccione --</option>
-                  {subniveles.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                <select style={selectStyle} value={form.subnivel} disabled={!form.nivel}
+                  onChange={e => setForm({ ...form, subnivel: e.target.value })}>
+                  <option value="">{form.nivel ? '-- Seleccione --' : '-- Elija un nivel --'}</option>
+                  {subnivelesDelNivel.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: esBachillerato ? '1fr 1fr' : '1fr', gap: 12, marginBottom: 24 }}>
+              <div>
+                <label style={labelStyle}>Año del Grado</label>
+                <input style={fieldStyle} type="number" min={1} max={12} value={form.anioGrado}
+                  onChange={e => setForm({ ...form, anioGrado: Number(e.target.value) })} />
+              </div>
+              {esBachillerato && (
+                <div>
+                  <label style={labelStyle}>Modalidad *</label>
+                  <select style={selectStyle} value={form.modalidad}
+                    onChange={e => setForm({ ...form, modalidad: e.target.value })}>
+                    <option value="">-- Seleccione --</option>
+                    {MODALIDADES_BACHILLERATO.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
               <button onClick={() => setShowForm(false)} style={btnSecundario}>Cancelar</button>
@@ -407,7 +403,7 @@ const SubAsignaturas: React.FC = () => {
               </select>
             </div>
             <div style={{ marginBottom: 24 }}>
-              <label style={labelStyle}>Minutos pedagógicos por semana</label>
+              <label style={labelStyle}>Periodos pedagógicos por semana</label>
               <input style={fieldStyle} type="number" min={0} max={1200} value={form.periodoPedagogicoSemanaMinimo}
                 onChange={e => setForm({ ...form, periodoPedagogicoSemanaMinimo: Number(e.target.value) })} />
             </div>

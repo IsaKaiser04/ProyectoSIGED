@@ -6,7 +6,6 @@ from .views.anio_lectivo_view import AnioLectivoViewSet
 from .views.paralelo_view import ParaleloViewSet
 
 # Importaciones antiguas (Las que no hemos tocado aún)
-from .views.educacion_view import EducacionNivelListCreateView, EducacionNivelDetailView, EducacionSubNivelListCreateView, EducacionSubNivelDetailView
 from .views.plan_estudio_view import PlanEstudioListCreateView, PlanEstudioDetailView, GradoListCreateView, GradoDetailView, AsignaturaListCreateView, AsignaturaDetailView
 from .views.calificacion_view import CalificacionListCreateView, CalificacionDetailView
 from .views.oferta_view import OfertaAcademicaListCreateView, OfertaAcademicaDetailView, GradoOfertadoListCreateView, GradoOfertadoDetailView, AsignaturaOfertadaListCreateView, AsignaturaOfertadaDetailView
@@ -18,12 +17,8 @@ router.register(r'paralelos', ParaleloViewSet, basename='paralelo')
 urlpatterns = [
     # Rutas nuevas con patrón correcto
     path('', include(router.urls)),
-    
+
     # Rutas antiguas (Mantenidas por compatibilidad temporal con otros módulos)
-    path('niveles/', EducacionNivelListCreateView.as_view(), name='educacionnivel-list-create'),
-    path('niveles/<int:pk>/', EducacionNivelDetailView.as_view(), name='educacionnivel-detail'),
-    path('subniveles/', EducacionSubNivelListCreateView.as_view(), name='educacionsubnivel-list-create'),
-    path('subniveles/<int:pk>/', EducacionSubNivelDetailView.as_view(), name='educacionsubnivel-detail'),
     path('planes-estudio/', PlanEstudioListCreateView.as_view(), name='planestudio-list-create'),
     path('planes-estudio/<int:pk>/', PlanEstudioDetailView.as_view(), name='planestudio-detail'),
     path('grados/', GradoListCreateView.as_view(), name='grado-list-create'),

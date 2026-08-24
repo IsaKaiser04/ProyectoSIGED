@@ -7,10 +7,12 @@ class ParaleloViewSet(viewsets.ViewSet):
     # permission_classes = [IsAuthenticated]
 
     def list(self, request):
+        auth = getattr(request, 'auth', None)
+        institucion_id = auth.get('institucion_id') if auth else None
         grado_ofertado_id = request.query_params.get('grado_ofertado_id')
         if grado_ofertado_id:
-            return Response(ParaleloService.por_grado_ofertado(int(grado_ofertado_id)))
-        return Response(ParaleloService.list_all())
+            return Response(ParaleloService.por_grado_ofertado(int(grado_ofertado_id), institucion_id))
+        return Response(ParaleloService.list_all(institucion_id))
 
     def retrieve(self, request, pk=None):
         data = ParaleloService.retrieve(pk)

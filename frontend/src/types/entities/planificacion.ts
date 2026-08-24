@@ -23,6 +23,7 @@ export interface AsignaturaOfertada {
   nombre: string;
   gradoOfertado: number;
   asignatura: number;
+  esActivo: boolean;
 }
 
 export interface GradoOfertado {
@@ -30,6 +31,7 @@ export interface GradoOfertado {
   nombre: string;
   ofertaAcademica: number;
   grado: number;
+  esActivo: boolean;
   asignaturasOfertadas: AsignaturaOfertada[];
 }
 
@@ -40,20 +42,19 @@ export interface OfertaAcademica {
   gradosOfertados: GradoOfertado[];
 }
 
-export interface EducacionNivel {
+export interface Grado {
   id: number;
   nombre: string;
-  codigo: string;
-  periodoPedagogicoMinutos: number;
-  periodoPedagogicoSemanaMinimo: number;
-}
-
-export interface EducacionSubNivel {
-  id: number;
-  nombre: string;
-  codigo: string;
-  periodoPedagogicoSemanaMinimo: number;
-  nivel: number;
+  planEstudio: number;
+  nivel: string;
+  nivel_display: string;
+  subnivel: string;
+  subnivel_display: string;
+  modalidad: string | null;
+  modalidad_display: string | null;
+  anioGrado: number;
+  institucion: number | null;
+  asignaturas?: Asignatura[];
 }
 
 export interface PlanEstudio {
@@ -64,16 +65,6 @@ export interface PlanEstudio {
   duracionAnios: number;
   institucion: number | null;
   grados?: any[];
-}
-
-export interface Grado {
-  id: number;
-  nombre: string;
-  planEstudio: number;
-  educacionNivel: number;
-  educacionSubNivel: number;
-  institucion: number | null;
-  asignaturas?: Asignatura[];
 }
 
 export interface Asignatura {

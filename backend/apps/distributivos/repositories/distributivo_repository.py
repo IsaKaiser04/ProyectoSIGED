@@ -3,20 +3,29 @@ from ..models import Distributivo
 
 class DistributivoRepository:
     @staticmethod
-    def get_all():
-        return Distributivo.objects.select_related('docente', 'anio_lectivo').all()
+    def get_all(institucion_id=None):
+        qs = Distributivo.objects.select_related('docente', 'anio_lectivo').all()
+        if institucion_id is not None:
+            qs = qs.filter(anio_lectivo__institucion_id=institucion_id)
+        return qs
 
     @staticmethod
     def get_by_id(pk):
         return Distributivo.objects.select_related('docente', 'anio_lectivo').filter(pk=pk).first()
 
     @staticmethod
-    def filter_by_anio_lectivo(anio_lectivo_id):
-        return Distributivo.objects.select_related('docente', 'anio_lectivo').filter(anio_lectivo_id=anio_lectivo_id)
+    def filter_by_anio_lectivo(anio_lectivo_id, institucion_id=None):
+        qs = Distributivo.objects.select_related('docente', 'anio_lectivo').filter(anio_lectivo_id=anio_lectivo_id)
+        if institucion_id is not None:
+            qs = qs.filter(anio_lectivo__institucion_id=institucion_id)
+        return qs
 
     @staticmethod
-    def filter_by_docente(docente_id):
-        return Distributivo.objects.select_related('docente', 'anio_lectivo').filter(docente_id=docente_id)
+    def filter_by_docente(docente_id, institucion_id=None):
+        qs = Distributivo.objects.select_related('docente', 'anio_lectivo').filter(docente_id=docente_id)
+        if institucion_id is not None:
+            qs = qs.filter(anio_lectivo__institucion_id=institucion_id)
+        return qs
 
     @staticmethod
     def create(data):

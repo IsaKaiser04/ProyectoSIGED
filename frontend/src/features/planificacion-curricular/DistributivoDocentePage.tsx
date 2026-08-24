@@ -12,6 +12,18 @@ import {
 import { horariosPorDistributivo, crearHorario, eliminarHorario } from "./services/horariosApi";
 import { obtenerJornadas } from "./services/jornadasApi";
 
+const extraerMensajeError = (data: any): string => {
+  if (!data) return "";
+  if (typeof data === "string") return data;
+  if (Array.isArray(data)) return data.join(" ");
+  if (typeof data === "object") {
+    return Object.values(data)
+      .map((v: any) => (Array.isArray(v) ? v.join(" ") : String(v)))
+      .join(" ");
+  }
+  return String(data);
+};
+
 type Vista = "lista" | "nuevo" | "editar" | "asignaturas" | "horarios";
 
 export default function DistributivoDocentePage() {
@@ -36,10 +48,14 @@ export default function DistributivoDocentePage() {
     hora_inicio: "",
     hora_fin: "",
     tipo_horario: "CLASE",
-    dia_semana: "LUNES",
+    dia_semana: "",
     observacion: ""
   });
   const [asignaturaForm, setAsignaturaForm] = useState({ asignatura_ofertada: "", paralelo: "", observacion: "" });
+  const [showModalAsignatura, setShowModalAsignatura] = useState(false);
+  const [asignaturaNotif, setAsignaturaNotif] = useState<{msg: string; type: 'success' | 'error'} | null>(null);
+  const [showModalHorario, setShowModalHorario] = useState(false);
+  const [horarioNotif, setHorarioNotif] = useState<{msg: string; type: 'success' | 'error'} | null>(null);
   const [error, setError] = useState("");
 
   const cargarDatos = async () => {
@@ -80,6 +96,8 @@ export default function DistributivoDocentePage() {
   const abrirAsignaturas = async (id: number) => {
     setSelectedId(id);
     setError("");
+    setAsignaturas([]);
+    setAsignaturaForm({ asignatura_ofertada: "", paralelo: "", observacion: "" });
     try {
       const [asigs, ofertadas, grados, parals] = await Promise.all([
         obtenerAsignaturasDistributivo(id),
@@ -91,14 +109,28 @@ export default function DistributivoDocentePage() {
       setAsignaturasOfertadas(ofertadas);
       setGradosOfertados(grados);
       setParalelos(parals);
-    } catch {}
-    setAsignaturaForm({ asignatura_ofertada: "", paralelo: "", observacion: "" });
+    } catch {
+      setError("No se pudieron cargar las materias del distributivo seleccionado.");
+    }
     setVista("asignaturas");
   };
 
   const abrirHorarios = async (distributivoId: number) => {
     setSelectedId(distributivoId);
     setError("");
+    setAsignaturas([]);
+    setHorarios([]);
+    setBloquesHorarios([]);
+    setHorarioForm({
+      distributivo_asignatura: "",
+      bloque_horario: "",
+      jornada_hora: "",
+      hora_inicio: "",
+      hora_fin: "",
+      tipo_horario: "CLASE",
+      dia_semana: "",
+      observacion: ""
+    });
     try {
       const [hrs, jrns, asigs, ofertadas, grados, parals] = await Promise.all([
         horariosPorDistributivo(distributivoId),
@@ -114,18 +146,9 @@ export default function DistributivoDocentePage() {
       setAsignaturasOfertadas(ofertadas);
       setGradosOfertados(grados);
       setParalelos(parals);
-    } catch {}
-    setBloquesHorarios([]);
-    setHorarioForm({
-      distributivo_asignatura: "",
-      bloque_horario: "",
-      jornada_hora: "",
-      hora_inicio: "",
-      hora_fin: "",
-      tipo_horario: "CLASE",
-      dia_semana: "LUNES",
-      observacion: ""
-    });
+    } catch {
+      setError("No se pudieron cargar los horarios del distributivo seleccionado.");
+    }
     setVista("horarios");
   };
 
@@ -158,7 +181,15 @@ export default function DistributivoDocentePage() {
   };
 
   const agregarAsignatura = async () => {
-    if (!asignaturaForm.asignatura_ofertada || !asignaturaForm.paralelo) return;
+    const ntf = (msg: string, type: 'success' | 'error') => {
+      setAsignaturaNotif({ msg, type });
+      setTimeout(() => setAsignaturaNotif(null), 4000);
+    };
+
+    if (!asignaturaForm.asignatura_ofertada || !asignaturaForm.paralelo) {
+      ntf("Seleccione la asignatura ofertada y el paralelo.", "error");
+      return;
+    }
     setError("");
     try {
       await crearAsignaturaDistributivo({
@@ -170,8 +201,10 @@ export default function DistributivoDocentePage() {
       const asigs = await obtenerAsignaturasDistributivo(selectedId!);
       setAsignaturas(asigs);
       setAsignaturaForm({ asignatura_ofertada: "", paralelo: "", observacion: "" });
+      ntf("Asignatura agregada exitosamente", "success");
+      setTimeout(() => setShowModalAsignatura(false), 900);
     } catch (err: any) {
-      setError(err?.data ? (typeof err.data === "string" ? err.data : JSON.stringify(err.data)) : "Error al agregar asignatura");
+      ntf(extraerMensajeError(err?.data) || "Error al agregar asignatura", "error");
     }
   };
 
@@ -185,8 +218,13 @@ export default function DistributivoDocentePage() {
   };
 
   const agregarHorario = async () => {
+    const ntf = (msg: string, type: 'success' | 'error') => {
+      setHorarioNotif({ msg, type });
+      setTimeout(() => setHorarioNotif(null), 4000);
+    };
+
     if (!horarioForm.distributivo_asignatura) {
-      setError("Debe seleccionar una asignatura.");
+      ntf("Seleccione la asignatura.", "error");
       return;
     }
     setError("");
@@ -202,19 +240,15 @@ export default function DistributivoDocentePage() {
       payload.bloque_horario = Number(horarioForm.bloque_horario);
     } else {
       if (!horarioForm.jornada_hora) {
-        setError("Debe seleccionar una jornada / turno.");
+        ntf("Debe seleccionar una jornada de turno.", "error");
         return;
       }
-      if (!horarioForm.hora_inicio) {
-        setError("Debe ingresar la hora de inicio.");
-        return;
-      }
-      if (!horarioForm.hora_fin) {
-        setError("Debe ingresar la hora de fin.");
+      if (!horarioForm.hora_inicio || !horarioForm.hora_fin) {
+        ntf("Seleccione una jornada válida para generar el rango de horas.", "error");
         return;
       }
       if (!horarioForm.dia_semana) {
-        setError("Debe seleccionar un d\u00eda.");
+        ntf("Debe seleccionar un día.", "error");
         return;
       }
       payload.jornada_hora = Number(horarioForm.jornada_hora);
@@ -237,8 +271,10 @@ export default function DistributivoDocentePage() {
         hora_fin: "",
         observacion: ""
       }));
+      ntf("Horario programado exitosamente", "success");
+      setTimeout(() => setShowModalHorario(false), 900);
     } catch (err: any) {
-      setError(err?.data ? (typeof err.data === "string" ? err.data : JSON.stringify(err.data)) : "Error al agregar horario");
+      ntf(extraerMensajeError(err?.data) || "Error al agregar horario", "error");
     }
   };
 
@@ -456,6 +492,12 @@ export default function DistributivoDocentePage() {
     )
   ).sort((a, b) => a.localeCompare(b));
 
+  const distributivoActual = distributivos.find((d) => d.id === selectedId);
+  const docenteActual = docentes.find((d) => d.id === Number(distributivoActual?.docente));
+  const docenteNombre = docenteActual
+    ? `${docenteActual.nombres} ${docenteActual.apellidos}`
+    : `Distributivo #${selectedId}`;
+
   if (loading) return <div style={{ padding: 24 }}>Cargando...</div>;
 
   return (
@@ -589,7 +631,15 @@ export default function DistributivoDocentePage() {
             <h3 style={{ margin: 0, color: "var(--primary)" }}>Asignación de Materias</h3>
             <button
               onClick={() => setVista("lista")}
-              style={btnSecundario}
+              style={{
+                background: "#e0f2fe",
+                color: "#0369a1",
+                border: "1px solid #7dd3fc",
+                padding: "10px 24px",
+                borderRadius: "8px",
+                fontWeight: 600,
+                cursor: "pointer"
+              }}
             >
               ↩️ Volver
             </button>
@@ -610,72 +660,33 @@ export default function DistributivoDocentePage() {
             </div>
           )}
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "24px" }}>
-            <div style={{ display: "flex", gap: "16px", alignItems: "flex-end" }}>
-              <div style={{ width: "35%" }}>
-                <label style={labelStyle}>Asignatura Ofertada *</label>
-                <select
-                  style={fieldStyle}
-                  value={asignaturaForm.asignatura_ofertada}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setAsignaturaForm((p) => ({ ...p, asignatura_ofertada: val, paralelo: "" }));
-                  }}
-                >
-                  <option value="">Seleccione una asignatura...</option>
-                  {asignaturasOfertadas.map((ao) => {
-                    const gradoName = obtenerGradoNombre(ao.gradoOfertado);
-                    return (
-                      <option key={ao.id} value={ao.id}>
-                        {ao.nombre} — {gradoName}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
-              <div style={{ width: "35%" }}>
-                <label style={labelStyle}>Paralelo *</label>
-                <select
-                  style={fieldStyle}
-                  value={asignaturaForm.paralelo}
-                  onChange={(e) => setAsignaturaForm((p) => ({ ...p, paralelo: e.target.value }))}
-                  disabled={!asignaturaForm.asignatura_ofertada}
-                >
-                  <option value="">Seleccione paralelo...</option>
-                  {(() => {
-                    const selectedAO = asignaturasOfertadas.find((ao) => ao.id === Number(asignaturaForm.asignatura_ofertada));
-                    const filteredParalelos = selectedAO
-                      ? paralelos.filter((p) => {
-                          const belongsToGrado = p.gradoOfertado === selectedAO.gradoOfertado;
-                          const alreadyAssigned = asignaturas.some(
-                            (a) => a.asignatura_ofertada === selectedAO.id && a.paralelo === p.id
-                          );
-                          return belongsToGrado && !alreadyAssigned;
-                        })
-                      : [];
-                    return filteredParalelos.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.nombre} ({p.jornada})
-                      </option>
-                    ));
-                  })()}
-                </select>
-              </div>
-              <button
-                onClick={agregarAsignatura}
-                style={{
-                  ...btnPrimario,
-                  width: "30%",
-                  height: "42px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "6px"
-                }}
-              >
-                ➕ Agregar Asignatura
-              </button>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "24px",
+              padding: "14px 20px",
+              borderRadius: "8px",
+              background: "var(--surface-container-low)",
+              border: "1px solid var(--outline-variant)"
+            }}
+          >
+            <div>
+              <p style={{ margin: 0, fontSize: "12px", color: "var(--on-surface-variant)" }}>Asignando materias al docente</p>
+              <h4 style={{ margin: "2px 0 0", color: "var(--primary)" }}>{docenteNombre}</h4>
             </div>
+            <button
+              onClick={() => {
+                setAsignaturaForm({ asignatura_ofertada: "", paralelo: "", observacion: "" });
+                setError("");
+                setAsignaturaNotif(null);
+                setShowModalAsignatura(true);
+              }}
+              style={{ ...btnPrimario, height: "42px", display: "flex", alignItems: "center", gap: "6px" }}
+            >
+              ➕ Agregar Asignatura
+            </button>
           </div>
 
           <h4 style={{ margin: "0 0 12px", color: "var(--primary)" }}>Materias Agregadas</h4>
@@ -726,6 +737,117 @@ export default function DistributivoDocentePage() {
               </tbody>
             </table>
           </div>
+
+          {showModalAsignatura && (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(0,0,0,0.5)",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                zIndex: 9999
+              }}
+            >
+              <div
+                style={{
+                  background: "white",
+                  padding: "28px",
+                  borderRadius: "12px",
+                  width: "480px",
+                  maxHeight: "90vh",
+                  overflowY: "auto"
+                }}
+              >
+                <h3 style={{ margin: "0 0 4px", color: "var(--primary)" }}>Agregar Asignatura</h3>
+                <p style={{ margin: "0 0 16px", fontSize: "13px", color: "var(--on-surface-variant)" }}>
+                  {docenteNombre}
+                </p>
+
+                {asignaturaNotif && (
+                  <div
+                    style={{
+                      background: asignaturaNotif.type === "success" ? "#dcfce7" : "#fee2e2",
+                      color: asignaturaNotif.type === "success" ? "#166534" : "#991b1b",
+                      border: `1px solid ${asignaturaNotif.type === "success" ? "#86efac" : "#fecaca"}`,
+                      padding: "12px",
+                      borderRadius: "8px",
+                      marginBottom: "16px",
+                      fontSize: "13px",
+                      fontWeight: 600
+                    }}
+                  >
+                    {asignaturaNotif.msg}
+                  </div>
+                )}
+
+                <label style={labelStyle}>Asignatura Ofertada *</label>
+                <select
+                  style={fieldStyle}
+                  value={asignaturaForm.asignatura_ofertada}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setAsignaturaForm((p) => ({ ...p, asignatura_ofertada: val, paralelo: "" }));
+                  }}
+                >
+                  <option value="">Seleccione una asignatura...</option>
+                  {asignaturasOfertadas.map((ao) => (
+                    <option key={ao.id} value={ao.id}>
+                      {ao.nombre} — {obtenerGradoNombre(ao.gradoOfertado)}
+                    </option>
+                  ))}
+                </select>
+
+                <div style={{ height: "16px" }} />
+
+                <label style={labelStyle}>Paralelo *</label>
+                <select
+                  style={fieldStyle}
+                  value={asignaturaForm.paralelo}
+                  onChange={(e) => setAsignaturaForm((p) => ({ ...p, paralelo: e.target.value }))}
+                  disabled={!asignaturaForm.asignatura_ofertada}
+                >
+                  <option value="">
+                    {!asignaturaForm.asignatura_ofertada ? "Elija una asignatura..." : "Seleccione paralelo..."}
+                  </option>
+                  {(() => {
+                    const selectedAO = asignaturasOfertadas.find((ao) => ao.id === Number(asignaturaForm.asignatura_ofertada));
+                    if (!selectedAO) return null;
+                    return paralelos
+                      .filter((p) => {
+                        const belongsToGrado = p.gradoOfertado === selectedAO.gradoOfertado;
+                        const alreadyAssigned = asignaturas.some(
+                          (a) => a.asignatura_ofertada === selectedAO.id && a.paralelo === p.id
+                        );
+                        return belongsToGrado && !alreadyAssigned;
+                      })
+                      .map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.nombre} ({p.jornada})
+                        </option>
+                      ));
+                  })()}
+                </select>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "24px" }}>
+                  <button
+                    onClick={() => {
+                      setShowModalAsignatura(false);
+                      setError("");
+                      setAsignaturaNotif(null);
+                    }}
+                    style={btnSecundario}
+                  >
+                    Cancelar
+                  </button>
+                  <button onClick={agregarAsignatura} style={btnPrimario}>
+                    Agregar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       ) : vista === "horarios" ? (
         <div
@@ -740,7 +862,15 @@ export default function DistributivoDocentePage() {
             <h3 style={{ margin: 0, color: "var(--primary)" }}>Gestionar Horario Docente</h3>
             <button
               onClick={() => setVista("lista")}
-              style={btnSecundario}
+              style={{
+                background: "#e0f2fe",
+                color: "#0369a1",
+                border: "1px solid #7dd3fc",
+                padding: "10px 24px",
+                borderRadius: "8px",
+                fontWeight: 600,
+                cursor: "pointer"
+              }}
             >
               ↩️ Volver
             </button>
@@ -763,115 +893,41 @@ export default function DistributivoDocentePage() {
 
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "24px",
-              background: "var(--surface-container-low)",
-              padding: "20px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "24px",
+              padding: "14px 20px",
               borderRadius: "8px",
-              border: "1px solid var(--outline-variant)",
-              marginBottom: "24px"
+              background: "var(--surface-container-low)",
+              border: "1px solid var(--outline-variant)"
             }}
           >
             <div>
-              <h4 style={{ margin: "0 0 16px", color: "var(--primary)" }}>Detalles del Horario</h4>
-
-              <div style={{ marginBottom: "12px" }}>
-                <label style={labelStyle}>Asignatura *</label>
-                <select
-                  style={fieldStyle}
-                  value={horarioForm.distributivo_asignatura}
-                  onChange={(e) => handleAsignaturaChange(e.target.value)}
-                >
-                  <option value="">Seleccione la materia...</option>
-                  {asignaturas.map((a: any) => {
-                    const ao = asignaturasOfertadas.find((x) => x.id === a.asignatura_ofertada);
-                    const gradoNombre = ao ? obtenerGradoNombre(ao.gradoOfertado) : (a.grado_nombre || "Grado");
-                    const paraleloNombre = a.paralelo_nombre || "Ninguno";
-                    return (
-                      <option key={a.id} value={a.id}>
-                        {a.asignatura_ofertada_nombre} — {gradoNombre} — {paraleloNombre}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
-
-              <div style={{ marginBottom: "12px" }}>
-                <label style={labelStyle}>Jornada / Turno *</label>
-                <select
-                  style={fieldStyle}
-                  value={horarioForm.jornada_hora}
-                  onChange={(e) => setHorarioForm((p) => ({ ...p, jornada_hora: e.target.value }))}
-                >
-                  <option value="">Seleccione el turno...</option>
-                  {jornadas.map((j: any) => (
-                    <option key={j.id} value={j.id}>
-                      {j.nombre} ({j.hora_inicio} - {j.hora_fin})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
-                <div>
-                  <label style={labelStyle}>Día *</label>
-                  <select
-                    style={fieldStyle}
-                    value={horarioForm.dia_semana}
-                    onChange={(e) => setHorarioForm((p) => ({ ...p, dia_semana: e.target.value }))}
-                  >
-                    <option value="LUNES">Lunes</option>
-                    <option value="MARTES">Martes</option>
-                    <option value="MIERCOLES">Miércoles</option>
-                    <option value="JUEVES">Jueves</option>
-                    <option value="VIERNES">Viernes</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={labelStyle}>Tipo *</label>
-                  <select
-                    style={fieldStyle}
-                    value={horarioForm.tipo_horario}
-                    onChange={(e) => setHorarioForm((p) => ({ ...p, tipo_horario: e.target.value }))}
-                  >
-                    <option value="CLASE">Clase</option>
-                    <option value="COMPLEMENTARIA">Complementaria</option>
-                  </select>
-                </div>
-              </div>
+              <p style={{ margin: 0, fontSize: "12px", color: "var(--on-surface-variant)" }}>Programando agenda del docente</p>
+              <h4 style={{ margin: "2px 0 0", color: "var(--primary)" }}>{docenteNombre}</h4>
             </div>
-
-            <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-              <div>
-                <h4 style={{ margin: "0 0 16px", color: "var(--primary)" }}>Rango de Horas</h4>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
-                  <div>
-                    <label style={labelStyle}>Hora Inicio *</label>
-                    <input
-                      type="time"
-                      style={fieldStyle}
-                      value={horarioForm.hora_inicio}
-                      onChange={(e) => setHorarioForm((p) => ({ ...p, hora_inicio: e.target.value }))}
-                    />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Hora Fin *</label>
-                    <input
-                      type="time"
-                      style={fieldStyle}
-                      value={horarioForm.hora_fin}
-                      onChange={(e) => setHorarioForm((p) => ({ ...p, hora_fin: e.target.value }))}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <button onClick={agregarHorario} style={btnProgramar}>
-                📅 Programar en Agenda
-              </button>
-            </div>
+            <button
+              onClick={() => {
+                setBloquesHorarios([]);
+                setHorarioForm({
+                  distributivo_asignatura: "",
+                  bloque_horario: "",
+                  jornada_hora: "",
+                  hora_inicio: "",
+                  hora_fin: "",
+                  tipo_horario: "CLASE",
+                  dia_semana: "",
+                  observacion: ""
+                });
+                setError("");
+                setHorarioNotif(null);
+                setShowModalHorario(true);
+              }}
+              style={{ ...btnProgramar, width: "auto" }}
+            >
+              📅 Programar Agenda
+            </button>
           </div>
 
           <div style={{ marginTop: "24px" }}>
@@ -1002,6 +1058,193 @@ export default function DistributivoDocentePage() {
               </div>
             )}
           </div>
+
+          {showModalHorario && (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(0,0,0,0.5)",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                zIndex: 9999
+              }}
+            >
+              <div
+                style={{
+                  background: "white",
+                  padding: "28px",
+                  borderRadius: "12px",
+                  width: "520px",
+                  maxHeight: "90vh",
+                  overflowY: "auto"
+                }}
+              >
+                <h3 style={{ margin: "0 0 4px", color: "var(--primary)" }}>Programar en Agenda</h3>
+                <p style={{ margin: "0 0 16px", fontSize: "13px", color: "var(--on-surface-variant)" }}>
+                  {docenteNombre}
+                </p>
+
+                {horarioNotif && (
+                  <div
+                    style={{
+                      background: horarioNotif.type === "success" ? "#dcfce7" : "#fee2e2",
+                      color: horarioNotif.type === "success" ? "#166534" : "#991b1b",
+                      border: `1px solid ${horarioNotif.type === "success" ? "#86efac" : "#fecaca"}`,
+                      padding: "12px",
+                      borderRadius: "8px",
+                      marginBottom: "16px",
+                      fontSize: "13px",
+                      fontWeight: 600
+                    }}
+                  >
+                    {horarioNotif.msg}
+                  </div>
+                )}
+
+                <h4 style={{ margin: "0 0 12px", color: "var(--primary)", fontSize: "14px" }}>Detalles del Horario</h4>
+
+                <div style={{ marginBottom: "12px" }}>
+                  <label style={labelStyle}>Día *</label>
+                  <select
+                    style={fieldStyle}
+                    value={horarioForm.dia_semana}
+                    onChange={(e) =>
+                      setHorarioForm((p) => ({
+                        ...p,
+                        dia_semana: e.target.value,
+                        jornada_hora: "",
+                        hora_inicio: "",
+                        hora_fin: ""
+                      }))
+                    }
+                  >
+                    <option value="">Seleccione el día...</option>
+                    <option value="LUNES">Lunes</option>
+                    <option value="MARTES">Martes</option>
+                    <option value="MIERCOLES">Miércoles</option>
+                    <option value="JUEVES">Jueves</option>
+                    <option value="VIERNES">Viernes</option>
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: "12px" }}>
+                  <label style={labelStyle}>Jornada de Turno *</label>
+                  <select
+                    style={fieldStyle}
+                    value={horarioForm.jornada_hora}
+                    disabled={!horarioForm.dia_semana}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const j = jornadas.find((x) => x.id === Number(val));
+                      setHorarioForm((p) => ({
+                        ...p,
+                        jornada_hora: val,
+                        hora_inicio: j?.hora_inicio ? j.hora_inicio.substring(0, 5) : "",
+                        hora_fin: j?.hora_fin ? j.hora_fin.substring(0, 5) : ""
+                      }));
+                    }}
+                  >
+                    <option value="">
+                      {!horarioForm.dia_semana ? "Elija primero un día..." : "Seleccione la jornada..."}
+                    </option>
+                    {jornadas.map((j: any) => {
+                      const jInicio = j.hora_inicio ? j.hora_inicio.substring(0, 5) : "";
+                      const jFin = j.hora_fin ? j.hora_fin.substring(0, 5) : "";
+                      const ocupado =
+                        !!horarioForm.dia_semana &&
+                        horarios.some(
+                          (h: any) =>
+                            h.dia_semana === horarioForm.dia_semana &&
+                            (h.hora_inicio || "").substring(0, 5) < jFin &&
+                            (h.hora_fin || "").substring(0, 5) > jInicio
+                        );
+                      return (
+                        <option key={j.id} value={j.id} disabled={ocupado}>
+                          {j.nombre} ({j.hora_inicio ? j.hora_inicio.substring(0, 5) : ""} -{" "}
+                          {j.hora_fin ? j.hora_fin.substring(0, 5) : ""}){ocupado ? " — Ocupado" : ""}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: "12px" }}>
+                  <label style={labelStyle}>Asignatura *</label>
+                  <select
+                    style={fieldStyle}
+                    value={horarioForm.distributivo_asignatura}
+                    onChange={(e) => handleAsignaturaChange(e.target.value)}
+                  >
+                    <option value="">Seleccione la materia...</option>
+                    {asignaturas.map((a: any) => {
+                      const ao = asignaturasOfertadas.find((x) => x.id === a.asignatura_ofertada);
+                      const gradoNombre = ao ? obtenerGradoNombre(ao.gradoOfertado) : (a.grado_nombre || "Grado");
+                      const paraleloNombre = a.paralelo_nombre || "Ninguno";
+                      return (
+                        <option key={a.id} value={a.id}>
+                          {a.asignatura_ofertada_nombre} — {gradoNombre} — {paraleloNombre}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: "12px" }}>
+                  <label style={labelStyle}>Tipo *</label>
+                  <select
+                    style={fieldStyle}
+                    value={horarioForm.tipo_horario}
+                    onChange={(e) => setHorarioForm((p) => ({ ...p, tipo_horario: e.target.value }))}
+                  >
+                    <option value="CLASE">Clase</option>
+                    <option value="COMPLEMENTARIA">Complementaria</option>
+                  </select>
+                </div>
+
+                <h4 style={{ margin: "16px 0 12px", color: "var(--primary)", fontSize: "14px" }}>Rango de Horas (automático)</h4>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "8px" }}>
+                  <div>
+                    <label style={labelStyle}>Hora Inicio</label>
+                    <input
+                      type="time"
+                      readOnly
+                      style={{ ...fieldStyle, background: "var(--surface-container-lowest)", color: "var(--on-surface-variant)" }}
+                      value={horarioForm.hora_inicio}
+                      placeholder="--:--"
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Hora Fin</label>
+                    <input
+                      type="time"
+                      readOnly
+                      style={{ ...fieldStyle, background: "var(--surface-container-lowest)", color: "var(--on-surface-variant)" }}
+                      value={horarioForm.hora_fin}
+                      placeholder="--:--"
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "20px" }}>
+                  <button
+                    onClick={() => {
+                      setShowModalHorario(false);
+                      setError("");
+                      setHorarioNotif(null);
+                    }}
+                    style={btnSecundario}
+                  >
+                    Cancelar
+                  </button>
+                  <button onClick={agregarHorario} style={btnPrimario}>
+                    Programar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div

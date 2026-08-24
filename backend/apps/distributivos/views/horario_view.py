@@ -54,7 +54,9 @@ class HorarioViewSet(viewsets.ViewSet):
         paralelo_id = request.query_params.get('paralelo_id')
         if not paralelo_id:
             return Response({'error': 'paralelo_id es obligatorio'}, status=400)
-        return Response(HorarioService.por_paralelo(paralelo_id))
+        auth = getattr(request, 'auth', None)
+        institucion_id = auth.get('institucion_id') if auth else None
+        return Response(HorarioService.por_paralelo(paralelo_id, institucion_id))
 
     @action(detail=False, methods=['get'], url_path='mi-horario')
     def mi_horario(self, request):
@@ -84,4 +86,6 @@ class HorarioViewSet(viewsets.ViewSet):
         anio_lectivo_id = request.query_params.get('anio_lectivo_id')
         if anio_lectivo_id:
             anio_lectivo_id = int(anio_lectivo_id)
-        return Response(HorarioService.todos_paralelos(anio_lectivo_id))
+        auth = getattr(request, 'auth', None)
+        institucion_id = auth.get('institucion_id') if auth else None
+        return Response(HorarioService.todos_paralelos(anio_lectivo_id, institucion_id))

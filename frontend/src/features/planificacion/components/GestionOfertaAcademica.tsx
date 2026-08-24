@@ -194,6 +194,9 @@ const SubGradosOfertados: React.FC = () => {
   const [gradosPlan, setGradosPlan] = useState<Grado[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editando, setEditando] = useState<GradoOfertado | null>(null);
+  const [notif, setNotif] = useState<{msg: string; type: 'success' | 'error'} | null>(null);
+  const show = (msg: string, type: 'success' | 'error') => { setNotif({ msg, type }); setTimeout(() => setNotif(null), 4000); };
 
   const cargar = async () => {
     setLoading(true);
@@ -207,14 +210,26 @@ const SubGradosOfertados: React.FC = () => {
   };
   useEffect(() => { cargar(); }, []);
 
+  const abrirCrear = () => { setEditando(null); setShowForm(true); };
+  const abrirEditar = (d: GradoOfertado) => { setEditando(d); setShowForm(true); };
+
+  const handleToggleActivo = async (d: GradoOfertado) => {
+    try {
+      await planificacionApi.updateGradoOfertado(d.id, { esActivo: !d.esActivo });
+      show(d.esActivo ? 'Grado ofertado desactivado exitosamente' : 'Grado ofertado activado exitosamente', 'success');
+      await cargar();
+    } catch { show('Error al cambiar el estado del grado ofertado', 'error'); }
+  };
+
   const getOferta = (id: number) => ofertas.find(o => o.id === id)?.nombre || `ID ${id}`;
   const getGrado = (id: number) => gradosPlan.find(g => g.id === id)?.nombre || `ID ${id}`;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {notif && <div style={notifStyle(notif.type)}>{notif.msg}</div>}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <p style={{ margin: 0, fontSize: 'var(--font-body-sm)', color: 'var(--on-surface-variant)' }}>{data.length} grado(s) ofertado(s)</p>
-        <button onClick={() => setShowForm(true)} style={btnPrimario}>+ Nuevo Grado Ofertado</button>
+        <button onClick={abrirCrear} style={btnPrimario}>+ Nuevo Grado Ofertado</button>
       </div>
       <div style={container}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -222,15 +237,31 @@ const SubGradosOfertados: React.FC = () => {
             <th style={th}>Nombre</th>
             <th style={th}>Oferta Académica</th>
             <th style={th}>Grado Base</th>
+            <th style={th}>Estado</th>
+            <th style={th}>Acciones</th>
           </tr></thead>
           <tbody>
-            {loading ? <tr><td colSpan={3} style={{ ...td, textAlign: 'center' }}>Cargando...</td></tr>
-            : data.length === 0 ? <tr><td colSpan={3} style={{ ...td, textAlign: 'center', color: 'var(--on-surface-variant)' }}>Sin grados ofertados.</td></tr>
+            {loading ? <tr><td colSpan={5} style={{ ...td, textAlign: 'center' }}>Cargando...</td></tr>
+            : data.length === 0 ? <tr><td colSpan={5} style={{ ...td, textAlign: 'center', color: 'var(--on-surface-variant)' }}>Sin grados ofertados.</td></tr>
             : data.map(d => (
               <tr key={d.id}>
                 <td style={{ ...td, fontWeight: 600 }}>{d.nombre}</td>
                 <td style={td}>{getOferta(d.ofertaAcademica)}</td>
                 <td style={td}>{getGrado(d.grado)}</td>
+                <td style={td}>
+                  <span style={{
+                    padding: '4px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600,
+                    background: d.esActivo ? '#dcfce7' : '#fee2e2',
+                    color: d.esActivo ? '#166534' : '#991b1b',
+                    display: 'inline-block'
+                  }}>
+                    {d.esActivo ? 'Activo' : 'Inactivo'}
+                  </span>
+                </td>
+                <td style={td}>
+                  <button type="button" onClick={() => abrirEditar(d)} title="Editar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>✏️</button>
+                  <button type="button" onClick={() => handleToggleActivo(d)} title={d.esActivo ? 'Desactivar' : 'Activar'} style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>{d.esActivo ? '🔴' : '🟢'}</button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -238,8 +269,8 @@ const SubGradosOfertados: React.FC = () => {
       </div>
       {showForm && (
         <ModalGradoOfertado
-          show={showForm} onClose={() => setShowForm(false)} onCreated={cargar}
-          ofertas={ofertas} grados={gradosPlan}
+          show={showForm} onClose={() => { setShowForm(false); setEditando(null); }} onCreated={cargar}
+          ofertas={ofertas} grados={gradosPlan} gradosOfertados={data} editando={editando}
         />
       )}
     </div>
@@ -253,32 +284,34 @@ const SubAsignaturas: React.FC = () => {
   const [data, setData] = useState<AsignaturaOfertada[]>([]);
   const [gradosOfertados, setGradosOfertados] = useState<GradoOfertado[]>([]);
   const [asignaturasBase, setAsignaturasBase] = useState<Asignatura[]>([]);
-  const [grados, setGrados] = useState<Grado[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editando, setEditando] = useState<AsignaturaOfertada | null>(null);
+  const [notif, setNotif] = useState<{msg: string; type: 'success' | 'error'} | null>(null);
+  const show = (msg: string, type: 'success' | 'error') => { setNotif({ msg, type }); setTimeout(() => setNotif(null), 4000); };
 
   const cargar = async () => {
     setLoading(true);
     try {
-      const [ao, go, ab, gr] = await Promise.all([
+      const [ao, go, ab] = await Promise.all([
         planificacionApi.getAsignaturasOfertadas(), planificacionApi.getGradosOfertados(),
-        planificacionApi.getAsignaturas(), planificacionApi.getGrados(),
+        planificacionApi.getAsignaturas(),
       ]);
-      setData(ao || []); setGradosOfertados(go || []); setAsignaturasBase(ab || []); setGrados(gr || []);
+      setData(ao || []); setGradosOfertados(go || []); setAsignaturasBase(ab || []);
     } catch { setData([]); }
     finally { setLoading(false); }
   };
   useEffect(() => { cargar(); }, []);
 
-  const handleEliminar = async (id: number) => {
-    if (!window.confirm('¿Está seguro de que desea eliminar esta asignatura ofertada? Esta acción no se puede deshacer.')) return;
+  const abrirCrear = () => { setEditando(null); setShowForm(true); };
+  const abrirEditar = (d: AsignaturaOfertada) => { setEditando(d); setShowForm(true); };
+
+  const handleToggleActivo = async (d: AsignaturaOfertada) => {
     try {
-      await planificacionApi.deleteAsignaturaOfertada(id);
-      showSuccess('Asignatura ofertada eliminada exitosamente');
-      cargar();
-    } catch (err) {
-      showError('Error al eliminar la asignatura ofertada.');
-    }
+      await planificacionApi.updateAsignaturaOfertada(d.id, { esActivo: !d.esActivo });
+      show(d.esActivo ? 'Asignatura ofertada desactivada exitosamente' : 'Asignatura ofertada activada exitosamente', 'success');
+      await cargar();
+    } catch { show('Error al cambiar el estado de la asignatura ofertada', 'error'); }
   };
 
   const getGO = (id: number) => gradosOfertados.find(g => g.id === id)?.nombre || `ID ${id}`;
@@ -286,9 +319,10 @@ const SubAsignaturas: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {notif && <div style={notifStyle(notif.type)}>{notif.msg}</div>}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <p style={{ margin: 0, fontSize: 'var(--font-body-sm)', color: 'var(--on-surface-variant)' }}>{data.length} asignatura(s) ofertada(s)</p>
-        <button onClick={() => setShowForm(true)} style={btnPrimario}>+ Nueva Asignatura</button>
+        <button onClick={abrirCrear} style={btnPrimario}>+ Nueva Asignatura</button>
       </div>
       <div style={container}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -296,18 +330,30 @@ const SubAsignaturas: React.FC = () => {
             <th style={th}>Nombre</th>
             <th style={th}>Grado Ofertado</th>
             <th style={th}>Asignatura Base</th>
+            <th style={th}>Estado</th>
             <th style={th}>Acciones</th>
           </tr></thead>
           <tbody>
-            {loading ? <tr><td colSpan={4} style={{ ...td, textAlign: 'center' }}>Cargando...</td></tr>
-            : data.length === 0 ? <tr><td colSpan={4} style={{ ...td, textAlign: 'center', color: 'var(--on-surface-variant)' }}>Sin asignaturas ofertadas.</td></tr>
+            {loading ? <tr><td colSpan={5} style={{ ...td, textAlign: 'center' }}>Cargando...</td></tr>
+            : data.length === 0 ? <tr><td colSpan={5} style={{ ...td, textAlign: 'center', color: 'var(--on-surface-variant)' }}>Sin asignaturas ofertadas.</td></tr>
             : data.map(a => (
               <tr key={a.id}>
                 <td style={{ ...td, fontWeight: 600 }}>{a.nombre}</td>
                 <td style={td}>{getGO(a.gradoOfertado)}</td>
                 <td style={td}>{getAB(a.asignatura)}</td>
                 <td style={td}>
-                  <button onClick={() => handleEliminar(a.id)} title="Eliminar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '4px' }}>🗑️</button>
+                  <span style={{
+                    padding: '4px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600,
+                    background: a.esActivo ? '#dcfce7' : '#fee2e2',
+                    color: a.esActivo ? '#166534' : '#991b1b',
+                    display: 'inline-block'
+                  }}>
+                    {a.esActivo ? 'Activo' : 'Inactivo'}
+                  </span>
+                </td>
+                <td style={td}>
+                  <button type="button" onClick={() => abrirEditar(a)} title="Editar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginRight: '6px', fontSize: '15px' }}>✏️</button>
+                  <button type="button" onClick={() => handleToggleActivo(a)} title={a.esActivo ? 'Desactivar' : 'Activar'} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '15px' }}>{a.esActivo ? '🔴' : '🟢'}</button>
                 </td>
               </tr>
             ))}
@@ -316,8 +362,9 @@ const SubAsignaturas: React.FC = () => {
       </div>
       {showForm && (
         <ModalAsignaturaOfertada
-          show={showForm} onClose={() => setShowForm(false)} onCreated={cargar}
-          gradosOfertados={gradosOfertados} asignaturasBase={asignaturasBase} grados={grados}
+          show={showForm} onClose={() => { setShowForm(false); setEditando(null); }} onCreated={cargar}
+          gradosOfertados={gradosOfertados} asignaturasBase={asignaturasBase}
+          asignaturasOfertadas={data} editando={editando}
         />
       )}
     </div>
@@ -329,45 +376,102 @@ const SubAsignaturas: React.FC = () => {
 // ============================================================
 const ModalGradoOfertado: React.FC<{
   show: boolean; onClose: () => void; onCreated: () => void;
-  ofertas: OfertaAcademica[]; grados: Grado[];
-}> = ({ show: visible, onClose, onCreated, ofertas, grados }) => {
-  const [form, setForm] = useState({ nombre: '', ofertaAcademica: 0, grado: 0 });
+  ofertas: OfertaAcademica[]; grados: Grado[]; gradosOfertados: GradoOfertado[];
+  editando?: GradoOfertado | null;
+}> = ({ show: visible, onClose, onCreated, ofertas, grados, gradosOfertados, editando }) => {
+  const [form, setForm] = useState({ ofertaAcademica: 0, grado: 0 });
   const [notif, setNotif] = useState<{msg: string; type: 'success' | 'error'} | null>(null);
   const ntf = (msg: string, type: 'success' | 'error') => { setNotif({ msg, type }); setTimeout(() => setNotif(null), 4000); };
   useEffect(() => {
-    if (!visible) { setForm({ nombre: '', ofertaAcademica: 0, grado: 0 }); setNotif(null); }
-  }, [visible]);
+    if (visible && editando) {
+      setForm({ ofertaAcademica: editando.ofertaAcademica, grado: editando.grado });
+    } else if (!visible) {
+      setForm({ ofertaAcademica: 0, grado: 0 });
+    }
+    if (!visible) setNotif(null);
+  }, [visible, editando]);
+
+  const anioLectivoSeleccionado = ofertas.find(o => o.id === form.ofertaAcademica)?.anioLectivo ?? null;
+  const gradosOcupados = anioLectivoSeleccionado === null ? [] : gradosOfertados
+    .filter(go => go.id !== editando?.id)
+    .filter(go => ofertas.find(o => o.id === go.ofertaAcademica)?.anioLectivo === anioLectivoSeleccionado)
+    .map(go => go.grado);
+  const gradosDisponibles = grados.filter(g => !gradosOcupados.includes(g.id));
+
+  const gradoSeleccionado = grados.find(g => g.id === form.grado);
   const handleCrear = async () => {
-    if (!form.nombre || !form.ofertaAcademica || !form.grado) { ntf('Todos los campos son obligatorios', 'error'); return; }
+    if (!form.ofertaAcademica || !form.grado) { ntf('Seleccione la oferta académica y el grado', 'error'); return; }
     try {
-      await planificacionApi.createGradoOfertado(form as any);
-      ntf('Grado ofertado creado exitosamente', 'success');
+      const payload = {
+        nombre: gradoSeleccionado?.nombre || '',
+        ofertaAcademica: form.ofertaAcademica,
+        grado: form.grado,
+      };
+      if (editando) {
+        await planificacionApi.updateGradoOfertado(editando.id, payload);
+        ntf('Grado ofertado actualizado exitosamente', 'success');
+      } else {
+        await planificacionApi.createGradoOfertado(payload);
+        ntf('Grado ofertado creado exitosamente', 'success');
+      }
       setTimeout(() => { onClose(); onCreated(); }, 800);
-    } catch { ntf('Error al crear grado ofertado', 'error'); }
+    } catch { ntf(`Error al ${editando ? 'actualizar' : 'crear'} grado ofertado. Verifique que no esté ya ofertado en este año lectivo.`, 'error'); }
   };
   if (!visible) return null;
   return (
     <div style={modalWrap}>
       <div style={modalBox}>
         {notif && <div style={{ ...notifStyle(notif.type), marginBottom: 16 }}>{notif.msg}</div>}
-        <h3 style={{ margin: '0 0 20px', color: 'var(--primary)' }}>Nuevo Grado Ofertado</h3>
-        <div style={{ marginBottom: 16 }}>
-          <label style={labelStyle}>Nombre</label>
-          <input style={fieldStyle} placeholder="Ej: Primer Grado" maxLength={100} value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} />
-        </div>
+        <h3 style={{ margin: '0 0 20px', color: 'var(--primary)' }}>
+          {editando ? 'Editar Grado Ofertado' : 'Nuevo Grado Ofertado'}
+        </h3>
         <div style={{ marginBottom: 16 }}>
           <label style={labelStyle}>Oferta Académica</label>
-          <select style={selectStyle} value={form.ofertaAcademica} onChange={e => setForm({ ...form, ofertaAcademica: Number(e.target.value) })}>
+          <select style={selectStyle} value={form.ofertaAcademica}
+            onChange={e => {
+              const nuevaOfertaId = Number(e.target.value);
+              const nuevoAnio = ofertas.find(o => o.id === nuevaOfertaId)?.anioLectivo ?? null;
+              const ocupadosNuevoAnio = nuevoAnio === null ? [] : gradosOfertados
+                .filter(go => ofertas.find(o => o.id === go.ofertaAcademica)?.anioLectivo === nuevoAnio)
+                .map(go => go.grado);
+              setForm({
+                ofertaAcademica: nuevaOfertaId,
+                grado: ocupadosNuevoAnio.includes(form.grado) ? 0 : form.grado,
+              });
+            }}>
             <option value={0}>-- Seleccione --</option>
             {ofertas.map(o => <option key={o.id} value={o.id}>{o.nombre}</option>)}
           </select>
         </div>
         <div style={{ marginBottom: 24 }}>
           <label style={labelStyle}>Grado (Plan de Estudio)</label>
-          <select style={selectStyle} value={form.grado} onChange={e => setForm({ ...form, grado: Number(e.target.value) })}>
-            <option value={0}>-- Seleccione --</option>
-            {grados.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
+          <select style={selectStyle} value={form.grado} onChange={e => setForm({ ...form, grado: Number(e.target.value) })}
+            disabled={!form.ofertaAcademica}>
+            <option value={0}>
+              {!form.ofertaAcademica ? '-- Elija una oferta académica --'
+              : gradosDisponibles.length === 0 ? '-- No hay grados disponibles --'
+              : '-- Seleccione --'}
+            </option>
+            {gradosDisponibles.map(g => (
+              <option key={g.id} value={g.id}>
+                {g.nombre}{g.subnivel_display ? ` — ${g.subnivel_display}` : ''}
+              </option>
+            ))}
           </select>
+          {form.ofertaAcademica !== 0 && (
+            <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--on-surface-variant)' }}>
+              {gradosDisponibles.length} grado(s) disponible(s) para este año lectivo
+            </p>
+          )}
+        </div>
+        <div style={{ marginBottom: 24 }}>
+          <label style={labelStyle}>Nombre</label>
+          <input
+            style={{ ...fieldStyle, background: 'var(--surface-container-low)', color: 'var(--on-surface-variant)' }}
+            value={gradoSeleccionado?.nombre || ''}
+            placeholder="Se completa automáticamente al elegir el grado"
+            readOnly
+          />
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
           <button onClick={onClose} style={btnSecundario}>Cancelar</button>
@@ -383,48 +487,101 @@ const ModalGradoOfertado: React.FC<{
 // ============================================================
 const ModalAsignaturaOfertada: React.FC<{
   show: boolean; onClose: () => void; onCreated: () => void;
-  gradosOfertados: GradoOfertado[]; asignaturasBase: Asignatura[]; grados: Grado[];
-}> = ({ show: visible, onClose, onCreated, gradosOfertados, asignaturasBase, grados }) => {
-  const [form, setForm] = useState({ nombre: '', gradoOfertado: 0, asignatura: 0 });
+  gradosOfertados: GradoOfertado[]; asignaturasBase: Asignatura[];
+  asignaturasOfertadas: AsignaturaOfertada[]; editando?: AsignaturaOfertada | null;
+}> = ({ show: visible, onClose, onCreated, gradosOfertados, asignaturasBase, asignaturasOfertadas, editando }) => {
+  const [form, setForm] = useState({ gradoOfertado: 0, asignatura: 0 });
   const [notif, setNotif] = useState<{msg: string; type: 'success' | 'error'} | null>(null);
   const ntf = (msg: string, type: 'success' | 'error') => { setNotif({ msg, type }); setTimeout(() => setNotif(null), 4000); };
   useEffect(() => {
-    if (!visible) { setForm({ nombre: '', gradoOfertado: 0, asignatura: 0 }); setNotif(null); }
-  }, [visible]);
+    if (visible && editando) {
+      setForm({ gradoOfertado: editando.gradoOfertado, asignatura: editando.asignatura });
+    } else if (!visible) {
+      setForm({ gradoOfertado: 0, asignatura: 0 });
+    }
+    if (!visible) setNotif(null);
+  }, [visible, editando]);
+
+  const gradoBaseId = gradosOfertados.find(g => g.id === form.gradoOfertado)?.grado ?? null;
+  const yaOfertadasIds = asignaturasOfertadas
+    .filter(ao => ao.id !== editando?.id && ao.gradoOfertado === form.gradoOfertado)
+    .map(ao => ao.asignatura);
+  const asignaturasDisponibles = gradoBaseId === null ? [] :
+    asignaturasBase.filter(a => a.grado === gradoBaseId && !yaOfertadasIds.includes(a.id));
+  const asignaturaSeleccionada = asignaturasBase.find(a => a.id === form.asignatura);
+
   const handleCrear = async () => {
-    if (!form.nombre || !form.gradoOfertado || !form.asignatura) { ntf('Todos los campos son obligatorios', 'error'); return; }
+    if (!form.gradoOfertado || !form.asignatura) { ntf('Seleccione el grado ofertado y la asignatura', 'error'); return; }
     try {
-      await planificacionApi.createAsignaturaOfertada(form as any);
-      ntf('Asignatura ofertada creada exitosamente', 'success');
+      const payload = {
+        nombre: asignaturaSeleccionada?.nombre || '',
+        gradoOfertado: form.gradoOfertado,
+        asignatura: form.asignatura,
+      };
+      if (editando) {
+        await planificacionApi.updateAsignaturaOfertada(editando.id, payload);
+        ntf('Asignatura ofertada actualizada exitosamente', 'success');
+      } else {
+        await planificacionApi.createAsignaturaOfertada(payload);
+        ntf('Asignatura ofertada creada exitosamente', 'success');
+      }
       setTimeout(() => { onClose(); onCreated(); }, 800);
-    } catch { ntf('Error al crear asignatura ofertada', 'error'); }
+    } catch { ntf(`Error al ${editando ? 'actualizar' : 'crear'} asignatura ofertada. Verifique que no esté ya ofertada en este grado.`, 'error'); }
   };
   if (!visible) return null;
   return (
     <div style={modalWrap}>
       <div style={modalBox}>
         {notif && <div style={{ ...notifStyle(notif.type), marginBottom: 16 }}>{notif.msg}</div>}
-        <h3 style={{ margin: '0 0 20px', color: 'var(--primary)' }}>Nueva Asignatura Ofertada</h3>
-        <div style={{ marginBottom: 16 }}>
-          <label style={labelStyle}>Nombre</label>
-          <input style={fieldStyle} placeholder="Ej: Matemáticas" maxLength={100} value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} />
-        </div>
+        <h3 style={{ margin: '0 0 20px', color: 'var(--primary)' }}>
+          {editando ? 'Editar Asignatura Ofertada' : 'Nueva Asignatura Ofertada'}
+        </h3>
         <div style={{ marginBottom: 16 }}>
           <label style={labelStyle}>Grado Ofertado</label>
-          <select style={selectStyle} value={form.gradoOfertado} onChange={e => setForm({ ...form, gradoOfertado: Number(e.target.value) })}>
+          <select style={selectStyle} value={form.gradoOfertado}
+            onChange={e => {
+              const nuevoGO = Number(e.target.value);
+              const nuevoGradoBase = gradosOfertados.find(g => g.id === nuevoGO)?.grado ?? null;
+              const ocupadasNuevoGO = asignaturasOfertadas
+                .filter(ao => ao.id !== editando?.id && ao.gradoOfertado === nuevoGO)
+                .map(ao => ao.asignatura);
+              setForm({
+                gradoOfertado: nuevoGO,
+                asignatura: nuevoGradoBase !== null
+                  && asignaturaSeleccionada?.grado === nuevoGradoBase
+                  && !ocupadasNuevoGO.includes(form.asignatura)
+                  ? form.asignatura : 0,
+              });
+            }}>
             <option value={0}>-- Seleccione --</option>
             {gradosOfertados.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
           </select>
         </div>
-        <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: 16 }}>
           <label style={labelStyle}>Asignatura (Plan de Estudio)</label>
-          <select style={selectStyle} value={form.asignatura} onChange={e => setForm({ ...form, asignatura: Number(e.target.value) })}>
-            <option value={0}>-- Seleccione --</option>
-            {asignaturasBase.map(a => {
-              const gradoNombre = grados.find(g => g.id === a.grado)?.nombre || '';
-              return <option key={a.id} value={a.id}>{a.nombre}{gradoNombre ? ` (${gradoNombre})` : ''}</option>;
-            })}
+          <select style={selectStyle} value={form.asignatura} onChange={e => setForm({ ...form, asignatura: Number(e.target.value) })}
+            disabled={!form.gradoOfertado}>
+            <option value={0}>
+              {!form.gradoOfertado ? '-- Elija un grado ofertado --'
+              : asignaturasDisponibles.length === 0 ? '-- No hay asignaturas disponibles --'
+              : '-- Seleccione --'}
+            </option>
+            {asignaturasDisponibles.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
           </select>
+          {form.gradoOfertado !== 0 && (
+            <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--on-surface-variant)' }}>
+              {asignaturasDisponibles.length} asignatura(s) disponible(s) para este grado
+            </p>
+          )}
+        </div>
+        <div style={{ marginBottom: 24 }}>
+          <label style={labelStyle}>Nombre</label>
+          <input
+            style={{ ...fieldStyle, background: 'var(--surface-container-low)', color: 'var(--on-surface-variant)' }}
+            value={asignaturaSeleccionada?.nombre || ''}
+            placeholder="Se completa automáticamente al elegir la asignatura"
+            readOnly
+          />
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
           <button onClick={onClose} style={btnSecundario}>Cancelar</button>

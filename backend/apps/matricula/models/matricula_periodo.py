@@ -1,5 +1,6 @@
 from django.db import models
 from .enums import MatriculaPeriodoTipo
+from apps.planificacion.models.enums import NivelEducativo
 
 
 class MatriculaPeriodo(models.Model):
@@ -14,11 +15,11 @@ class MatriculaPeriodo(models.Model):
         null=True, blank=True,
         related_name='periodos_matricula'
     )
-    educacion_nivel = models.ForeignKey(
-        'planificacion.EducacionNivel',
-        on_delete=models.CASCADE,
+    educacion_nivel = models.CharField(
+        max_length=30,
+        choices=[(e.value, e.name) for e in NivelEducativo],
         null=True, blank=True,
-        related_name='periodos_matricula'
+        help_text="Nivel educativo del periodo de matrícula"
     )
     anio_lectivo = models.ForeignKey(
         'planificacion.AnioLectivo',

@@ -1,4 +1,5 @@
 from django.db import models
+from .enums import NivelEducativo, SubNivelEducativo, ModalidadBachillerato
 
 
 class PlanEstudio(models.Model):
@@ -20,16 +21,40 @@ class PlanEstudio(models.Model):
 class Grado(models.Model):
     nombre = models.CharField(max_length=100)
     planEstudio = models.ForeignKey(PlanEstudio, on_delete=models.CASCADE, related_name='grados')
-    educacionNivel = models.ForeignKey('EducacionNivel', on_delete=models.CASCADE, related_name='grados')
-    educacionSubNivel = models.ForeignKey('EducacionSubNivel', on_delete=models.CASCADE, related_name='grados')
+
+    nivel = models.CharField(
+        max_length=30,
+        choices=[(e.value, e.name) for e in NivelEducativo],
+        help_text="Nivel educativo del grado"
+    )
+
+    subnivel = models.CharField(
+        max_length=50,
+        choices=[(e.value, e.name) for e in SubNivelEducativo],
+        help_text="Subnivel educativo del grado"
+    )
+
+    modalidad = models.CharField(
+        max_length=30,
+        choices=[(e.value, e.name) for e in ModalidadBachillerato],
+        null=True,
+        blank=True,
+        help_text="Solo aplica para Bachillerato"
+    )
+
+    anioGrado = models.IntegerField(
+        help_text="Número de año dentro del subnivel (ej: 1°, 2°, 3°)"
+    )
+
     institucion = models.ForeignKey('institucion.Institucion', on_delete=models.CASCADE, related_name='grados', null=True, blank=True)
 
     def __str__(self):
-        return self.nombre
+        return f"{self.nombre} - {self.get_nivel_display()}"
 
     class Meta:
         verbose_name = 'Grado'
         verbose_name_plural = 'Grados'
+        unique_together = ['planEstudio', 'nivel', 'subnivel', 'anioGrado']
 
 
 class Asignatura(models.Model):

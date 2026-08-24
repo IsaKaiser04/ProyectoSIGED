@@ -1,5 +1,6 @@
 from django.db import models
 from .enums import MatriculaRequisitoTipo
+from apps.planificacion.models.enums import NivelEducativo
 
 
 class MatriculaRequisito(models.Model):
@@ -20,11 +21,11 @@ class MatriculaRequisito(models.Model):
         null=True, blank=True,
         related_name='requisitos_config'
     )
-    educacion_nivel = models.ForeignKey(
-        'planificacion.EducacionNivel',
-        on_delete=models.CASCADE,
+    educacion_nivel = models.CharField(
+        max_length=30,
+        choices=[(e.value, e.name) for e in NivelEducativo],
         null=True, blank=True,
-        related_name='requisitos_config'
+        help_text="Nivel educativo del requisito"
     )
 
     class Meta:
