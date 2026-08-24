@@ -63,3 +63,13 @@ class AnioLectivoViewSet(viewsets.ViewSet):
         auth = getattr(request, 'auth', None)
         institucion_id = auth.get('institucion_id') if auth else None
         return Response(AnioLectivoService.get_periodos(pk, institucion_id))
+
+    @action(detail=True, methods=['post'], url_path='generar-periodos')
+    def generar_periodos(self, request, pk=None):
+        auth = getattr(request, 'auth', None)
+        institucion_id = auth.get('institucion_id') if auth else None
+        periodo_tipo = request.data.get('periodoTipo')
+        data, errors, http_status = AnioLectivoService.generar_periodos(pk, periodo_tipo, institucion_id)
+        if errors:
+            return Response(errors, status=http_status or status.HTTP_400_BAD_REQUEST)
+        return Response(data)

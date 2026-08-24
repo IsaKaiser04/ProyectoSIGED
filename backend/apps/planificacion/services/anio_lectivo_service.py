@@ -2,8 +2,10 @@ from rest_framework import status
 from rest_framework import status
 from django.db import transaction
 from ..models import PeriodoAcademico
+from ..models.enums import PeriodoTipo
 from ..repositories.anio_lectivo_repository import AnioLectivoRepository
 from ..serializers.anio_lectivo_serializer import AnioLectivoSerializer, PeriodoAcademicoSerializer
+from .distribucion_periodos import generar_periodos_data
 
 
 class AnioLectivoService:
@@ -29,6 +31,23 @@ class AnioLectivoService:
             return []
         periodos = AnioLectivoRepository.get_periodos(anio_id)
         return PeriodoAcademicoSerializer(periodos, many=True).data
+
+    @staticmethod
+    def generar_periodos(pk, periodo_tipo, institucion_id=None):
+        instance = AnioLectivoRepository.get_by_id(pk, institucion_id)
+        if not instance:
+            return None, {'error': 'Año lectivo no encontrado'}, status.HTTP_404_NOT_FOUND
+        if periodo_tipo not in PeriodoTipo.values:
+            return None, {'periodoTipo': 'Tipo de período inválido.'}, status.HTTP_400_BAD_REQUEST
+
+        periodos_data = generar_periodos_data(instance.fechaInicio, periodo_tipo)
+        with transaction.atomic():
+            instance.periodos_academicos.all().delete()
+            for periodo_data in periodos_data:
+                PeriodoAcademico.objects.create(anioLectivo=instance, **periodo_data)
+        return PeriodoAcademicoSerializer(
+            AnioLectivoRepository.get_periodos(pk), many=True
+        ).data, None, None
 
     @staticmethod
     def create(data, institucion_id=None):

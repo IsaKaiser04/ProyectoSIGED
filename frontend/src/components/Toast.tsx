@@ -6,19 +6,28 @@ interface ToastMessage {
   id: number;
   message: string;
   type: ToastType;
+  actionLabel?: string;
+}
+
+interface ToastOptions {
+  /** Si se define, muestra un botón con ese texto (ej: 'Aceptar') y el toast
+   *  permanece hasta que el usuario lo presione. */
+  actionLabel?: string;
+  /** Duración en ms antes de auto-cerrarse (solo sin actionLabel). Default: 4500 */
+  duration?: number;
 }
 
 const TOAST_EVENT = 'app-toast';
 let nextId = 0;
 
-export function showToast(message: string, type: ToastType = 'info') {
-  window.dispatchEvent(new CustomEvent(TOAST_EVENT, { detail: { message, type } }));
+export function showToast(message: string, type: ToastType = 'info', options?: ToastOptions) {
+  window.dispatchEvent(new CustomEvent(TOAST_EVENT, { detail: { message, type, ...options } }));
 }
 
-export function showSuccess(msg: string) { showToast(msg, 'success'); }
-export function showError(msg: string) { showToast(msg, 'error'); }
-export function showWarning(msg: string) { showToast(msg, 'warning'); }
-export function showInfo(msg: string) { showToast(msg, 'info'); }
+export function showSuccess(msg: string, options?: ToastOptions) { showToast(msg, 'success', options); }
+export function showError(msg: string, options?: ToastOptions) { showToast(msg, 'error', options); }
+export function showWarning(msg: string, options?: ToastOptions) { showToast(msg, 'warning', options); }
+export function showInfo(msg: string, options?: ToastOptions) { showToast(msg, 'info', options); }
 
 const typeStyles: Record<ToastType, { bg: string; icon: string; border: string }> = {
   success: { bg: '#065f46', icon: '✓', border: '#10b981' },
@@ -36,10 +45,13 @@ export function ToastContainer() {
 
   useEffect(() => {
     const handler = (e: Event) => {
-      const { message, type } = (e as CustomEvent).detail;
+      const { message, type, actionLabel, duration } = (e as CustomEvent).detail;
       const id = nextId++;
-      setToasts(prev => [...prev, { id, message, type }]);
-      setTimeout(() => remove(id), 4500);
+      setToasts(prev => [...prev, { id, message, type, actionLabel }]);
+      // Con botón de acción el toast permanece hasta que el usuario lo cierre.
+      if (!actionLabel) {
+        setTimeout(() => remove(id), duration ?? 4500);
+      }
     };
     window.addEventListener(TOAST_EVENT, handler);
     return () => window.removeEventListener(TOAST_EVENT, handler);
@@ -64,10 +76,21 @@ export function ToastContainer() {
           }}>
             <span style={{ fontSize: '18px', fontWeight: 700 }}>{s.icon}</span>
             <span style={{ flex: 1 }}>{t.message}</span>
-            <button
-              onClick={() => remove(t.id)}
-              style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: '16px', padding: '0 4px' }}
-            >✕</button>
+            {t.actionLabel ? (
+              <button
+                onClick={() => remove(t.id)}
+                style={{
+                  background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.45)',
+                  color: '#fff', borderRadius: '6px', padding: '5px 16px', cursor: 'pointer',
+                  fontSize: '13px', fontWeight: 700,
+                }}
+              >{t.actionLabel}</button>
+            ) : (
+              <button
+                onClick={() => remove(t.id)}
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: '16px', padding: '0 4px' }}
+              >✕</button>
+            )}
           </div>
         );
       })}

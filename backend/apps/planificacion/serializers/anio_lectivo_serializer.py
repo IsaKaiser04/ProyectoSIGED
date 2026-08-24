@@ -1,7 +1,9 @@
 from rest_framework import serializers
 from django.db import transaction
+from types import SimpleNamespace
 from ..models.anio_lectivo import AnioLectivo, PeriodoAcademico
 from ..models.enums import PeriodoTipo
+from ..services.distribucion_periodos import validar_distribucion
 
 
 class PeriodoAcademicoSerializer(serializers.ModelSerializer):
@@ -47,4 +49,19 @@ class AnioLectivoSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {'fechaFin': 'La fecha de fin debe ser posterior a la fecha de inicio.'}
                 )
+        # Valida la distribución reglamentaria de los períodos académicos
+        # (régimen de 200 días laborables según el tipo elegido).
+        periodos_data = data.get('periodosAcademicos')
+        if periodos_data:
+            # Solo se valida el rango del año cuando las fechas están presentes
+            # (en actualizaciones parciales pueden omitirse).
+            anio_ref = None
+            if data.get('fechaInicio') and data.get('fechaFin'):
+                anio_ref = SimpleNamespace(
+                    fechaInicio=data['fechaInicio'],
+                    fechaFin=data['fechaFin'],
+                )
+            errores = validar_distribucion(periodos_data, anio=anio_ref)
+            if errores:
+                raise serializers.ValidationError({'periodosAcademicos': errores})
         return data

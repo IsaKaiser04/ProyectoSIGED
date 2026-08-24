@@ -13,6 +13,8 @@ export const planificacionApi = {
   deleteAnioLectivo: (id: number) => apiDelete(P(`anios-lectivos/${id}`)),
   getAniosActivos: () => apiGet<AnioLectivo[]>(P('anios-lectivos/activos')),
   getPeriodosPorAnio: (anioId: number) => apiGet<PeriodoAcademico[]>(P(`anios-lectivos/${anioId}/periodos`)),
+  generarPeriodos: (anioId: number, periodoTipo: string) =>
+    apiPost<{ periodoTipo: string }, PeriodoAcademico[]>(P(`anios-lectivos/${anioId}/generar-periodos`), { periodoTipo }),
 
   getOfertas: () => apiGet<OfertaAcademica[]>(P('oferta')),
   createOferta: (data: Partial<OfertaAcademica>) => apiPost2<OfertaAcademica>(P('oferta'), data),
