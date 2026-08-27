@@ -54,3 +54,11 @@ class PlanificacionCurricularViewSet(viewsets.ViewSet):
         if errors:
             return Response(errors, status=400)
         return Response(data)
+
+    @action(detail=True, methods=['post'])
+    def rechazar(self, request, pk=None):
+        observacion = request.data.get('observacion', '')
+        data, errors = PlanificacionCurricularService.rechazar(pk, observacion)
+        if errors:
+            return Response(errors, status=400)
+        return Response(data)

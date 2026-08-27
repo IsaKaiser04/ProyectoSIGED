@@ -56,11 +56,35 @@ class PlanificacionCurricularService:
         instance = PlanificacionCurricularRepository.get_by_id(pk)
         if not instance:
             return None, {"error": "Planificación no encontrada"}
-        if instance.estado != PlanificacionEstado.BORRADOR:
-            return None, {"error": "Solo se puede enviar a aprobación desde estado Borrador."}
+        if instance.estado not in (PlanificacionEstado.BORRADOR, PlanificacionEstado.RECHAZADO):
+            return None, {"error": "Solo se puede enviar a aprobación desde estado Borrador o Rechazado."}
 
         estado_anterior = instance.estado
         instance.estado = PlanificacionEstado.POR_APROBAR
+        PlanificacionCurricularRepository.update(instance, {'estado': instance.estado})
+
+        PlanificacionCurricularHistorialRepository.create({
+            'planificacion_curricular': instance,
+            'estado_anterior': estado_anterior,
+            'estado_actual': instance.estado,
+            'observacion': observacion,
+        })
+
+        return PlanificacionCurricularDetailSerializer(
+            PlanificacionCurricularRepository.get_con_historial(pk)
+        ).data, None
+
+    @staticmethod
+    @transaction.atomic
+    def rechazar(pk, observacion=""):
+        instance = PlanificacionCurricularRepository.get_by_id(pk)
+        if not instance:
+            return None, {"error": "Planificación no encontrada"}
+        if instance.estado != PlanificacionEstado.POR_APROBAR:
+            return None, {"error": "Solo se puede rechazar una planificación en estado Por Aprobar."}
+
+        estado_anterior = instance.estado
+        instance.estado = PlanificacionEstado.RECHAZADO
         PlanificacionCurricularRepository.update(instance, {'estado': instance.estado})
 
         PlanificacionCurricularHistorialRepository.create({

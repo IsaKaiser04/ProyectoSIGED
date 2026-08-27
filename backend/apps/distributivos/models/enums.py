@@ -18,3 +18,4 @@ class PlanificacionEstado(models.TextChoices):
     BORRADOR = 'BORRADOR', 'Borrador'
     POR_APROBAR = 'POR_APROBAR', 'Por aprobar'
     APROBADO = 'APROBADO', 'Aprobado'
+    RECHAZADO = 'RECHAZADO', 'Rechazado'

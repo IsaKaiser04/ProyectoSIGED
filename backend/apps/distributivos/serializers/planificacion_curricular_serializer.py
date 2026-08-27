@@ -50,6 +50,9 @@ class PlanificacionCurricularCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlanificacionCurricular
         fields = ['distributivo_asignatura', 'archivo_pdf', 'observacion', 'estado']
+        extra_kwargs = {
+            'distributivo_asignatura': {'required': False},
+        }
 
     def validate_archivo_pdf(self, value):
         if value and not value.name.lower().endswith('.pdf'):
