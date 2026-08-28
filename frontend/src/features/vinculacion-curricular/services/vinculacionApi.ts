@@ -35,6 +35,12 @@ export async function enviarARevision(planificacionId: number, observacion?: str
   });
 }
 
+export async function rechazarPlanificacion(planificacionId: number, observacion?: string) {
+  return apiPost(`/distributivos/planificaciones/${planificacionId}/rechazar/`, {
+    observacion: observacion || ""
+  });
+}
+
 export async function obtenerHistorial(planificacionId: number): Promise<PlanificacionCurricularHistorial[]> {
   return apiGet<PlanificacionCurricularHistorial[]>(
     `/distributivos/planificaciones-historial/por_planificacion/?planificacion_id=${planificacionId}`

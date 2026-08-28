@@ -9,6 +9,7 @@ from .views.paralelo_view import ParaleloViewSet
 from .views.plan_estudio_view import PlanEstudioListCreateView, PlanEstudioDetailView, GradoListCreateView, GradoDetailView, AsignaturaListCreateView, AsignaturaDetailView
 from .views.calificacion_view import CalificacionListCreateView, CalificacionDetailView
 from .views.oferta_view import OfertaAcademicaListCreateView, OfertaAcademicaDetailView, GradoOfertadoListCreateView, GradoOfertadoDetailView, AsignaturaOfertadaListCreateView, AsignaturaOfertadaDetailView
+from .views.educacion_view import NivelEducativoListView
 
 router = DefaultRouter()
 router.register(r'anios-lectivos', AnioLectivoViewSet, basename='anio-lectivo')
@@ -31,6 +32,7 @@ urlpatterns = [
     path('oferta/<int:pk>/', OfertaAcademicaDetailView.as_view(), name='oferta-detail'),
     path('grados-ofertados/', GradoOfertadoListCreateView.as_view(), name='gradoofertado-list-create'),
     path('grados-ofertados/<int:pk>/', GradoOfertadoDetailView.as_view(), name='gradoofertado-detail'),
+    path('niveles/', NivelEducativoListView.as_view(), name='nivel-educativo-list'),
     path('asignaturas-ofertadas/', AsignaturaOfertadaListCreateView.as_view(), name='asignaturaofertada-list-create'),
     path('asignaturas-ofertadas/<int:pk>/', AsignaturaOfertadaDetailView.as_view(), name='asignaturaofertada-detail'),
 ]

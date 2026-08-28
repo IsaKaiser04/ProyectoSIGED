@@ -6,6 +6,7 @@ import {
   eliminarPlanificacion,
   enviarAprobacion,
   aprobarPlanificacion,
+  rechazarPlanificacion,
   historialPlanificacion,
 } from "./services/planificacionApi";
 
@@ -19,6 +20,9 @@ export default function PlanificacionCurricularPage() {
   });
   const [error, setError] = useState("");
   const [historialModal, setHistorialModal] = useState<{ id: number; items: any[] } | null>(null);
+  const [rechazoModal, setRechazoModal] = useState<{ id: number; observacion: string } | null>(null);
+
+  const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api").replace(/\/api\/?$/, "");
 
   const cargar = async () => {
     setLoading(true);
@@ -82,6 +86,17 @@ export default function PlanificacionCurricularPage() {
     }
   };
 
+  const handleRechazar = async () => {
+    if (!rechazoModal) return;
+    try {
+      await rechazarPlanificacion(rechazoModal.id, rechazoModal.observacion);
+      setRechazoModal(null);
+      await cargar();
+    } catch (err: any) {
+      alert(err?.data?.error || "Error al rechazar");
+    }
+  };
+
   const verHistorial = async (id: number) => {
     try {
       const items = await historialPlanificacion(id);
@@ -96,10 +111,10 @@ export default function PlanificacionCurricularPage() {
 
   const estadoBadge = (estado: string) => {
     const colors: Record<string, string> = {
-      BORRADOR: "#fef9c3", POR_APROBAR: "#fef3c7", APROBADO: "#dcfce7"
+      BORRADOR: "#fef9c3", POR_APROBAR: "#fef3c7", APROBADO: "#dcfce7", RECHAZADO: "#fee2e2"
     };
     const textColors: Record<string, string> = {
-      BORRADOR: "#854d0e", POR_APROBAR: "#92400e", APROBADO: "#166534"
+      BORRADOR: "#854d0e", POR_APROBAR: "#92400e", APROBADO: "#166534", RECHAZADO: "#991b1b"
     };
     return (
       <span style={{
@@ -163,7 +178,7 @@ export default function PlanificacionCurricularPage() {
                   <td style={{ padding: "12px" }}>{p.asignatura_nombre}</td>
                   <td style={{ padding: "12px" }}>{estadoBadge(p.estado)}</td>
                   <td style={{ padding: "12px" }}>
-                    {p.archivo_pdf ? <a href={p.archivo_pdf} target="_blank" rel="noreferrer">📄 Ver PDF</a> : "—"}
+                    {p.archivo_pdf ? <a href={`${API_BASE}${p.archivo_pdf}`} target="_blank" rel="noreferrer">📄 Ver PDF</a> : "—"}
                   </td>
                   <td style={{ padding: "12px" }}>{p.observacion}</td>
                   <td style={{ padding: "12px", textAlign: "center", whiteSpace: "nowrap" }}>
@@ -171,7 +186,10 @@ export default function PlanificacionCurricularPage() {
                       <button onClick={() => handleEnviar(p.id)} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: "14px", margin: "0 4px", color: "#d97706" }} title="Enviar a aprobación">📤</button>
                     )}
                     {p.estado === "POR_APROBAR" && (
-                      <button onClick={() => handleAprobar(p.id)} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: "14px", margin: "0 4px", color: "#16a34a" }} title="Aprobar">✅</button>
+                      <>
+                        <button onClick={() => handleAprobar(p.id)} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: "14px", margin: "0 4px", color: "#16a34a" }} title="Aprobar">✅</button>
+                        <button onClick={() => setRechazoModal({ id: p.id, observacion: "" })} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: "14px", margin: "0 4px", color: "#dc2626" }} title="Rechazar">❌</button>
+                      </>
                     )}
                     <button onClick={() => verHistorial(p.id)} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: "14px", margin: "0 4px" }} title="Historial">📋</button>
                   </td>
@@ -202,6 +220,30 @@ export default function PlanificacionCurricularPage() {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {rechazoModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 9999 }}>
+          <div style={{ background: "white", borderRadius: "12px", padding: "24px", width: "500px", maxWidth: "90vw" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <h3 style={{ margin: 0, color: "#991b1b" }}>Rechazar Planificación</h3>
+              <button onClick={() => setRechazoModal(null)} style={{ background: "none", border: "none", fontSize: "22px", cursor: "pointer" }}>×</button>
+            </div>
+            <p style={{ fontSize: "14px", color: "var(--on-surface-variant)", marginBottom: "12px" }}>
+              Indique el motivo del rechazo:
+            </p>
+            <textarea
+              style={{ width: "100%", height: "80px", padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--outline-variant)", fontSize: "14px", boxSizing: "border-box" }}
+              value={rechazoModal.observacion}
+              onChange={e => setRechazoModal(p => p ? { ...p, observacion: e.target.value } : null)}
+              placeholder="Motivo del rechazo..."
+            />
+            <div style={{ display: "flex", gap: "12px", marginTop: "16px" }}>
+              <button onClick={handleRechazar} style={{ background: "#dc2626", color: "white", border: "none", padding: "10px 24px", borderRadius: "8px", fontWeight: 600, cursor: "pointer" }}>Rechazar</button>
+              <button onClick={() => setRechazoModal(null)} style={{ background: "white", border: "1px solid var(--outline)", padding: "10px 24px", borderRadius: "8px", cursor: "pointer" }}>Cancelar</button>
+            </div>
           </div>
         </div>
       )}

@@ -53,6 +53,20 @@ class MatriculaPeriodoViewSet(viewsets.ViewSet):
         return Response(MatriculaPeriodoSerializer(periodos, many=True).data)
 
     @action(detail=False, methods=['get'])
+    def calcular(self, request):
+        anio_lectivo_id = request.query_params.get('anio_lectivo_id')
+        tipo = request.query_params.get('tipo')
+        if not anio_lectivo_id or not tipo:
+            return Response(
+                {'error': 'Los parámetros anio_lectivo_id y tipo son obligatorios'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        fechas, errors, http_status = MatriculaPeriodoService.calcular(anio_lectivo_id, tipo)
+        if errors:
+            return Response(errors, status=http_status or status.HTTP_400_BAD_REQUEST)
+        return Response(fechas)
+
+    @action(detail=False, methods=['get'])
     def por_tipo(self, request):
         tipo = request.query_params.get('tipo')
         if not tipo:

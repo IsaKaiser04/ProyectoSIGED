@@ -34,6 +34,10 @@ export async function aprobarPlanificacion(id: number, observacion?: string) {
   return apiPost(`/distributivos/planificaciones/${id}/aprobar/`, { observacion: observacion || "" });
 }
 
+export async function rechazarPlanificacion(id: number, observacion?: string) {
+  return apiPost(`/distributivos/planificaciones/${id}/rechazar/`, { observacion: observacion || "" });
+}
+
 export async function historialPlanificacion(planificacionId: number) {
   return apiGet<any[]>(`/distributivos/planificaciones-historial/por_planificacion/?planificacion_id=${planificacionId}`);
 }

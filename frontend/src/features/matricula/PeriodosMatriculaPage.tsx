@@ -7,6 +7,7 @@ import {
   crearPeriodo,
   actualizarPeriodo,
   eliminarPeriodo,
+  calcularFechas,
 } from "./services/periodosMatriculaApi";
 import type { MatriculaPeriodo } from "../../types/entities/matricula";
 
@@ -32,8 +33,9 @@ export function PeriodosMatriculaPage() {
 
   const [form, setForm] = useState({
     nombre: "", tipo: "Ordinaria", fecha_inicio: "", fecha_fin: "",
-    educacion_nivel_id: "", anio_lectivo_id: "",
+    educacion_nivel: "", anio_lectivo_id: "",
   });
+  const [autocalculado, setAutocalculado] = useState(false);
 
   const rowsPerPage = 10;
 
@@ -77,25 +79,48 @@ export function PeriodosMatriculaPage() {
 
   const abrirCrear = () => {
     setEditando(null);
-    setForm({ nombre: "", tipo: "Ordinaria", fecha_inicio: "", fecha_fin: "", educacion_nivel_id: "", anio_lectivo_id: "" });
+    setAutocalculado(false);
+    setForm({ nombre: "", tipo: "Ordinaria", fecha_inicio: "", fecha_fin: "", educacion_nivel: "", anio_lectivo_id: "" });
     setShowModal(true);
   };
 
   const abrirEditar = (p: MatriculaPeriodo) => {
     setEditando(p);
+    setAutocalculado(false);
     setForm({
       nombre: p.nombre,
       tipo: p.tipo,
       fecha_inicio: p.fecha_inicio.slice(0, 10),
       fecha_fin: p.fecha_fin.slice(0, 10),
-      educacion_nivel_id: p.educacion_nivel_id?.toString() ?? "",
+      educacion_nivel: p.educacion_nivel ?? "",
       anio_lectivo_id: p.anio_lectivo_id?.toString() ?? "",
     });
     setShowModal(true);
   };
 
+  const autocalcularFechas = async (anioId: string, tipo: string) => {
+    if (!anioId || !tipo) return;
+    try {
+      const fechas = await calcularFechas(Number(anioId), tipo);
+      setForm(prev => ({
+        ...prev,
+        fecha_inicio: fechas.fecha_inicio.slice(0, 10),
+        fecha_fin: fechas.fecha_fin.slice(0, 10),
+      }));
+      setAutocalculado(true);
+    } catch (err) {
+      console.error("Error calculando fechas:", err);
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const value = e.target.value;
+    setForm(prev => ({ ...prev, [e.target.name]: value }));
+    if (e.target.name === "tipo") {
+      autocalcularFechas(form.anio_lectivo_id, value);
+    } else if (e.target.name === "anio_lectivo_id") {
+      autocalcularFechas(value, form.tipo);
+    }
   };
 
   const handleGuardar = async () => {
@@ -104,7 +129,7 @@ export function PeriodosMatriculaPage() {
       tipo: form.tipo,
       fecha_inicio: form.fecha_inicio ? new Date(form.fecha_inicio).toISOString() : undefined,
       fecha_fin: form.fecha_fin ? new Date(form.fecha_fin).toISOString() : undefined,
-      educacion_nivel_id: form.educacion_nivel_id ? Number(form.educacion_nivel_id) : null,
+      educacion_nivel: form.educacion_nivel || null,
       anio_lectivo_id: form.anio_lectivo_id ? Number(form.anio_lectivo_id) : null,
     };
     try {
@@ -190,7 +215,7 @@ export function PeriodosMatriculaPage() {
                   }}>{p.tipo_display || p.tipo}</span></td>
                   <td style={{ padding: "12px", fontSize: "14px" }}>{new Date(p.fecha_inicio).toLocaleDateString()}</td>
                   <td style={{ padding: "12px", fontSize: "14px" }}>{new Date(p.fecha_fin).toLocaleDateString()}</td>
-                  <td style={{ padding: "12px", fontSize: "14px" }}>{p.educacion_nivel_nombre || (catalogosLoading ? "..." : "-")}</td>
+                  <td style={{ padding: "12px", fontSize: "14px" }}>{p.educacion_nivel || (catalogosLoading ? "..." : "-")}</td>
                   <td style={{ padding: "12px", fontSize: "14px" }}>{p.anio_lectivo_nombre || (catalogosLoading ? "..." : "-")}</td>
                   <td style={{ padding: "12px", textAlign: "center" }}>
                     <button onClick={() => abrirEditar(p)} title="Editar"
@@ -220,6 +245,22 @@ export function PeriodosMatriculaPage() {
               </div>
 
               <div>
+                <label style={LABEL_STYLE}>Año Lectivo</label>
+                <select name="anio_lectivo_id" value={form.anio_lectivo_id} onChange={handleChange} style={INPUT_STYLE} disabled={catalogosLoading}>
+                  <option value="">{catalogosLoading ? "Cargando..." : aniosLectivos.length === 0 ? "No hay años lectivos disponibles" : "Seleccione..."}</option>
+                  {aniosLectivos.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label style={LABEL_STYLE}>Nivel de Educación</label>
+                <select name="educacion_nivel" value={form.educacion_nivel} onChange={handleChange} style={INPUT_STYLE} disabled={catalogosLoading}>
+                  <option value="">{catalogosLoading ? "Cargando..." : niveles.length === 0 ? "No hay niveles disponibles" : "Seleccione..."}</option>
+                  {niveles.map(n => <option key={n.value} value={n.value}>{n.nombre}</option>)}
+                </select>
+              </div>
+
+              <div>
                 <label style={LABEL_STYLE}>Tipo</label>
                 <select name="tipo" value={form.tipo} onChange={handleChange} style={INPUT_STYLE}>
                   <option value="Ordinaria">Ordinaria</option>
@@ -238,22 +279,11 @@ export function PeriodosMatriculaPage() {
                   <input name="fecha_fin" type="date" value={form.fecha_fin} onChange={handleChange} style={INPUT_STYLE} />
                 </div>
               </div>
-
-              <div>
-                <label style={LABEL_STYLE}>Nivel de Educación</label>
-                <select name="educacion_nivel_id" value={form.educacion_nivel_id} onChange={handleChange} style={INPUT_STYLE} disabled={catalogosLoading}>
-                  <option value="">{catalogosLoading ? "Cargando..." : niveles.length === 0 ? "No hay niveles disponibles" : "Seleccione..."}</option>
-                  {niveles.map(n => <option key={n.id} value={n.id}>{n.nombre}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <label style={LABEL_STYLE}>Año Lectivo</label>
-                <select name="anio_lectivo_id" value={form.anio_lectivo_id} onChange={handleChange} style={INPUT_STYLE} disabled={catalogosLoading}>
-                  <option value="">{catalogosLoading ? "Cargando..." : aniosLectivos.length === 0 ? "No hay años lectivos disponibles" : "Seleccione..."}</option>
-                  {aniosLectivos.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
-                </select>
-              </div>
+              {autocalculado && (
+                <div style={{ fontSize: "12px", color: "var(--secondary)", marginTop: "-8px" }}>
+                  Fechas calculadas automáticamente según el primer período académico del año lectivo. Puedes ajustarlas.
+                </div>
+              )}
             </div>
 
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "24px" }}>

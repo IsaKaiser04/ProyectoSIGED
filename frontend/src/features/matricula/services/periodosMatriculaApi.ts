@@ -22,3 +22,12 @@ export async function actualizarPeriodo(id: number, data: Partial<MatriculaPerio
 export async function eliminarPeriodo(id: number): Promise<void> {
   return apiDelete<void>(`${BASE}/${id}/`);
 }
+
+export interface FechasCalculadas {
+  fecha_inicio: string;
+  fecha_fin: string;
+}
+
+export async function calcularFechas(anioLectivoId: number, tipo: string): Promise<FechasCalculadas> {
+  return apiGet<FechasCalculadas>(`${BASE}/calcular/?anio_lectivo_id=${anioLectivoId}&tipo=${encodeURIComponent(tipo)}`);
+}

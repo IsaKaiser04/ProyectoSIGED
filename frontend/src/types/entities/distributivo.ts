@@ -1,4 +1,4 @@
-export type PlanificacionEstado = 'BORRADOR' | 'POR_APROBAR' | 'APROBADO';
+export type PlanificacionEstado = 'BORRADOR' | 'POR_APROBAR' | 'APROBADO' | 'RECHAZADO';
 
 export interface DistributivoAsignaturaConPca {
   id: number;

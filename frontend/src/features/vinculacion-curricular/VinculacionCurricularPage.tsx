@@ -15,10 +15,10 @@ const fieldStyle: React.CSSProperties = {
 
 const estadoBadge = (estado: string | null) => {
   const colors: Record<string, string> = {
-    BORRADOR: "#fef9c3", POR_APROBAR: "#fef3c7", APROBADO: "#dcfce7",
+    BORRADOR: "#fef9c3", POR_APROBAR: "#fef3c7", APROBADO: "#dcfce7", RECHAZADO: "#fee2e2",
   };
   const textColors: Record<string, string> = {
-    BORRADOR: "#854d0e", POR_APROBAR: "#92400e", APROBADO: "#166534",
+    BORRADOR: "#854d0e", POR_APROBAR: "#92400e", APROBADO: "#166534", RECHAZADO: "#991b1b",
   };
   if (!estado) {
     return (
@@ -41,6 +41,8 @@ export function VinculacionCurricularPage() {
   const [asignaturas, setAsignaturas] = useState<DistributivoAsignaturaConPca[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api").replace(/\/api\/?$/, "");
 
   const [showModal, setShowModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<DistributivoAsignaturaConPca | null>(null);
@@ -172,7 +174,7 @@ export function VinculacionCurricularPage() {
                       <div style={{ display: "flex", gap: "6px", justifyContent: "center", alignItems: "center" }}>
                         <span style={{ fontSize: "13px", color: "var(--on-surface-variant)" }}>En revisión</span>
                         {item.pca_archivo_url && (
-                          <a href={item.pca_archivo_url} target="_blank" rel="noreferrer" style={{ fontSize: "13px" }}>📄</a>
+                          <a href={`${API_BASE}${item.pca_archivo_url}`} target="_blank" rel="noreferrer" style={{ fontSize: "13px" }}>📄</a>
                         )}
                         <button onClick={() => handleVerHistorial(item)} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: "14px" }} title="Historial">📋</button>
                       </div>
@@ -181,8 +183,19 @@ export function VinculacionCurricularPage() {
                       <div style={{ display: "flex", gap: "6px", justifyContent: "center", alignItems: "center" }}>
                         <span style={{ color: "#16a34a", fontWeight: 600, fontSize: "13px" }}>Aprobado</span>
                         {item.pca_archivo_url && (
-                          <a href={item.pca_archivo_url} target="_blank" rel="noreferrer" style={{ fontSize: "13px" }}>📄 Ver PDF</a>
+                          <a href={`${API_BASE}${item.pca_archivo_url}`} target="_blank" rel="noreferrer" style={{ fontSize: "13px" }}>📄 Ver PDF</a>
                         )}
+                        <button onClick={() => handleVerHistorial(item)} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: "14px" }} title="Historial">📋</button>
+                      </div>
+                    )}
+                    {item.pca_estado === "RECHAZADO" && (
+                      <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
+                        <button onClick={() => abrirSubir(item)} style={{ background: "var(--primary)", color: "white", border: "none", padding: "6px 14px", borderRadius: "6px", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>
+                          Editar PCA
+                        </button>
+                        <button onClick={() => handleEnviarRevision(item)} style={{ background: "#d97706", color: "white", border: "none", padding: "6px 14px", borderRadius: "6px", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>
+                          Reenviar
+                        </button>
                         <button onClick={() => handleVerHistorial(item)} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: "14px" }} title="Historial">📋</button>
                       </div>
                     )}
@@ -211,7 +224,7 @@ export function VinculacionCurricularPage() {
               <input type="file" accept=".pdf" onChange={e => setPdfFile(e.target.files?.[0] || null)} />
               {selectedItem.pca_archivo_url && (
                 <div style={{ marginTop: "6px", fontSize: "12px" }}>
-                  Actual: <a href={selectedItem.pca_archivo_url} target="_blank" rel="noreferrer">Ver archivo actual</a>
+                  Actual: <a href={`${API_BASE}${selectedItem.pca_archivo_url}`} target="_blank" rel="noreferrer">Ver archivo actual</a>
                 </div>
               )}
             </div>

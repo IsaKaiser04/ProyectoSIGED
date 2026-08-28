@@ -10,6 +10,8 @@ class MatriculaPeriodoSerializer(serializers.ModelSerializer):
     institucion_nombre = serializers.SerializerMethodField()
     educacion_nivel_display = serializers.SerializerMethodField()
     anio_lectivo_nombre = serializers.SerializerMethodField()
+    fecha_inicio = serializers.DateTimeField(required=False)
+    fecha_fin = serializers.DateTimeField(required=False)
 
     def get_institucion_nombre(self, obj):
         return obj.institucion.nombre if obj.institucion else ''

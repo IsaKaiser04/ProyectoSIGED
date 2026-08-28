@@ -38,8 +38,8 @@ export interface MatriculaPeriodo {
   fecha_fin: string;
   institucion_id: number | null;
   institucion_nombre?: string;
-  educacion_nivel_id: number | null;
-  educacion_nivel_nombre?: string;
+  educacion_nivel: string | null;
+  educacion_nivel_display?: string;
   anio_lectivo_id: number | null;
   anio_lectivo_nombre?: string;
 }
@@ -55,8 +55,8 @@ export interface MatriculaRequisito {
   periodo_nombre?: string;
   institucion_id: number | null;
   institucion_nombre?: string;
-  educacion_nivel_id: number | null;
-  educacion_nivel_nombre?: string;
+  educacion_nivel: string | null;
+  educacion_nivel_display?: string;
 }
 
 export interface Requisito {

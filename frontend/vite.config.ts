@@ -6,6 +6,12 @@ export default defineConfig({
   plugins: [tailwindcss(), react()],
   server: {
     port: 5173,
-    open: false
+    open: false,
+    proxy: {
+      "/media": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+      },
+    },
   }
 });

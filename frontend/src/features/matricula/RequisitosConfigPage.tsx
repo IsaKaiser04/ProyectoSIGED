@@ -34,7 +34,7 @@ export function RequisitosConfigPage() {
 
   const [form, setForm] = useState({
     nombre: "", descripcion: "", tipo: "Informativo", es_obligatorio: true,
-    periodo_id: "", educacion_nivel_id: "",
+    periodo_id: "", educacion_nivel: "",
   });
 
   const rowsPerPage = 10;
@@ -79,7 +79,7 @@ export function RequisitosConfigPage() {
 
   const abrirCrear = () => {
     setEditando(null);
-    setForm({ nombre: "", descripcion: "", tipo: "Informativo", es_obligatorio: true, periodo_id: "", educacion_nivel_id: "" });
+    setForm({ nombre: "", descripcion: "", tipo: "Informativo", es_obligatorio: true, periodo_id: "", educacion_nivel: "" });
     setShowModal(true);
   };
 
@@ -91,7 +91,7 @@ export function RequisitosConfigPage() {
       tipo: r.tipo,
       es_obligatorio: r.es_obligatorio,
       periodo_id: r.periodo_id?.toString() ?? "",
-      educacion_nivel_id: r.educacion_nivel_id?.toString() ?? "",
+      educacion_nivel: r.educacion_nivel ?? "",
     });
     setShowModal(true);
   };
@@ -108,7 +108,7 @@ export function RequisitosConfigPage() {
       tipo: form.tipo,
       es_obligatorio: form.es_obligatorio,
       periodo_id: form.periodo_id ? Number(form.periodo_id) : null,
-      educacion_nivel_id: form.educacion_nivel_id ? Number(form.educacion_nivel_id) : null,
+      educacion_nivel: form.educacion_nivel || null,
     };
     try {
       if (editando) {
@@ -193,7 +193,7 @@ export function RequisitosConfigPage() {
                   <td style={{ padding: "12px" }}><span style={badgeTipo(r.tipo)}>{r.tipo_display || r.tipo}</span></td>
                   <td style={{ padding: "12px" }}><span style={badgeObligatorio(r.es_obligatorio)}>{r.es_obligatorio ? "Sí" : "No"}</span></td>
                   <td style={{ padding: "12px", fontSize: "14px" }}>{r.periodo_nombre || (catalogosLoading ? "..." : "-")}</td>
-                  <td style={{ padding: "12px", fontSize: "14px" }}>{r.educacion_nivel_nombre || (catalogosLoading ? "..." : "-")}</td>
+                  <td style={{ padding: "12px", fontSize: "14px" }}>{r.educacion_nivel || (catalogosLoading ? "..." : "-")}</td>
                   <td style={{ padding: "12px", textAlign: "center" }}>
                     <button onClick={() => abrirEditar(r)} title="Editar"
                       style={{ background: "transparent", border: "none", cursor: "pointer", marginRight: "8px", fontSize: "16px" }}>✏️</button>
@@ -252,9 +252,9 @@ export function RequisitosConfigPage() {
 
               <div>
                 <label style={LABEL_STYLE}>Nivel de Educación</label>
-                <select name="educacion_nivel_id" value={form.educacion_nivel_id} onChange={handleChange} style={INPUT_STYLE} disabled={catalogosLoading}>
+                <select name="educacion_nivel" value={form.educacion_nivel} onChange={handleChange} style={INPUT_STYLE} disabled={catalogosLoading}>
                   <option value="">{catalogosLoading ? "Cargando..." : niveles.length === 0 ? "No hay niveles" : "Seleccione..."}</option>
-                  {niveles.map(n => <option key={n.id} value={n.id}>{n.nombre}</option>)}
+                  {niveles.map(n => <option key={n.value} value={n.value}>{n.nombre}</option>)}
                 </select>
               </div>
             </div>
