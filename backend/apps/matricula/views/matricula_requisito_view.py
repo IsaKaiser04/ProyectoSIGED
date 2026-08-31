@@ -1,14 +1,31 @@
 ﻿from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from apps.planificacion.models.paralelo import Paralelo
+from apps.planificacion.models.plan_estudio import Grado
 from apps.matricula.services.matricula_requisito_service import MatriculaRequisitoService
+
+NIVELES_VALIDOS = [n[0] for n in Grado._meta.get_field('nivel').choices]
 
 
 class MatriculaRequisitoViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
 
     def list(self, request):
-        return Response(MatriculaRequisitoService.list_all())
+        educacion_nivel = request.query_params.get('educacion_nivel')
+        paralelo_id = request.query_params.get('paralelo_id')
+
+        if paralelo_id:
+            paralelo = Paralelo.objects.filter(pk=paralelo_id).select_related(
+                'gradoOfertado__grado'
+            ).first()
+            if paralelo:
+                educacion_nivel = paralelo.gradoOfertado.grado.nivel
+
+        if educacion_nivel and educacion_nivel not in NIVELES_VALIDOS:
+            return Response({'error': 'educacion_nivel no válido'}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(MatriculaRequisitoService.list_all(educacion_nivel))
 
     def retrieve(self, request, pk=None):
         data = MatriculaRequisitoService.retrieve(pk)

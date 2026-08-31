@@ -2,24 +2,6 @@
 import { obtenerMatriculas } from "../services/matriculaApi";
 import type { Matricula } from "../../../types/entities/matricula";
 
-const STORAGE_KEY = "siged_matriculas_v2";
-
-function cargarLocales(): Matricula[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return [];
-}
-
-function guardarLocales(lista: Matricula[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(lista));
-  } catch {}
-}
-
-let nextLocalId = Date.now();
-
 export function useMatriculas() {
   const [matriculas, setMatriculas] = useState<Matricula[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,23 +14,18 @@ export function useMatriculas() {
         const data = await obtenerMatriculas();
         if (data && data.length > 0) desdeApi = data;
       } catch {}
-      const locales = cargarLocales();
-      const mezcladas = [
-        ...locales,
-        ...desdeApi.filter(d => !locales.some(l => l.id === d.id)),
-      ];
-      setMatriculas(mezcladas.length > 0 ? mezcladas : []);
-      guardarLocales(mezcladas);
+      setMatriculas(desdeApi);
+      return desdeApi;
     } catch (error) {
       console.error("Error al cargar matrículas:", error);
+      return [];
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    cargarDatos().then(() => {
-      const actuales = cargarLocales();
+    cargarDatos().then((actuales) => {
       const ids = new Set(actuales.map(m => m.id));
       for (const key of Object.keys(localStorage)) {
         if (key.startsWith("siged_requisitos_")) {
@@ -58,17 +35,6 @@ export function useMatriculas() {
           }
         }
       }
-      // Corregir correos truncados (sin @) en localStorage
-      let modificado = false;
-      for (const m of actuales) {
-        const correo = m.asp_correo_personal || m.correo_personal || "";
-        if (correo && !correo.includes("@")) {
-          m.asp_correo_personal = correo + "@gmail.com";
-          modificado = true;
-        }
-      }
-      if (modificado) guardarLocales(actuales);
-
       // Backfill credenciales locales para matrículas legalizadas sin ellas
       try {
         const localesKey = "siged_usuarios_locales";
@@ -96,24 +62,15 @@ export function useMatriculas() {
   }, [cargarDatos]);
 
   const updateMatriculaState = (id: number, newState: string, codigo?: string) => {
-    setMatriculas(prev => {
-      const next = prev.map(m =>
+    setMatriculas(prev =>
+      prev.map(m =>
         m.id === id ? { ...m, estado: newState, codigo_unico: codigo || m.codigo_unico } : m
-      );
-      guardarLocales(next);
-      return next;
-    });
+      )
+    );
   };
 
   const agregarMatricula = (matricula: Matricula) => {
-    console.log("[useMatricula] agregarMatricula llamado con:", matricula);
-    setMatriculas(prev => {
-      console.log("[useMatricula] prev length:", prev.length);
-      const next = [matricula, ...prev];
-      console.log("[useMatricula] next length:", next.length);
-      guardarLocales(next);
-      return next;
-    });
+    setMatriculas(prev => [matricula, ...prev]);
   };
 
   return { matriculas, loading, refrescarTablas: () => cargarDatos(), updateMatriculaState, agregarMatricula };

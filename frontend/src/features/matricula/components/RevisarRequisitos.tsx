@@ -3,6 +3,7 @@ import { obtenerRequisitos, validarRequisito, rechazarRequisito, solicitarCorrec
 import { showError, showSuccess } from "../../../components/Toast";
 import { getErrorMessage } from "../utils/errorMapper";
 import FormularioLegalizar from "./FormularioLegalizar";
+import { getApiBaseUrl, getAuthToken } from "../../../services/apiClient";
 
 const mockRequisitos = [
   { id: 1, archivo: null, estado: "Pendiente", estado_display: "Pendiente", observacion: "", matricula_requisito: 1, matricula_requisito_detalle: { nombre: "Certificado de Cédula" }, revisado_por: null, fecha_revision: null },
@@ -24,6 +25,8 @@ export default function RevisarRequisitos({ matriculaId, aspiranteNombre, onClos
   const [observacionText, setObservacionText] = useState("");
   const [mostrarLegalizar, setMostrarLegalizar] = useState(false);
   const [subiendoArchivo, setSubiendoArchivo] = useState<number | null>(null);
+  const [documentoSeleccionadoId, setDocumentoSeleccionadoId] = useState<number | null>(null);
+  const [documentoSeleccionado, setDocumentoSeleccionado] = useState<any | null>(null);
 
   const actualizarLocal = (id: number, cambios: any) => {
     setRequisitos(prev => {
@@ -36,23 +39,27 @@ export default function RevisarRequisitos({ matriculaId, aspiranteNombre, onClos
   const cargarRequisitos = useCallback(async () => {
     try {
       setLoading(true);
-      const key = `siged_requisitos_${matriculaId}`;
-      console.log("[RevisarRequisitos] Buscando localStorage con key:", key);
-      const localReqs = localStorage.getItem(key);
-      if (localReqs) {
-        console.log("[RevisarRequisitos] Encontrado en localStorage, parseando...");
-        const parsed = JSON.parse(localReqs);
-        console.log("[RevisarRequisitos] Requisitos locales:", parsed.length, "items, primer archivo:", parsed[0]?.archivo?.substring(0, 50));
-        setRequisitos(parsed);
-        setLoading(false);
-        return;
+      try {
+        const data = await obtenerRequisitos(matriculaId);
+        if (data && data.length > 0) {
+          // La API es la fuente de verdad. Solo se usa localStorage si esta falla.
+          setRequisitos(data);
+          return;
+        }
+      } catch (e) {
+        console.warn("[RevisarRequisitos] Error en API, intentando respaldo local:", e);
+        const key = `siged_requisitos_${matriculaId}`;
+        const localReqs = localStorage.getItem(key);
+        if (localReqs) {
+          try {
+            const parsed = JSON.parse(localReqs);
+            if (parsed && parsed.length > 0) {
+              setRequisitos(parsed);
+              return;
+            }
+          } catch {}
+        }
       }
-      console.log("[RevisarRequisitos] No encontrado en localStorage, probando API...");
-      const data = await obtenerRequisitos(matriculaId);
-      if (data && data.length > 0) setRequisitos(data);
-      else setRequisitos(mockRequisitos);
-    } catch (e) {
-      console.warn("[RevisarRequisitos] Error cargando requisitos, usando mock:", e);
       setRequisitos(mockRequisitos);
     } finally {
       setLoading(false);
@@ -122,7 +129,31 @@ export default function RevisarRequisitos({ matriculaId, aspiranteNombre, onClos
   };
 
   const todosValidados = requisitos.length > 0 && requisitos.every(r => r.estado === "Validado");
-  const baseUrl = "http://127.0.0.1:8000";
+  const apiBase = getApiBaseUrl();
+  const origin = apiBase.replace(/\/api\/?$/, "");
+
+  const buildDocumentoUrl = (req: any): string | null => {
+    if (!req) return null;
+    if (req.archivo_url) {
+      const token = getAuthToken();
+      return `${origin}${req.archivo_url}${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+    }
+    if (req.archivo) {
+      if (req.archivo.startsWith("data:") || req.archivo.startsWith("http")) return req.archivo;
+      return `${origin}${req.archivo}`;
+    }
+    return null;
+  };
+
+  const handleVerDocumento = (req: any) => {
+    const url = buildDocumentoUrl(req);
+    if (url) {
+      setDocumentoSeleccionadoId(req.id);
+      setDocumentoSeleccionado({ ...req, _url: url });
+    } else {
+      showError("Este requisito no tiene un documento adjunto.");
+    }
+  };
 
   return (
     <div style={{ background: "white", borderRadius: "10px", overflow: "hidden", display: "flex", flexDirection: "column", height: "90vh" }}>
@@ -138,12 +169,15 @@ export default function RevisarRequisitos({ matriculaId, aspiranteNombre, onClos
             requisitos.map((req) => (
               <div key={req.id} style={{ padding: "12px", marginBottom: "10px", border: "1px solid var(--outline-variant)", borderRadius: "8px", background: req.estado === "Validado" ? "#dcfce7" : req.estado === "No validado" ? "#fee2e2" : "var(--surface-container-low)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-                  <strong>{req.matricula_requisito_detalle?.nombre || "Documento"}</strong>
+                  <strong>{req.matricula_requisito_nombre || req.matricula_requisito_detalle?.nombre || "Documento"}</strong>
                   <span style={{ fontSize: "11px", fontWeight: 600 }}>{req.estado}</span>
                 </div>
                 
-                {req.archivo ? (
-                  <button onClick={() => { const url = req.archivo.startsWith("http") || req.archivo.startsWith("data:") ? req.archivo : baseUrl + req.archivo; window.open(url, '_blank'); }} style={{ width: "100%", marginBottom: "8px", padding: "6px", border: "1px solid var(--outline)", borderRadius: "4px", cursor: "pointer", background: "white" }}>
+                {req.archivo || req.archivo_url ? (
+                  <button
+                    onClick={() => handleVerDocumento(req)}
+                    style={{ width: "100%", marginBottom: "8px", padding: "6px", border: "1px solid var(--outline)", borderRadius: "4px", cursor: "pointer", background: documentoSeleccionadoId === req.id ? "#e0e7ff" : "white" }}
+                  >
                     Ver Documento PDF
                   </button>
                 ) : (
@@ -180,11 +214,31 @@ export default function RevisarRequisitos({ matriculaId, aspiranteNombre, onClos
           )}
         </div>
 
-        {/* Panel Derecho: Visor PDF (abre en pestaña nueva por X-Frame-Options del backend) */}
-        <div style={{ flex: 1, background: "#f3f4f6", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <p style={{ color: "var(--on-surface-variant)", textAlign: "center", padding: "20px" }}>
-            Seleccione un documento y haga clic en <strong>"Ver Documento PDF"</strong> para abrirlo en una nueva pestaña.
-          </p>
+        {/* Panel Derecho: Visor PDF */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#f3f4f6" }}>
+          {documentoSeleccionado ? (
+            <>
+              <div style={{ padding: "10px 16px", background: "white", borderBottom: "1px solid var(--outline-variant)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <strong style={{ fontSize: "14px" }}>
+                  {documentoSeleccionado.matricula_requisito_nombre || documentoSeleccionado.matricula_requisito_detalle?.nombre || "Documento"}
+                </strong>
+                <a href={documentoSeleccionado._url} target="_blank" rel="noreferrer" style={{ fontSize: "13px", color: "var(--primary)" }}>
+                  Abrir en pestaña nueva ↗
+                </a>
+              </div>
+              <iframe
+                src={documentoSeleccionado._url}
+                title="Visor de documento PDF"
+                style={{ flex: 1, width: "100%", border: "none", background: "white" }}
+              />
+            </>
+          ) : (
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <p style={{ color: "var(--on-surface-variant)", textAlign: "center", padding: "20px" }}>
+                Seleccione un documento y haga clic en <strong>"Ver Documento PDF"</strong> para visualizarlo aquí.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

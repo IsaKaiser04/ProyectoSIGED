@@ -36,10 +36,11 @@ class GradoOfertadoSerializer(serializers.ModelSerializer):
     asignaturasOfertadas = AsignaturaOfertadaSerializer(many=True, read_only=True)
     grado_id = serializers.IntegerField(source='grado.id', read_only=True)
     grado_nombre = serializers.CharField(source='grado.nombre', read_only=True)
+    educacion_nivel = serializers.CharField(source='grado.nivel', read_only=True)
 
     class Meta:
         model = GradoOfertado
-        fields = ['id', 'nombre', 'ofertaAcademica', 'grado', 'grado_id', 'grado_nombre', 'esActivo', 'asignaturasOfertadas']
+        fields = ['id', 'nombre', 'ofertaAcademica', 'grado', 'grado_id', 'grado_nombre', 'educacion_nivel', 'esActivo', 'asignaturasOfertadas']
         extra_kwargs = {
             'nombre': {'required': True, 'max_length': 100},
             'ofertaAcademica': {'required': True},

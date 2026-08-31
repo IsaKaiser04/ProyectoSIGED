@@ -26,6 +26,7 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
   // Requisitos dinámicos del backend
   const [requisitosDelSistema, setRequisitosDelSistema] = useState<MatriculaRequisito[]>([]);
   const [usarRequisitosMock, setUsarRequisitosMock] = useState(false);
+  const [cargandoRequisitos, setCargandoRequisitos] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [nuevaMatricula, setNuevaMatricula] = useState<any>(null);
@@ -107,21 +108,47 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
         setPeriodosMatricula(periodos || []);
       } catch (_) { /* silencioso */ }
 
-      // Cargar requisitos de matrícula
-      try {
-        const reqs = await apiGet<MatriculaRequisito[]>("/matricula/requisitos-config/");
-        if (reqs && reqs.length > 0) {
-          setRequisitosDelSistema(reqs);
-          setUsarRequisitosMock(false);
-        } else {
-          setUsarRequisitosMock(true);
-        }
-      } catch (error) {
-        setUsarRequisitosMock(true);
-      }
+      // Cargar requisitos de matrícula (sin filtro al inicio)
+      await cargarRequisitos();
     };
     cargarCatalogos();
   }, []);
+
+  // Carga los requisitos del sistema, filtrando por nivel cuando hay paralelo asignado
+  const cargarRequisitos = async (paraleloId?: string | number | null) => {
+    setCargandoRequisitos(true);
+    try {
+      const query = paraleloId ? `?paralelo_id=${paraleloId}` : "";
+      const reqs = await apiGet<MatriculaRequisito[]>(`/matricula/requisitos-config/${query}`);
+      if (reqs && reqs.length > 0) {
+        setRequisitosDelSistema(reqs);
+        setUsarRequisitosMock(false);
+      } else if (paraleloId) {
+        // No hay requisitos para el nivel del paralelo seleccionado
+        setRequisitosDelSistema([]);
+        setUsarRequisitosMock(false);
+      } else {
+        setRequisitosDelSistema([]);
+        setUsarRequisitosMock(true);
+      }
+    } catch (error) {
+      if (paraleloId) {
+        setRequisitosDelSistema([]);
+        setUsarRequisitosMock(false);
+      } else {
+        setUsarRequisitosMock(true);
+      }
+    } finally {
+      setCargandoRequisitos(false);
+    }
+  };
+
+  // Al asignar paralelo, recargar requisitos filtrados por el nivel del grado
+  useEffect(() => {
+    if (formData.paralelo_id) {
+      cargarRequisitos(formData.paralelo_id);
+    }
+  }, [formData.paralelo_id]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, requisitoId: number | string) => {
     if (e.target.files && e.target.files[0]) {
@@ -405,15 +432,28 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
           <div>
             <h3 style={{ color: "var(--primary)" }}>Carga de Requisitos Documentales</h3>
             {usarRequisitosMock && <p style={{ fontSize: "12px", color: "#ca8a04", marginBottom: "20px", background: "#fefce8", padding: "10px", borderRadius: "6px" }}>⚠ Modo de prueba: Los requisitos se cargarán desde la configuración oficial una vez que el módulo esté completamente configurado.</p>}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-              {requisitosAMostrar.map(req => (
-                <div key={req.id}>
-                  <label style={labelStyle}>{req.nombre} (PDF) {req.es_obligatorio && <span style={{ color: "red" }}>*</span>}</label>
-                  <input type="file" accept="application/pdf" style={fieldStyle} onChange={(e) => handleFileChange(e, String(req.id))} />
-                  {formData.archivosRequisitos[req.id] && <small style={{ color: "#16a34a", fontWeight: "600" }}>✓ Archivo seleccionado</small>}
-                </div>
-              ))}
-            </div>
+            {!formData.paralelo_id && !usarRequisitosMock && (
+              <p style={{ fontSize: "12px", color: "#ca8a04", marginBottom: "20px", background: "#fefce8", padding: "10px", borderRadius: "6px" }}>
+                ⚠ Aún no ha asignado el paralelo en el paso anterior. Se muestran todos los requisitos configurados.
+              </p>
+            )}
+            {cargandoRequisitos ? (
+              <div style={{ padding: "20px", textAlign: "center", color: "var(--on-surface-variant)" }}>Cargando requisitos...</div>
+            ) : requisitosAMostrar.length === 0 ? (
+              <div style={{ padding: "20px", textAlign: "center", color: "var(--on-surface-variant)", background: "var(--surface-container-low)", borderRadius: "8px" }}>
+                No hay requisitos configurados para el nivel del grado seleccionado.
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                {requisitosAMostrar.map(req => (
+                  <div key={req.id}>
+                    <label style={labelStyle}>{req.nombre} (PDF) {req.es_obligatorio && <span style={{ color: "red" }}>*</span>}</label>
+                    <input type="file" accept="application/pdf" style={fieldStyle} onChange={(e) => handleFileChange(e, String(req.id))} />
+                    {formData.archivosRequisitos[req.id] && <small style={{ color: "#16a34a", fontWeight: "600" }}>✓ Archivo seleccionado</small>}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

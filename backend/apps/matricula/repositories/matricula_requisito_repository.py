@@ -3,8 +3,11 @@ from apps.matricula.models import MatriculaRequisito
 
 class MatriculaRequisitoRepository:
     @staticmethod
-    def get_all():
-        return MatriculaRequisito.objects.all()
+    def get_all(educacion_nivel=None):
+        qs = MatriculaRequisito.objects.all()
+        if educacion_nivel:
+            qs = qs.filter(educacion_nivel=educacion_nivel)
+        return qs
 
     @staticmethod
     def get_by_id(pk):

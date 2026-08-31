@@ -4,8 +4,10 @@ from apps.matricula.serializers.matricula_requisito_serializer import MatriculaR
 
 class MatriculaRequisitoService:
     @staticmethod
-    def list_all():
-        return MatriculaRequisitoSerializer(MatriculaRequisitoRepository.get_all(), many=True).data
+    def list_all(educacion_nivel=None):
+        return MatriculaRequisitoSerializer(
+            MatriculaRequisitoRepository.get_all(educacion_nivel), many=True
+        ).data
 
     @staticmethod
     def retrieve(pk):

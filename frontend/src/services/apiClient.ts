@@ -4,7 +4,15 @@ import { BackendModule } from "../types/module";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api";
 
-const TOKEN_KEY = "siged_token";
+export const TOKEN_KEY = "siged_token";
+
+export function getApiBaseUrl(): string {
+  return API_BASE_URL;
+}
+
+export function getAuthToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
 
 type RequestOptions = {
   signal?: AbortSignal;
