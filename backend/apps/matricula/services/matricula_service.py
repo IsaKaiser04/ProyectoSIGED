@@ -78,7 +78,8 @@ class MatriculaService:
         if not matricula:
             return None, {"error": "Matrícula no encontrada"}
         allowed = ['estado', 'tiene_discapacidad', 'tipo_discapacidad', 'grado_discapacidad', 'paralelo_id',
-                    'asp_nombres', 'asp_apellidos', 'asp_fecha_nacimiento', 'asp_correo_personal']
+                    'asp_nombres', 'asp_apellidos', 'asp_identificacion', 'asp_tipo_identificacion',
+                    'asp_fecha_nacimiento', 'asp_celular', 'asp_correo_personal']
         filtered = {k: v for k, v in data.items() if k in allowed}
         instance = MatriculaRepository.update(matricula, filtered)
         return MatriculaDetailSerializer(MatriculaRepository.get_con_requisitos(pk)).data, None

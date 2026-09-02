@@ -21,7 +21,8 @@ class MatriculaListSerializer(serializers.ModelSerializer):
             'matricula_periodo', 'tiene_discapacidad',
             'rep_nombres', 'rep_apellidos', 'rep_identificacion',
             'rep_telefono', 'rep_parentesco',
-            'asp_nombres', 'asp_apellidos', 'asp_fecha_nacimiento', 'asp_correo_personal',
+            'asp_nombres', 'asp_apellidos', 'asp_identificacion', 'asp_tipo_identificacion',
+            'asp_fecha_nacimiento', 'asp_celular', 'asp_correo_personal',
             'fecha_registro', 'requisitos_count', 'institucion'
         ]
 
@@ -59,7 +60,8 @@ class MatriculaDetailSerializer(serializers.ModelSerializer):
             'legalizada_por', 'legalizada_por_nombre',
             'rep_nombres', 'rep_apellidos', 'rep_identificacion',
             'rep_telefono', 'rep_parentesco',
-            'asp_nombres', 'asp_apellidos', 'asp_fecha_nacimiento', 'asp_correo_personal',
+            'asp_nombres', 'asp_apellidos', 'asp_identificacion', 'asp_tipo_identificacion',
+            'asp_fecha_nacimiento', 'asp_celular', 'asp_correo_personal',
             'created_at', 'updated_at',
             'requisitos', 'retiros'
         ]
@@ -110,5 +112,6 @@ class MatriculaCreateSerializer(serializers.ModelSerializer):
             'tiene_discapacidad', 'tipo_discapacidad', 'grado_discapacidad',
             'rep_nombres', 'rep_apellidos', 'rep_identificacion',
             'rep_telefono', 'rep_parentesco',
-            'asp_nombres', 'asp_apellidos', 'asp_fecha_nacimiento', 'asp_correo_personal'
+            'asp_nombres', 'asp_apellidos', 'asp_identificacion', 'asp_tipo_identificacion',
+            'asp_fecha_nacimiento', 'asp_celular', 'asp_correo_personal'
         ]

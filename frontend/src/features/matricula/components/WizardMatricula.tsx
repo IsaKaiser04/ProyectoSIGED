@@ -37,7 +37,10 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
   const [formData, setFormData] = useState<any>({
     asp_nombres: "",
     asp_apellidos: "",
+    asp_identificacion: "",
+    asp_tipo_identificacion: "CEDULA",
     asp_fecha_nacimiento: "",
+    asp_celular: "",
     asp_correo_personal: "",
     representante_nombres: "",
     representante_apellidos: "",
@@ -182,7 +185,10 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
       payload.append("rep_parentesco", formData.representante_parentesco);
       payload.append("asp_nombres", formData.asp_nombres);
       payload.append("asp_apellidos", formData.asp_apellidos);
+      payload.append("asp_identificacion", formData.asp_identificacion);
+      payload.append("asp_tipo_identificacion", formData.asp_tipo_identificacion);
       payload.append("asp_correo_personal", formData.asp_correo_personal || "");
+      if (formData.asp_celular) payload.append("asp_celular", formData.asp_celular);
       if (formData.asp_fecha_nacimiento) payload.append("asp_fecha_nacimiento", formData.asp_fecha_nacimiento);
       if (periodoId) payload.append("matricula_periodo", String(periodoId));
 
@@ -271,7 +277,10 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
         estudiante_nombre: `${formData.asp_nombres} ${formData.asp_apellidos}`.trim(),
         asp_nombres: formData.asp_nombres,
         asp_apellidos: formData.asp_apellidos,
+        asp_identificacion: formData.asp_identificacion,
+        asp_tipo_identificacion: formData.asp_tipo_identificacion || "CEDULA",
         asp_fecha_nacimiento: formData.asp_fecha_nacimiento || null,
+        asp_celular: formData.asp_celular || "",
         asp_correo_personal: formData.asp_correo_personal || "",
         grado_nombre: paraleloSel?.gradoOfertadoGradoNombre || paraleloSel?.gradoOfertadoNombre || gradoSel?.grado_nombre || gradoSel?.nombre || "",
         paralelo_nombre: paraleloSel?.nombre || "",
@@ -335,8 +344,25 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
                 {fieldErrors.asp_apellidos && <span style={{ color: "#dc2626", fontSize: "12px" }}>{fieldErrors.asp_apellidos}</span>}
               </div>
               <div>
+                <label style={labelStyle}>Identificación</label>
+                <input style={{ ...fieldStyle, borderColor: fieldErrors.asp_identificacion ? "#dc2626" : "var(--outline-variant)", borderWidth: fieldErrors.asp_identificacion ? "2px" : "1px" }} value={formData.asp_identificacion} onChange={(e) => { setFormData({...formData, asp_identificacion: e.target.value}); setFieldErrors(prev => { const n = {...prev}; delete n.asp_identificacion; return n; }); }} />
+                {fieldErrors.asp_identificacion && <span style={{ color: "#dc2626", fontSize: "12px" }}>{fieldErrors.asp_identificacion}</span>}
+              </div>
+              <div>
+                <label style={labelStyle}>Tipo de Identificación</label>
+                <select style={fieldStyle} value={formData.asp_tipo_identificacion} onChange={(e) => setFormData({...formData, asp_tipo_identificacion: e.target.value})}>
+                  <option value="CEDULA">Cédula</option>
+                  <option value="PASAPORTE">Pasaporte</option>
+                  <option value="RUC">RUC</option>
+                </select>
+              </div>
+              <div>
                 <label style={labelStyle}>Correo Electrónico</label>
                 <input type="email" style={fieldStyle} value={formData.asp_correo_personal} onChange={(e) => setFormData({...formData, asp_correo_personal: e.target.value})} />
+              </div>
+              <div>
+                <label style={labelStyle}>Celular</label>
+                <input style={fieldStyle} value={formData.asp_celular} onChange={(e) => setFormData({...formData, asp_celular: e.target.value})} />
               </div>
               <div>
                 <label style={labelStyle}>Fecha de Nacimiento</label>
@@ -464,6 +490,7 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
               <div>
                 <h4 style={{ margin: "0 0 8px 0", color: "var(--primary)", borderBottom: "1px solid var(--outline)", paddingBottom: "4px" }}>Datos del Aspirante</h4>
                 <p style={{ margin: "4px 0" }}><strong>Nombre:</strong> {formData.asp_nombres} {formData.asp_apellidos}</p>
+                <p style={{ margin: "4px 0" }}><strong>Identificación:</strong> {formData.asp_identificacion || "—"}</p>
                 <p style={{ margin: "4px 0" }}><strong>Correo:</strong> {formData.asp_correo_personal || "—"}</p>
                 <p style={{ margin: "4px 0" }}><strong>Fecha de Nac.:</strong> {formData.asp_fecha_nacimiento || "—"}</p>
               </div>
@@ -510,6 +537,7 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
               if (currentStep === 0) {
                 if (!formData.asp_nombres) errs.asp_nombres = "Campo obligatorio";
                 if (!formData.asp_apellidos) errs.asp_apellidos = "Campo obligatorio";
+                if (!formData.asp_identificacion) errs.asp_identificacion = "Campo obligatorio";
               }
               if (currentStep === 1) {
                 if (!formData.representante_nombres) errs.representante_nombres = "Campo obligatorio";

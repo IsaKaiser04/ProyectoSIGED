@@ -3,12 +3,7 @@ import { obtenerRequisitos, validarRequisito, rechazarRequisito, solicitarCorrec
 import { showError, showSuccess } from "../../../components/Toast";
 import { getErrorMessage } from "../utils/errorMapper";
 import FormularioLegalizar from "./FormularioLegalizar";
-import { getApiBaseUrl, getAuthToken } from "../../../services/apiClient";
-
-const mockRequisitos = [
-  { id: 1, archivo: null, estado: "Pendiente", estado_display: "Pendiente", observacion: "", matricula_requisito: 1, matricula_requisito_detalle: { nombre: "Certificado de Cédula" }, revisado_por: null, fecha_revision: null },
-  { id: 2, archivo: null, estado: "Pendiente", estado_display: "Pendiente", observacion: "", matricula_requisito: 2, matricula_requisito_detalle: { nombre: "Cédula del Representante (PDF)" }, revisado_por: null, fecha_revision: null },
-];
+import { buildDocumentoUrl } from "../utils/documentoUrl";
 
 interface Props {
   matriculaId: number;
@@ -60,7 +55,7 @@ export default function RevisarRequisitos({ matriculaId, aspiranteNombre, onClos
           } catch {}
         }
       }
-      setRequisitos(mockRequisitos);
+      setRequisitos([]);
     } finally {
       setLoading(false);
     }
@@ -129,21 +124,6 @@ export default function RevisarRequisitos({ matriculaId, aspiranteNombre, onClos
   };
 
   const todosValidados = requisitos.length > 0 && requisitos.every(r => r.estado === "Validado");
-  const apiBase = getApiBaseUrl();
-  const origin = apiBase.replace(/\/api\/?$/, "");
-
-  const buildDocumentoUrl = (req: any): string | null => {
-    if (!req) return null;
-    if (req.archivo_url) {
-      const token = getAuthToken();
-      return `${origin}${req.archivo_url}${token ? `?token=${encodeURIComponent(token)}` : ""}`;
-    }
-    if (req.archivo) {
-      if (req.archivo.startsWith("data:") || req.archivo.startsWith("http")) return req.archivo;
-      return `${origin}${req.archivo}`;
-    }
-    return null;
-  };
 
   const handleVerDocumento = (req: any) => {
     const url = buildDocumentoUrl(req);

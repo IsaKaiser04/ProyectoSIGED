@@ -25,7 +25,10 @@
   updated_at?: string;
   asp_nombres: string;
   asp_apellidos: string;
+  asp_identificacion?: string;
+  asp_tipo_identificacion?: string;
   asp_fecha_nacimiento: string | null;
+  asp_celular?: string;
   asp_correo_personal: string;
 }
 

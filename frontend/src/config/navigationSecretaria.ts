@@ -36,6 +36,7 @@ export const NAVIGATION_SECRETARIA: NavGroup[] = [
       { view: "periodos-matricula", label: "Periodos de Matrícula", icon: "calendar" },
       { view: "requisitos-config", label: "Requisitos por Periodo", icon: "clipboard-list" },
       { view: "control-matriculas", label: "Control de Matrículas", icon: "file-text" },
+      { view: "documentos-matricula", label: "Documentos de Matrículas", icon: "folder" },
     ],
   },
   {

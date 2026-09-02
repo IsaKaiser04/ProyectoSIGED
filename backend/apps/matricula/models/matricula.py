@@ -22,7 +22,10 @@ class Matricula(models.Model):
 
     asp_nombres = models.CharField(max_length=100, blank=True, default='')
     asp_apellidos = models.CharField(max_length=100, blank=True, default='')
+    asp_identificacion = models.CharField(max_length=20, blank=True, default='')
+    asp_tipo_identificacion = models.CharField(max_length=20, blank=True, default='CEDULA')
     asp_fecha_nacimiento = models.DateField(null=True, blank=True)
+    asp_celular = models.CharField(max_length=15, blank=True, default='')
     asp_correo_personal = models.EmailField(max_length=254, blank=True, default='')
 
     secretaria = models.ForeignKey(

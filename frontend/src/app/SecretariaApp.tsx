@@ -5,6 +5,7 @@ import { SecretariaLayout } from "../layouts/SecretariaLayout";
 import { MatriculaDashboard } from "../features/matricula/MatriculaDashboard";
 import { PeriodosMatriculaPage } from "../features/matricula/PeriodosMatriculaPage";
 import { RequisitosConfigPage } from "../features/matricula/RequisitosConfigPage";
+import DocumentosMatriculaListado from "../features/matricula/components/DocumentosMatriculaListado";
 import { DocentesMateriasListado } from "../features/matricula/components/DocentesMateriasListado";
 import { EstudiantesListado } from "../features/matricula/components/EstudiantesListado";
 import { DialogCard, GlassInfoCard } from "../components/DashboardCards";
@@ -168,6 +169,8 @@ export function SecretariaApp() {
         return <RequisitosConfigPage />;
       case "control-matriculas":
         return <MatriculaDashboard />;
+      case "documentos-matricula":
+        return <DocumentosMatriculaListado />;
 
       // Soporte Informativo (Modo Lectura)
       case "consulta-plan-estudios":

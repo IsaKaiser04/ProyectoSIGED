@@ -42,7 +42,9 @@ export default function FormularioLegalizar({ matriculaId, onClose, onLegalizado
               nombres: mat.asp_nombres || "",
               apellidos: mat.asp_apellidos || "",
               identificacion: mat.asp_identificacion || "",
-              celular: mat.asp_celular || "",
+              tipo_identificacion: mat.asp_tipo_identificacion || "CEDULA",
+              fecha_nacimiento: mat.asp_fecha_nacimiento || "",
+              celular: mat.asp_celular || mat.rep_telefono || "",
               correo_personal: mat.asp_correo_personal || mat.correo_personal || "",
             }));
           }
@@ -50,20 +52,36 @@ export default function FormularioLegalizar({ matriculaId, onClose, onLegalizado
       } catch {}
     };
 
+    const rellenarDesdeAspirante = (mat: any) => {
+      setForm(prev => ({
+        ...prev,
+        nombres: mat.asp_nombres || prev.nombres,
+        apellidos: mat.asp_apellidos || prev.apellidos,
+        identificacion: mat.asp_identificacion || prev.identificacion,
+        tipo_identificacion: mat.asp_tipo_identificacion || prev.tipo_identificacion,
+        fecha_nacimiento: mat.asp_fecha_nacimiento || prev.fecha_nacimiento,
+        celular: mat.asp_celular || mat.rep_telefono || prev.celular,
+        correo_personal: mat.asp_correo_personal || prev.correo_personal,
+      }));
+    };
+
     apiGet<any>(`/matricula/matriculas/${matriculaId}/`).then(mat => {
-      if (mat?.estudiante_id) {
-        apiGet<any>(`/actoresAcademicos/estudiantes/${mat.estudiante_id}/`).then(est => {
-          setForm(prev => ({
-            ...prev,
-            nombres: est.nombres || "",
-            apellidos: est.apellidos || "",
-            identificacion: est.identificacion || "",
-            tipo_identificacion: est.tipo_identificacion || "CEDULA",
-            fecha_nacimiento: est.fecha_nacimiento || "",
-            celular: est.celular || "",
-            correo_personal: est.correo_personal || "",
-          }));
-        }).catch(cargarLocales);
+      if (mat) {
+        rellenarDesdeAspirante(mat);
+        if (mat.estudiante_id) {
+          apiGet<any>(`/actoresAcademicos/estudiantes/${mat.estudiante_id}/`).then(est => {
+            setForm(prev => ({
+              ...prev,
+              nombres: est.nombres || prev.nombres,
+              apellidos: est.apellidos || prev.apellidos,
+              identificacion: est.identificacion || prev.identificacion,
+              tipo_identificacion: est.tipo_identificacion || prev.tipo_identificacion,
+              fecha_nacimiento: est.fecha_nacimiento || prev.fecha_nacimiento,
+              celular: est.celular || prev.celular,
+              correo_personal: est.correo_personal || prev.correo_personal,
+            }));
+          }).catch(() => {});
+        }
       } else {
         cargarLocales();
       }
@@ -208,6 +226,7 @@ export default function FormularioLegalizar({ matriculaId, onClose, onLegalizado
           lista[idx].estado = "Legalizada";
           lista[idx].codigo_unico = codigo;
           lista[idx].asp_identificacion = form.identificacion;
+          lista[idx].asp_tipo_identificacion = form.tipo_identificacion;
           lista[idx].asp_celular = form.celular;
           lista[idx].asp_correo_personal = form.correo_personal;
           lista[idx].asp_nombres = form.nombres;
