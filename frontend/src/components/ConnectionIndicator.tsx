@@ -8,7 +8,7 @@ export function ConnectionIndicator() {
   useEffect(() => {
     const check = () => {
       setStatus('checking');
-      fetch('http://localhost:8000/api/planificacion/niveles/', { method: 'HEAD', signal: AbortSignal.timeout(5000) })
+      fetch(`${import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api'}/planificacion/niveles/`, { method: 'HEAD', signal: AbortSignal.timeout(5000) })
         .then(() => setStatus('online'))
         .catch(() => setStatus('offline'));
     };
