@@ -296,15 +296,12 @@ export default function FormularioLegalizar({ matriculaId, onClose, onLegalizado
         onLegalizado();
       }
     } catch (err: any) {
-      const codigo = `MAT-LOCAL-${String(matriculaId).slice(-6)}`;
-      guardarLocal(codigo);
-      setCredenciales({
-        codigo_unico: codigo,
-        nombre_usuario: form.nombre_usuario,
-        contrasena: form.contrasena,
-        correo_institucional: form.correo_institucional,
-        estudiante_nombre: `${form.nombres} ${form.apellidos}`.trim(),
-      });
+      // Antes aquí se guardaba en localStorage y se mostraban credenciales "falsas",
+      // aunque el backend NO hubiera creado al estudiante ni su cuenta.
+      // Ahora se muestra el error real para que la secretaría pueda corregirlo.
+      const mensaje = err?.data?.error || getErrorMessage(err);
+      setError(mensaje);
+      showError(mensaje);
     } finally {
       setEnviando(false);
     }

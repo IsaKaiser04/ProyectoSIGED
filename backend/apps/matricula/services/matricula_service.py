@@ -92,6 +92,11 @@ class MatriculaService:
         from django.contrib.auth.hashers import make_password
         from apps.ubicacion.models import Direccion, Parroquia
 
+        def _error(mensaje):
+            # Deshace todo lo hecho en esta transacción (estado, cupos, dirección...)
+            transaction.set_rollback(True)
+            return None, {"error": mensaje}
+
         # Intentar obtener la matrícula (puede no existir si es local)
         matricula = None
         try:
@@ -99,20 +104,26 @@ class MatriculaService:
         except Matricula.DoesNotExist:
             pass
 
-        if matricula:
+        # Matrículas que quedaron "Legalizadas" sin estudiante por el error anterior:
+        # se permite completarlas sin volver a descontar cupo.
+        incompleta = bool(
+            matricula and matricula.estado == MatriculaEstado.LEGALIZADA and not matricula.estudiante_id
+        )
+
+        if matricula and not incompleta:
             if matricula.estado == MatriculaEstado.LEGALIZADA:
-                return None, {"error": "La matrícula ya está legalizada"}
+                return _error("La matrícula ya está legalizada")
 
             pendientes = matricula.requisitos.exclude(estado='Validado').count()
             if pendientes > 0:
-                return None, {"error": f"No se puede legalizar. Hay {pendientes} requisito(s) pendiente(s) o rechazado(s)."}
+                return _error(f"No se puede legalizar. Hay {pendientes} requisito(s) pendiente(s) o rechazado(s).")
 
             if matricula.paralelo_id and not matricula.exceder_cupo_autorizado:
                 try:
                     from apps.planificacion.models import Paralelo
                     paralelo = Paralelo.objects.select_for_update().get(pk=matricula.paralelo_id)
                     if paralelo.cuposOcupados >= paralelo.cuposMaximo:
-                        return None, {"error": "El paralelo no tiene cupos disponibles."}
+                        return _error("El paralelo no tiene cupos disponibles.")
                     paralelo.cuposOcupados += 1
                     paralelo.save()
                 except Paralelo.DoesNotExist:
@@ -134,9 +145,11 @@ class MatriculaService:
                     Matricula.objects.select_related('matricula_periodo').get(pk=pk)
                 ).data
                 return resultado, None
-            return None, {"error": "No se proporcionaron datos del estudiante"}
+            return _error("No se proporcionaron datos del estudiante")
 
-        institucion_id = estudiante_data.get('institucion_id')
+        institucion_id = estudiante_data.pop('institucion_id', None)
+        if not institucion_id and matricula and matricula.institucion_id:
+            institucion_id = matricula.institucion_id
         if not institucion_id:
             sec = Secretaria.objects.filter(cuenta_id=user_id).first()
             if sec:
@@ -146,6 +159,12 @@ class MatriculaService:
                 if aut:
                     institucion_id = aut.institucion_id
 
+        if not institucion_id:
+            return _error(
+                "No se pudo determinar la institución del estudiante. "
+                "Legalice la matrícula con un usuario de Secretaría o Autoridad asignado a una institución."
+            )
+
         direccion_data = estudiante_data.pop('direccion_domicilio', None)
         cuenta_data = estudiante_data.pop('cuenta', None)
         identificacion = estudiante_data.get('identificacion')
@@ -153,6 +172,17 @@ class MatriculaService:
         existing = None
         if identificacion:
             existing = Estudiante.objects.filter(identificacion=identificacion).first()
+
+        correo_personal = estudiante_data.get('correo_personal')
+        if correo_personal:
+            otros = Estudiante.objects.filter(correo_personal=correo_personal)
+            if existing:
+                otros = otros.exclude(pk=existing.pk)
+            if otros.exists():
+                return _error(
+                    f"El correo personal {correo_personal} ya está registrado para otro estudiante. "
+                    "Cada estudiante necesita un correo personal distinto."
+                )
 
         if direccion_data:
             parroquia_val = direccion_data.pop('parroquia', None)
@@ -164,9 +194,9 @@ class MatriculaService:
 
         if cuenta_data:
             if Cuenta.objects.filter(nombre_usuario=cuenta_data['nombre_usuario']).exists():
-                return None, {"error": "El nombre de usuario ya existe"}
+                return _error("El nombre de usuario ya existe")
             if Cuenta.objects.filter(correo_institucional=cuenta_data['correo_institucional']).exists():
-                return None, {"error": "El correo institucional ya existe"}
+                return _error("El correo institucional ya existe")
             cuenta = Cuenta.objects.create(
                 nombre_usuario=cuenta_data['nombre_usuario'],
                 contrasena=make_password(cuenta_data['contrasena']),
