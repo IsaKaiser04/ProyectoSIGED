@@ -35,13 +35,6 @@ export default function PlanificacionCurricularPage() {
 
   useEffect(() => { cargar(); }, []);
 
-  const abrirNuevo = () => {
-    setForm({ distributivo_asignatura: "", archivo_pdf: null, observacion: "", estado: "BORRADOR" });
-    setEditId(null);
-    setError("");
-    setShowForm(true);
-  };
-
   const guardar = async () => {
     setError("");
     const payload: any = {
@@ -134,7 +127,6 @@ export default function PlanificacionCurricularPage() {
         <h2 style={{ margin: 0, color: "var(--primary)", fontSize: "var(--font-headline-md)" }}>
           Planificación Curricular (PCA)
         </h2>
-        {!showForm && <button onClick={abrirNuevo} style={{ background: "var(--secondary)", color: "white", border: "none", padding: "10px 20px", borderRadius: "8px", fontWeight: 600, cursor: "pointer" }}>+ Nueva Planificación</button>}
       </div>
 
       {showForm && (
