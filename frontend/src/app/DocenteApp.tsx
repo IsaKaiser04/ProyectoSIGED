@@ -4,7 +4,7 @@ import { DocenteLayout } from "../layouts/DocenteLayout";
 
 // ──────────────────────────────────────────────────────────────────────────
 import { VinculacionCurricularPage } from "../features/vinculacion-curricular";
-import { AsistenciaPage } from "../features/asistencia";
+import { AsistenciaPage, ReporteAsistenciaPage } from "../features/asistencia";
 import { PcaHorariosDocente } from "../features/planificacion-curricular/components/PcaHorariosDocente";
 import { CalificacionesDocentePage } from "../features/calificaciones";
 import { AulaVirtualApp } from "../features/aula-virtual";
@@ -49,6 +49,8 @@ export function DocenteApp() {
         return <CalificacionesDocentePage />;
       case "control-asistencia":
         return <AsistenciaPage />;
+      case "reporte-asistencia":
+        return <ReporteAsistenciaPage />;
 
       // Planificación (Lectura)
       case "pca-horarios":

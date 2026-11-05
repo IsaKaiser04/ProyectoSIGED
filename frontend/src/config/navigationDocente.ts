@@ -37,6 +37,7 @@ export const getNavigationDocente = (esTutor: boolean): NavGroup[] => {
       groupLabel: "Evaluación y seguimiento",
       items: [
         { view: "control-asistencia", label: "Asistencia e incidencias", icon: "calendar-check" },
+        { view: "reporte-asistencia", label: "Reporte de asistencia", icon: "bar-chart" },
       ],
     },
     {

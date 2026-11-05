@@ -53,6 +53,7 @@ export const NAVIGATION_AUTORIDAD: NavGroup[] = [
     groupLabel: "Supervisión y Gobernanza",
     items: [
       { view: "documentacion-gobernanza", label: "Documentación (PEI/CC/PGR)", icon: "folder" },
+      { view: "reporte-asistencia", label: "Reporte de asistencia", icon: "bar-chart" },
     ],
   },
 ];
