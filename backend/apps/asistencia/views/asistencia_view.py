@@ -1,9 +1,18 @@
+from django.http import HttpResponse
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from apps.asistencia.services.asistencia_service import AsistenciaService, AsistenciaError
+from apps.asistencia.services.reporte_asistencia_export import generar_excel, generar_pdf, nombre_archivo
 from apps.asistencia.models import Asistencia
 from apps.asistencia.serializers.asistencia_serializer import AsistenciaSerializer
+
+
+# formato -> (extensión, content type, generador) del reporte US-045
+FORMATOS_REPORTE = {
+    'excel': ('xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', generar_excel),
+    'pdf': ('pdf', 'application/pdf', generar_pdf),
+}
 
 
 class AsistenciaViewSet(viewsets.ViewSet):
@@ -115,3 +124,27 @@ class AsistenciaViewSet(viewsets.ViewSet):
     def mis_asistencias(self, request):
         """Asistencias del estudiante que inició sesión (US-046)."""
         return self._ejecutar(AsistenciaService.mis_asistencias, request.user)
+
+    @action(detail=False, methods=['get'])
+    def reporte(self, request):
+        """Reporte de asistencia por asignatura y período (US-045). formato=json|excel|pdf."""
+        try:
+            reporte = AsistenciaService.reporte_asignatura(
+                request.query_params.get('distributivo_asignatura_id'),
+                request.query_params.get('periodo_academico_id'),
+                request.user,
+            )
+        except AsistenciaError as e:
+            return Response({'error': e.mensaje}, status=e.status)
+
+        formato = request.query_params.get('formato', 'json')
+        if formato == 'json':
+            return Response(reporte)
+        if formato not in FORMATOS_REPORTE:
+            return Response({'error': 'Formato inválido. Use json, excel o pdf.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        extension, content_type, generar = FORMATOS_REPORTE[formato]
+        response = HttpResponse(generar(reporte), content_type=content_type)
+        response['Content-Disposition'] = f'attachment; filename="{nombre_archivo(reporte, extension)}"'
+        response['Access-Control-Expose-Headers'] = 'Content-Disposition'
+        return response

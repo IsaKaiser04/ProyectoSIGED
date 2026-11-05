@@ -411,3 +411,77 @@ class AsistenciaService:
             item['porcentaje_asistencia'] = round(presentes * 100 / item['total'], 1) if item['total'] else None
         asignaturas.sort(key=lambda x: x['asignatura'])
         return {'matricula_id': matricula.id, 'asignaturas': asignaturas}
+
+    # ------------------------------------------------------------------
+    # Reporte por asignatura (US-045)
+    # ------------------------------------------------------------------
+    @staticmethod
+    def reporte_asignatura(das_id, periodo_id, user):
+        """Resumen de asistencia por estudiante de una asignatura en un período académico."""
+        from django.db.models import Count
+        from apps.planificacion.models import PeriodoAcademico
+
+        da = AsistenciaService._obtener_distributivo_asignatura(das_id, user)
+        anio = da.distributivo.anio_lectivo if da.distributivo else None
+        periodos = list(
+            PeriodoAcademico.objects.filter(anioLectivo=anio).order_by('fechaInicio')
+        ) if anio else []
+        if not periodos:
+            raise AsistenciaError('El año lectivo de esta asignatura no tiene períodos académicos registrados.')
+
+        if periodo_id:
+            periodo = next((p for p in periodos if str(p.id) == str(periodo_id)), None)
+            if not periodo:
+                raise AsistenciaError('El período académico no pertenece al año lectivo de la asignatura.')
+        else:
+            hoy = date.today()
+            periodo = next((p for p in periodos if p.fechaInicio <= hoy <= p.fechaFin), periodos[0])
+
+        clases = Clase.objects.filter(
+            distributivo_asignatura=da, fecha__gte=periodo.fechaInicio, fecha__lte=periodo.fechaFin
+        )
+        clases_dictadas = clases.count()
+
+        conteos = {}
+        filas = Asistencia.objects.filter(clase__in=clases).values('matricula_id', 'tipo').annotate(n=Count('id'))
+        for fila in filas:
+            conteos.setdefault(fila['matricula_id'], {})[fila['tipo']] = fila['n']
+
+        totales = {t: 0 for t in AsistenciaTipo.values}
+        estudiantes = []
+        for m in AsistenciaService._matriculas_legalizadas(da.paralelo_id):
+            resumen = {t: conteos.get(m.id, {}).get(t, 0) for t in AsistenciaTipo.values}
+            total = sum(resumen.values())
+            presentes = resumen[AsistenciaTipo.ASISTENCIA] + resumen[AsistenciaTipo.ATRASADO]
+            for t, n in resumen.items():
+                totales[t] += n
+            estudiantes.append({
+                'matricula_id': m.id,
+                'estudiante_nombre': f'{m.estudiante.apellidos} {m.estudiante.nombres}'.strip(),
+                'identificacion': m.estudiante.identificacion,
+                'resumen': resumen,
+                'total': total,
+                'sin_registro': max(clases_dictadas - total, 0),
+                'porcentaje_asistencia': round(presentes * 100 / total, 1) if total else None,
+            })
+
+        grado = da.asignatura_ofertada.gradoOfertado if da.asignatura_ofertada else None
+        docente = da.distributivo.docente if da.distributivo else None
+        return {
+            'distributivo_asignatura_id': da.id,
+            'asignatura': da.asignatura_ofertada.nombre if da.asignatura_ofertada else '',
+            'grado': grado.nombre if grado else '',
+            'paralelo': da.paralelo.nombre,
+            'anio_lectivo': anio.nombre,
+            'docente': f'{docente.nombres} {docente.apellidos}' if docente else '',
+            'periodo': {
+                'id': periodo.id,
+                'nombre': periodo.nombre,
+                'fecha_inicio': periodo.fechaInicio.isoformat(),
+                'fecha_fin': periodo.fechaFin.isoformat(),
+            },
+            'periodos': [{'id': p.id, 'nombre': p.nombre} for p in periodos],
+            'clases_dictadas': clases_dictadas,
+            'totales': totales,
+            'estudiantes': estudiantes,
+        }

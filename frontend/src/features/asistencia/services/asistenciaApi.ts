@@ -148,3 +148,67 @@ export function obtenerMisAsistencias() {
     `${BASE}/mis-asistencias/`
   );
 }
+
+// ── Reporte de asistencia por asignatura (US-045) ────────────────────────
+
+export interface EstudianteReporte {
+  matricula_id: number;
+  estudiante_nombre: string;
+  identificacion: string;
+  resumen: Record<TipoAsistencia, number>;
+  total: number;
+  sin_registro: number;
+  porcentaje_asistencia: number | null;
+}
+
+export interface ReporteAsistencia {
+  distributivo_asignatura_id: number;
+  asignatura: string;
+  grado: string;
+  paralelo: string;
+  anio_lectivo: string;
+  docente: string;
+  periodo: { id: number; nombre: string; fecha_inicio: string; fecha_fin: string };
+  periodos: { id: number; nombre: string }[];
+  clases_dictadas: number;
+  totales: Record<TipoAsistencia, number>;
+  estudiantes: EstudianteReporte[];
+}
+
+function rutaReporte(distributivoAsignaturaId: number, periodoId: number | null, formato: string) {
+  const periodo = periodoId ? `&periodo_academico_id=${periodoId}` : "";
+  return `${BASE}/reporte/?distributivo_asignatura_id=${distributivoAsignaturaId}${periodo}&formato=${formato}`;
+}
+
+/** Datos del reporte. Sin período, el backend usa el período actual. */
+export function obtenerReporteAsistencia(distributivoAsignaturaId: number, periodoId: number | null) {
+  return getConError<ReporteAsistencia>(rutaReporte(distributivoAsignaturaId, periodoId, "json"));
+}
+
+/** Descarga el reporte en Excel o PDF con el nombre que envía el backend. */
+export async function descargarReporteAsistencia(
+  distributivoAsignaturaId: number,
+  periodoId: number,
+  formato: "excel" | "pdf"
+) {
+  const token = getAuthToken();
+  const response = await fetch(`${getApiBaseUrl()}${rutaReporte(distributivoAsignaturaId, periodoId, formato)}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error || body?.detail || `Error ${response.status} descargando el reporte`);
+  }
+  const disposition = response.headers.get("Content-Disposition") || "";
+  const nombre = /filename="?([^"]+)"?/.exec(disposition)?.[1]
+    ?? `reporte_asistencia.${formato === "excel" ? "xlsx" : "pdf"}`;
+
+  const url = URL.createObjectURL(await response.blob());
+  const enlace = document.createElement("a");
+  enlace.href = url;
+  enlace.download = nombre;
+  document.body.appendChild(enlace);
+  enlace.click();
+  enlace.remove();
+  URL.revokeObjectURL(url);
+}
