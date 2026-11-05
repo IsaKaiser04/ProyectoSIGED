@@ -2,7 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from apps.asistencia.services.clase_service import ClaseService
-from apps.asistencia.models import Clase
+from apps.asistencia.models import Clase, ClaseEstado
 
 
 class ClaseViewSet(viewsets.ViewSet):
@@ -39,7 +39,7 @@ class ClaseViewSet(viewsets.ViewSet):
 
     @action(detail=True, methods=['post'])
     def iniciar(self, request, pk=None):
-        data, errors = ClaseService.update(pk, {'estado': Clase.ClaseEstado.EN_CURSO})
+        data, errors = ClaseService.update(pk, {'estado': ClaseEstado.EN_CURSO})
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
         if not data:
@@ -48,7 +48,7 @@ class ClaseViewSet(viewsets.ViewSet):
 
     @action(detail=True, methods=['post'])
     def finalizar(self, request, pk=None):
-        data, errors = ClaseService.update(pk, {'estado': Clase.ClaseEstado.FINALIZADO})
+        data, errors = ClaseService.update(pk, {'estado': ClaseEstado.FINALIZADO})
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
         if not data:
