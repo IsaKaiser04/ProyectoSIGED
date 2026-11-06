@@ -3,7 +3,7 @@
 // se cargan los horarios de ese día y los estudiantes con matrícula
 // LEGALIZADA en el paralelo → registra el tema de la clase y la asistencia.
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { showError, showSuccess } from "../../../components/Toast";
+import { showError, showInfo, showSuccess, showWarning } from "../../../components/Toast";
 import {
   obtenerMisAsignaturas,
   obtenerMatrizAsistencia,
@@ -11,9 +11,16 @@ import {
   marcarTodosPresentes,
   registrarClase,
   type AsignaturaDocente,
+  type EstudianteMatriz,
   type MatrizAsistencia,
   type TipoAsistencia,
 } from "../services/asistenciaApi";
+
+// Qué acción del docente disparó el guardado (para elegir el mensaje)
+type AccionMarcar = "tipo" | "observacion" | "notificar";
+const MENSAJE_CORTO = { duration: 2000 };
+
+const fechaDDMMAAAA = (iso: string) => iso.split("-").reverse().join("/");
 
 export const TIPOS: { value: TipoAsistencia; label: string; icon: string; color: string; fondo: string }[] = [
   { value: "Asistencia", label: "Asistió", icon: "✅", color: "#15803d", fondo: "#dcfce7" },
@@ -105,7 +112,12 @@ export function AsistenciaPage() {
 
   const base = () => ({ distributivo_asignatura_id: Number(daId), fecha, horario_id: horarioId as number });
 
-  const marcar = async (matriculaId: number, tipo: TipoAsistencia, notificar: boolean) => {
+  const marcar = async (estudiante: EstudianteMatriz, tipo: TipoAsistencia, notificar: boolean, accion: AccionMarcar) => {
+    const matriculaId = estudiante.matricula_id;
+    const nombre = estudiante.estudiante_nombre;
+    const antes = horario ? estudiante.asistencias[String(horario.id)] : null;
+    const claseNueva = !!horario && !horario.clase_id;
+    const notificarFinal = tipo === "Asistencia" ? false : notificar;
     setGuardando(`fila-${matriculaId}`);
     try {
       await marcarAsistencia({
@@ -113,9 +125,28 @@ export function AsistenciaPage() {
         matricula_id: matriculaId,
         tipo,
         observacion: observaciones[matriculaId] || "",
-        notificar: tipo === "Asistencia" ? false : notificar,
+        notificar: notificarFinal,
       });
       await cargarMatriz(horarioId);
+
+      if (accion === "tipo") {
+        if (antes?.notificar && tipo === "Asistencia") {
+          showWarning(`Se quitó la notificación porque ${nombre} asistió`);
+        } else {
+          const etiqueta = TIPOS.find((t) => t.value === tipo)?.label ?? tipo;
+          showSuccess(`${nombre}: ${etiqueta} (guardado)`, MENSAJE_CORTO);
+        }
+      } else if (accion === "observacion") {
+        showSuccess(`Observación guardada para ${nombre}`, MENSAJE_CORTO);
+      } else {
+        showInfo(notificarFinal ? `${nombre} quedó marcado para notificar` : `Se quitó la notificación de ${nombre}`);
+      }
+      if (claseNueva && matriz) {
+        showInfo(
+          `La clase se guardó con el tema "${matriz.asignatura} - ${fechaDDMMAAAA(fecha)}". Puedes cambiarlo arriba.`,
+          { duration: 6000 }
+        );
+      }
     } catch (e: any) {
       showError(e.message);
     } finally {
@@ -334,7 +365,7 @@ export function AsistenciaPage() {
                                         key={t.value}
                                         title={t.label}
                                         disabled={bloqueado || ocupada}
-                                        onClick={() => marcar(e.matricula_id, t.value, celda?.notificar ?? false)}
+                                        onClick={() => marcar(e, t.value, celda?.notificar ?? false, "tipo")}
                                         style={{
                                           padding: "6px 8px", borderRadius: "6px", fontSize: "12px", cursor: "pointer",
                                           border: activo ? `2px solid ${t.color}` : "1px solid var(--outline-variant)",
@@ -359,7 +390,7 @@ export function AsistenciaPage() {
                                   onChange={(ev) => setObservaciones((p) => ({ ...p, [e.matricula_id]: ev.target.value }))}
                                   onBlur={() => {
                                     if (celda && (observaciones[e.matricula_id] ?? "") !== (celda.observacion ?? "")) {
-                                      marcar(e.matricula_id, celda.tipo, celda.notificar);
+                                      marcar(e, celda.tipo, celda.notificar, "observacion");
                                     }
                                   }}
                                 />
@@ -370,7 +401,7 @@ export function AsistenciaPage() {
                                   title={puedeNotificar ? "Notificar al estudiante o representante" : "Solo se notifica una falta, justificación o atraso"}
                                   disabled={bloqueado || !puedeNotificar || ocupada}
                                   checked={!!celda?.notificar}
-                                  onChange={(ev) => celda && marcar(e.matricula_id, celda.tipo, ev.target.checked)}
+                                  onChange={(ev) => celda && marcar(e, celda.tipo, ev.target.checked, "notificar")}
                                 />
                               </td>
                             </tr>
