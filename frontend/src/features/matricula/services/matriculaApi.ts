@@ -1,4 +1,4 @@
-﻿import { apiGet, apiPost, apiPatch, apiUpload } from "../../../services/apiClient";
+﻿import { apiGet, apiPost, apiUpload } from "../../../services/apiClient";
 import type { Matricula } from "../../../types/entities/matricula";
 
 export async function obtenerMatriculas() {
@@ -22,7 +22,7 @@ export async function anularMatricula(id: number, motivo: string) {
 }
 
 export async function rechazarMatricula(id: number, observacion: string) {
-  return apiPatch(`/matricula/matriculas/${id}/`, { estado: "Rechazada", observacion });
+  return apiPost(`/matricula/matriculas/${id}/rechazar/`, { observacion });
 }
 
 export async function obtenerPeriodosMatricula() {

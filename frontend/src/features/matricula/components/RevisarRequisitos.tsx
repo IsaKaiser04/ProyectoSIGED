@@ -20,42 +20,18 @@ export default function RevisarRequisitos({ matriculaId, aspiranteNombre, onClos
   const [observacionText, setObservacionText] = useState("");
   const [mostrarLegalizar, setMostrarLegalizar] = useState(false);
   const [subiendoArchivo, setSubiendoArchivo] = useState<number | null>(null);
+  const [procesando, setProcesando] = useState<number | null>(null); // requisito esperando al backend
   const [documentoSeleccionadoId, setDocumentoSeleccionadoId] = useState<number | null>(null);
   const [documentoSeleccionado, setDocumentoSeleccionado] = useState<any | null>(null);
-
-  const actualizarLocal = (id: number, cambios: any) => {
-    setRequisitos(prev => {
-      const next = prev.map(r => r.id === id ? { ...r, ...cambios } : r);
-      guardarRequisitosLocales(next);
-      return next;
-    });
-  };
 
   const cargarRequisitos = useCallback(async () => {
     try {
       setLoading(true);
-      try {
-        const data = await obtenerRequisitos(matriculaId);
-        if (data && data.length > 0) {
-          // La API es la fuente de verdad. Solo se usa localStorage si esta falla.
-          setRequisitos(data);
-          return;
-        }
-      } catch (e) {
-        console.warn("[RevisarRequisitos] Error en API, intentando respaldo local:", e);
-        const key = `siged_requisitos_${matriculaId}`;
-        const localReqs = localStorage.getItem(key);
-        if (localReqs) {
-          try {
-            const parsed = JSON.parse(localReqs);
-            if (parsed && parsed.length > 0) {
-              setRequisitos(parsed);
-              return;
-            }
-          } catch {}
-        }
-      }
+      const data = await obtenerRequisitos(matriculaId);
+      setRequisitos(data || []);
+    } catch (e) {
       setRequisitos([]);
+      showError(`No se pudieron cargar los requisitos: ${getErrorMessage(e)}`);
     } finally {
       setLoading(false);
     }
@@ -65,55 +41,51 @@ export default function RevisarRequisitos({ matriculaId, aspiranteNombre, onClos
     cargarRequisitos();
   }, [cargarRequisitos]);
 
-  const handleValidar = async (id: number) => {
-    actualizarLocal(id, { estado: "Validado" });
-    showSuccess("Requisito aprobado correctamente");
+  /** Llama al backend; solo si responde bien se aplica su respuesta y se muestra el mensaje. */
+  const ejecutar = async (id: number, accion: () => Promise<any>, mensajeExito: string) => {
+    setProcesando(id);
     try {
-      await validarRequisito(id);
-    } catch {
-      /* simulado — el estado ya cambió localmente */
+      const actualizado = await accion();
+      setRequisitos(prev => prev.map(r => (r.id === id ? { ...r, ...actualizado } : r)));
+      showSuccess(mensajeExito);
+      return true;
+    } catch (e) {
+      showError(getErrorMessage(e));
+      return false;
+    } finally {
+      setProcesando(null);
     }
   };
 
-  const guardarRequisitosLocales = (reqs: any[]) => {
-    try {
-      localStorage.setItem(`siged_requisitos_${matriculaId}`, JSON.stringify(reqs));
-    } catch {}
-  };
+  const handleValidar = (id: number) =>
+    ejecutar(id, () => validarRequisito(id), "Requisito aprobado correctamente");
 
   const handleRechazar = async () => {
     if (observacionModal === null) return;
     const id = observacionModal;
-    actualizarLocal(id, { estado: "No validado", observacion: observacionText });
-    setObservacionModal(null);
-    setObservacionText("");
-    showSuccess("Requisito rechazado. Se notificará al representante.");
-    if (onRechazo) onRechazo(matriculaId);
-    try {
-      await rechazarRequisito(id, observacionText);
-    } catch {
-      /* simulado — el estado ya cambió localmente */
+    const ok = await ejecutar(
+      id,
+      () => rechazarRequisito(id, observacionText),
+      "Requisito rechazado. Se notificará al representante."
+    );
+    if (ok) {
+      setObservacionModal(null);
+      setObservacionText("");
+      if (onRechazo) onRechazo(matriculaId);
     }
   };
 
-  const handleSolicitarCorreccion = async (id: number) => {
-    actualizarLocal(id, { estado: "Pendiente", observacion: "" });
-    showSuccess("Corrección solicitada. El requisito vuelve a estar pendiente.");
-    try {
-      await solicitarCorreccionRequisito(id);
-    } catch {
-      /* simulado */
-    }
-  };
+  const handleSolicitarCorreccion = (id: number) =>
+    ejecutar(id, () => solicitarCorreccionRequisito(id), "Corrección solicitada. El requisito vuelve a estar pendiente.");
 
   const handleSubirArchivo = async (id: number, file: File) => {
     setSubiendoArchivo(id);
-    actualizarLocal(id, { estado: "Pendiente", observacion: "" });
-    showSuccess("Archivo subido correctamente. El requisito está pendiente para revisión.");
     try {
-      await subirArchivoRequisito(id, file);
-    } catch {
-      /* simulado */
+      await ejecutar(
+        id,
+        () => subirArchivoRequisito(id, file),
+        "Archivo subido correctamente. El requisito está pendiente para revisión."
+      );
     } finally {
       setSubiendoArchivo(null);
     }
@@ -167,11 +139,11 @@ export default function RevisarRequisitos({ matriculaId, aspiranteNombre, onClos
                 {req.estado !== "Validado" && (
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                     <div style={{ display: "flex", gap: "8px" }}>
-                      <button onClick={() => handleValidar(req.id)} style={{ flex: 1, padding: "6px", background: "#16a34a", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}>Aprobar</button>
+                      <button disabled={procesando === req.id} onClick={() => handleValidar(req.id)} style={{ flex: 1, padding: "6px", background: "#16a34a", color: "white", border: "none", borderRadius: "4px", cursor: procesando === req.id ? "wait" : "pointer", opacity: procesando === req.id ? 0.6 : 1 }}>Aprobar</button>
                       {req.estado === "No validado" ? (
-                        <button onClick={() => handleSolicitarCorreccion(req.id)} style={{ flex: 1, padding: "6px", background: "#ca8a04", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}>Solicitar Corrección</button>
+                        <button disabled={procesando === req.id} onClick={() => handleSolicitarCorreccion(req.id)} style={{ flex: 1, padding: "6px", background: "#ca8a04", color: "white", border: "none", borderRadius: "4px", cursor: procesando === req.id ? "wait" : "pointer", opacity: procesando === req.id ? 0.6 : 1 }}>Solicitar Corrección</button>
                       ) : (
-                        <button onClick={() => setObservacionModal(req.id)} style={{ flex: 1, padding: "6px", background: "#dc2626", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}>Rechazar</button>
+                        <button disabled={procesando === req.id} onClick={() => setObservacionModal(req.id)} style={{ flex: 1, padding: "6px", background: "#dc2626", color: "white", border: "none", borderRadius: "4px", cursor: procesando === req.id ? "wait" : "pointer", opacity: procesando === req.id ? 0.6 : 1 }}>Rechazar</button>
                       )}
                     </div>
                     {req.estado === "No validado" && (
@@ -250,7 +222,7 @@ export default function RevisarRequisitos({ matriculaId, aspiranteNombre, onClos
             <textarea value={observacionText} onChange={(e) => setObservacionText(e.target.value)} style={{ width: "100%", minHeight: "80px", marginBottom: "16px", padding: "8px", borderRadius: "4px", border: "1px solid var(--outline)" }} placeholder="Ej: Cédula borrosa, ilegible..."></textarea>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
               <button onClick={() => setObservacionModal(null)} style={{ padding: "8px 16px", border: "1px solid var(--outline)", borderRadius: "6px", cursor: "pointer" }}>Cancelar</button>
-              <button onClick={handleRechazar} style={{ padding: "8px 16px", background: "#dc2626", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}>Confirmar Rechazo</button>
+              <button onClick={handleRechazar} disabled={procesando !== null} style={{ padding: "8px 16px", background: "#dc2626", color: "white", border: "none", borderRadius: "6px", cursor: procesando !== null ? "wait" : "pointer", opacity: procesando !== null ? 0.6 : 1 }}>{procesando !== null ? "Rechazando..." : "Confirmar Rechazo"}</button>
             </div>
           </div>
         </div>
