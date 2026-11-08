@@ -13,7 +13,7 @@ import {
   listAsignaturasEstudiante,
   getActividadesEstudiante,
   getEntregasEstudiante
-} from "../services/calificacionesEstudianteService";
+} from "../services/calificacionesEstudianteApi";
 import { ErrorAlert } from "../../../components/common/AlertComponents";
 
 export function AulaVirtualEstudiantePage() {

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Users, BookOpen, Bell, CalendarClock, FileText, AlertTriangle, CheckCircle2, GraduationCap, Hash, Clock, CalendarDays, Mail, Briefcase } from "lucide-react";
-import { apiGet } from "../../services/apiClient";
-import { apiEndpoints } from "../../services/apiEndpoints";
+import { docentePanelApi } from "./services/docentePanelApi";
 import { DialogCard, GlassInfoCard, CARD_COLORS, percent } from "../../components/DashboardCards";
 import { useAuth } from "../../features/autenticacion/context/AuthContext";
 
@@ -37,9 +36,7 @@ export function DocenteInicioDashboard() {
         setError(null);
 
         // 1) Obtener las asignaturas del docente actual autenticado
-        const misAsignaturasRes = await apiGet<any[]>("/distributivos/distributivos-asignaturas/mis_asignaturas/", {
-          signal: controller.signal,
-        });
+        const misAsignaturasRes = await docentePanelApi.getMisAsignaturas({ signal: controller.signal });
 
         if (!misAsignaturasRes || misAsignaturasRes.length === 0) {
           setError("No tienes asignaturas asignadas para el período activo.");
@@ -65,9 +62,7 @@ export function DocenteInicioDashboard() {
         }
 
         // Consultamos el distributivo para obtener el año lectivo
-        const distributivoRes = await apiGet<any>(`/distributivos/distributivos/${distributivoId}/`, {
-          signal: controller.signal,
-        });
+        const distributivoRes = await docentePanelApi.getDistributivo(distributivoId, { signal: controller.signal });
         const anoId = distributivoRes?.anio_lectivo?.id ?? distributivoRes?.anio_lectivo ?? null;
 
         if (!anoId) {
@@ -77,10 +72,9 @@ export function DocenteInicioDashboard() {
         setAnoLectivoActivoId(anoId);
 
         // 3) Obtener actividades de la asignatura usando el distributivo_asignatura
-        const actividadesRes = await apiGet<any[]>(
-          `/calificaciones/asignatura-evaluacion/?distributivo_asignatura=${distributivoAsignaturaId}`,
-          { signal: controller.signal }
-        );
+        const actividadesRes = await docentePanelApi.getActividades(distributivoAsignaturaId, {
+          signal: controller.signal,
+        });
         setTotalActividades(actividadesRes.length);
 
         // Pendientes
@@ -92,18 +86,16 @@ export function DocenteInicioDashboard() {
 
         // 4) Estudiantes del paralelo
         if (paralelo) {
-          const estudiantesRes = await apiGet<any[]>(
-            `/actoresAcademicos/estudiantes/?paralelo_id=${paralelo}`,
-            { signal: controller.signal }
-          );
+          const estudiantesRes = await docentePanelApi.getEstudiantesPorParalelo(paralelo, {
+            signal: controller.signal,
+          });
           setTotalEstudiantes(estudiantesRes.length);
         }
 
         // 5) Calificaciones - usamos filtros por distributivo_asignatura
-        const calificacionesRes = await apiGet<any[]>(
-          `/calificaciones/calificaciones/?distributivo_asignatura=${distributivoAsignaturaId}`,
-          { signal: controller.signal }
-        );
+        const calificacionesRes = await docentePanelApi.getCalificaciones(distributivoAsignaturaId, {
+          signal: controller.signal,
+        });
 
         // Riesgo heurístico: promedio de trimestres < 7
         const riesgo = calificacionesRes.filter((c: any) => {
@@ -120,10 +112,9 @@ export function DocenteInicioDashboard() {
         const fecha = new Date().toISOString().slice(0, 10);
 
         try {
-          const matriz = await apiGet<any>(
-            `/asistencia/asistencias/matriz/?distributivo_asignatura_id=${distributivoAsignaturaId}&fecha=${fecha}`,
-            { signal: controller.signal }
-          );
+          const matriz = await docentePanelApi.getMatrizAsistencia(distributivoAsignaturaId, fecha, {
+            signal: controller.signal,
+          });
 
           const estudiantesMatriculados = Array.isArray(matriz?.estudiantes) ? matriz.estudiantes : [];
           let marcadas = 0;

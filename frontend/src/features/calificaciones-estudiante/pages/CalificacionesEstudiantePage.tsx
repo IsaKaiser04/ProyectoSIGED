@@ -7,7 +7,7 @@ import {
   listAnosLectivosEstudiante,
   listAsignaturasEstudiante,
   getCalificacionesEstudiante
-} from "../services/calificacionesEstudianteService";
+} from "../services/calificacionesEstudianteApi";
 import { ErrorAlert } from "../../../components/common/AlertComponents";
 
 // Helper functions

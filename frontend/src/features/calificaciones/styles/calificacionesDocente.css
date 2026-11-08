@@ -1,0 +1,156 @@
+/* Matriz de calificaciones del docente: tabla ancha con cabecera y primera
+   columna fijas, y estilos de impresión del acta anual. Los colores salen de
+   las variables de styles/global.css. */
+
+.cal-tabla-scroll {
+  overflow: auto;
+  max-height: calc(100vh - 300px);
+  min-height: 240px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+  background: var(--surface);
+  -webkit-overflow-scrolling: touch;
+}
+
+.cal-tabla {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content;
+  min-width: 100%;
+}
+
+.cal-tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.cal-tabla .cal-col-fija {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface);
+  min-width: 220px;
+  max-width: 260px;
+  box-shadow: 1px 0 0 var(--outline-variant);
+}
+
+.cal-tabla thead th.cal-col-fija {
+  z-index: 3;
+  background: var(--primary);
+}
+
+.cal-tabla tbody tr:hover td {
+  background: var(--surface-container-low);
+}
+
+.cal-celda-input {
+  width: 64px;
+  height: 32px;
+  padding: 0 6px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--on-surface);
+  font-size: var(--font-body-sm, 14px);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.cal-celda-input:focus {
+  outline: 2px solid var(--secondary);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+.cal-celda-input[aria-invalid="true"] {
+  border-color: var(--error);
+  background: var(--error-container);
+}
+
+.cal-celda-input:disabled {
+  background: var(--surface-container-low);
+  color: var(--on-surface-variant);
+  cursor: not-allowed;
+}
+
+.cal-celda-input.cal-guardando {
+  border-style: dashed;
+}
+
+.cal-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.cal-solo-impresion {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .cal-tabla-scroll {
+    max-height: calc(100vh - 360px);
+  }
+  .cal-tabla .cal-col-fija {
+    min-width: 160px;
+  }
+}
+
+/* ── Impresión del acta ─────────────────────────────────────────────────── */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 12mm;
+  }
+
+  /* Oculta el chrome del layout docente */
+  .sidebar,
+  .topbar,
+  .cal-no-imprimir,
+  button[title$="Cerrar sesión"] {
+    display: none !important;
+  }
+
+  .app-layout,
+  .content-layout,
+  .page-content {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  .cal-solo-impresion {
+    display: block;
+  }
+
+  .cal-tabla-scroll {
+    max-height: none;
+    overflow: visible;
+    border: none;
+  }
+
+  .cal-tabla {
+    width: 100%;
+    font-size: 11px;
+  }
+
+  .cal-tabla th,
+  .cal-tabla td {
+    position: static !important;
+    border: 1px solid #999 !important;
+    background: #fff !important;
+    color: #000 !important;
+    box-shadow: none !important;
+  }
+
+  .cal-tabla tr {
+    break-inside: avoid;
+  }
+}
+
+@keyframes cal-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,0 +1,30 @@
+// Constantes del registro de notas del docente.
+// Copian los valores de apps/calificaciones/services/promedio_service.py para dar
+// feedback mientras se edita. Si el backend devuelve otra cosa, gana el backend.
+
+export const NOTA_MINIMA = 0;
+export const NOTA_MAXIMA = 10;
+
+/** Respaldo: la matriz trae `nota_minima_aprobacion` y es la que se usa. */
+export const NOTA_MINIMA_APROBACION_DEFECTO = 7;
+
+/** Misma tolerancia que TOLERANCIA_PESOS del backend (fracción). */
+export const TOLERANCIA_PESOS = 0.0001;
+
+/**
+ * Escala provisional del backend (ESCALA_CUALITATIVA): límite inferior inclusivo.
+ * El backend marca un TODO para confirmar etiquetas con la institución.
+ */
+export const ESCALA_CUALITATIVA: ReadonlyArray<{ desde: number; etiqueta: string }> = [
+  { desde: 9, etiqueta: "Excelente" },
+  { desde: 7, etiqueta: "Muy bueno" },
+  { desde: 4.01, etiqueta: "Regular" },
+  { desde: 0, etiqueta: "Insuficiente" },
+];
+
+export const ETIQUETA_ESTADO_FINAL = {
+  EN_CURSO: "En curso",
+  APROBADO: "Aprobado",
+  SUPLETORIO: "Supletorio",
+  REPROBADO: "Reprobado",
+} as const;

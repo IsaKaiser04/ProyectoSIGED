@@ -15,3 +15,4 @@ from apps.calificaciones.models.calificacionMejora import CalificacionMejora
 from apps.calificaciones.models.Incidencia import Incidencia
 from apps.calificaciones.models.promedio import Promedio
 from apps.calificaciones.models.promedioCategoria import PromedioCategoria
+from apps.calificaciones.models.supletorio import Supletorio

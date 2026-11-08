@@ -27,3 +27,21 @@ export {
   calcularEquivalenciaCualitativa,
   calcularEstadoFinal,
 } from "./calificacionesUtils";
+export type {
+  TipoCalculoActividad,
+  EstadoFinalAsignatura,
+  AsignaturaDocente,
+  AsignaturasDocenteResponse,
+  MatrizActividad,
+  MatrizPeriodo,
+  MatrizNota,
+  MatrizPromedio,
+  MatrizEstudiante,
+  MatrizCalificaciones,
+  ActividadDocentePayload,
+  ActividadDocente,
+  NotaPayload,
+  NotaRegistrada,
+  SupletorioPayload,
+  SupletorioRegistrado,
+} from "./calificaciones";

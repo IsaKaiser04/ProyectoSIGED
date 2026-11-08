@@ -6,7 +6,7 @@ import HorarioEscolarPage from "../features/estudiante/components/HorarioEscolar
 import { DialogCard, GlassInfoCard } from "../components/DashboardCards";
 
 // ──────────────────────────────────────────────────────────────────────────
-import { CalificacionesEstudiantePage, AulaVirtualEstudiantePage } from "../features/calificaciones";
+import { CalificacionesEstudiantePage, AulaVirtualEstudiantePage } from "../features/calificaciones-estudiante";
 // ──────────────────────────────────────────────────────────────────────────
 
 const InicioEstudiante = () => (

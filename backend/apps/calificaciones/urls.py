@@ -32,6 +32,13 @@ from apps.calificaciones.views.promedio_view import (
     PromedioListCreateView, PromedioDetailView,
     PromedioCategoriaListView,
 )
+from apps.calificaciones.views.matriz_docente_view import (
+    MisAsignaturasDocenteView, MatrizCalificacionesView,
+)
+from apps.calificaciones.views.docente_escritura_view import (
+    ActividadDocenteCreateView, ActividadDocenteDetailView,
+    NotaDocenteView, SupletorioDocenteView,
+)
 
 urlpatterns = [
     path('evaluacion-categorias/', EvaluacionCategoriaListCreateView.as_view(), name='evaluacion_categoria_list_create'),
@@ -56,4 +63,11 @@ urlpatterns = [
     path('promedios/', PromedioListCreateView.as_view(), name='promedio_list_create'),
     path('promedios/<int:pk>/', PromedioDetailView.as_view(), name='promedio_detail'),
     path('promedios/<int:promedio_pk>/categorias/', PromedioCategoriaListView.as_view(), name='promedio_categoria_list'),
+    path('distributivo/docente/', MisAsignaturasDocenteView.as_view(), name='distributivo-docente'),
+    path('docente/asignaturas/<int:distributivo_asignatura_id>/matriz/',MatrizCalificacionesView.as_view(), name='matriz-calificaciones'),
+    path('docente/asignaturas/<int:distributivo_asignatura_id>/actividades/', ActividadDocenteCreateView.as_view(), name='docente-actividad-create'),
+    path('docente/asignaturas/<int:distributivo_asignatura_id>/supletorio/', SupletorioDocenteView.as_view(), name='docente-supletorio'),
+    path('docente/actividades/<int:actividad_id>/', ActividadDocenteDetailView.as_view(), name='docente-actividad-detail'),
+    path('docente/actividades/<int:actividad_id>/nota/', NotaDocenteView.as_view(), name='docente-nota'),
 ]
+

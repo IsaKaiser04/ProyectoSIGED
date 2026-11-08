@@ -2,6 +2,23 @@ from rest_framework.permissions import BasePermission
 from apps.actoresAcademicos.models.enums import RolTipo
 
 
+class EsDocente(BasePermission):
+    """
+    NUEVA. Exige una cuenta con rol docente Y perfil Docente vinculado.
+    Incluye DOCENTE_TUTOR (EsDocenteOAutoridad lo omite, así que un tutor recibiría 403).
+    Los administradores quedan fuera a propósito: estos endpoints trabajan "como docente"
+    y sin perfil Docente no hay distributivo que filtrar.
+    """
+    message = 'Solo los docentes pueden acceder a este recurso.'
+
+    def has_permission(self, request, view):
+        if not request.auth:
+            return False
+        if request.user.rol not in (RolTipo.DOCENTE, RolTipo.DOCENTE_TUTOR):
+            return False
+        return getattr(request.user, 'perfil_docente', None) is not None
+
+
 class EsDocenteOAutoridad(BasePermission):
     def has_permission(self, request, view):
         if not request.auth:
