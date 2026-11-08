@@ -28,28 +28,12 @@ export default function FormularioLegalizar({ matriculaId, onClose, onLegalizado
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [credenciales, setCredenciales] = useState<any>(null);
 
-  // Cargar matrícula existente para pre-fill
+  // Cargar matrícula existente para pre-fill (solo desde el backend)
   useEffect(() => {
-    const cargarLocales = () => {
-      try {
-        const raw = localStorage.getItem("siged_matriculas_v2");
-        if (raw) {
-          const lista = JSON.parse(raw);
-          const mat = lista.find((m: any) => m.id === matriculaId);
-          if (mat) {
-            setForm(prev => ({
-              ...prev,
-              nombres: mat.asp_nombres || "",
-              apellidos: mat.asp_apellidos || "",
-              identificacion: mat.asp_identificacion || "",
-              tipo_identificacion: mat.asp_tipo_identificacion || "CEDULA",
-              fecha_nacimiento: mat.asp_fecha_nacimiento || "",
-              celular: mat.asp_celular || mat.rep_telefono || "",
-              correo_personal: mat.asp_correo_personal || mat.correo_personal || "",
-            }));
-          }
-        }
-      } catch {}
+    const avisarError = (e?: unknown) => {
+      const mensaje = `No se pudo cargar la matrícula: ${e ? getErrorMessage(e) : "no encontrada"}`;
+      setError(mensaje);
+      showError(mensaje);
     };
 
     const rellenarDesdeAspirante = (mat: any) => {
@@ -83,9 +67,9 @@ export default function FormularioLegalizar({ matriculaId, onClose, onLegalizado
           }).catch(() => {});
         }
       } else {
-        cargarLocales();
+        avisarError();
       }
-    }).catch(cargarLocales);
+    }).catch(avisarError);
   }, [matriculaId]);
 
   // Ubicación cascading
@@ -215,45 +199,6 @@ export default function FormularioLegalizar({ matriculaId, onClose, onLegalizado
     color: "#dc2626", fontSize: "12px", marginTop: "4px", display: fieldErrors[field] ? "block" : "none",
   });
 
-  const guardarLocal = (codigo: string) => {
-    try {
-      const key = "siged_matriculas_v2";
-      const raw = localStorage.getItem(key);
-      if (raw) {
-        const lista = JSON.parse(raw);
-        const idx = lista.findIndex((m: any) => m.id === matriculaId);
-        if (idx !== -1) {
-          lista[idx].estado = "Legalizada";
-          lista[idx].codigo_unico = codigo;
-          lista[idx].asp_identificacion = form.identificacion;
-          lista[idx].asp_tipo_identificacion = form.tipo_identificacion;
-          lista[idx].asp_celular = form.celular;
-          lista[idx].asp_correo_personal = form.correo_personal;
-          lista[idx].asp_nombres = form.nombres;
-          lista[idx].asp_apellidos = form.apellidos;
-          lista[idx].asp_correo_institucional = form.correo_institucional;
-          lista[idx].asp_nombre_usuario = form.nombre_usuario;
-          lista[idx].asp_contrasena = form.contrasena;
-          localStorage.setItem(key, JSON.stringify(lista));
-        }
-      }
-    } catch {}
-
-    try {
-      const localesKey = "siged_usuarios_locales";
-      const existentes = JSON.parse(localStorage.getItem(localesKey) || "[]");
-      existentes.push({
-        correo_institucional: form.correo_institucional,
-        nombre_usuario: form.nombre_usuario,
-        contrasena: form.contrasena,
-        nombres: form.nombres,
-        apellidos: form.apellidos,
-        id: matriculaId,
-      });
-      localStorage.setItem(localesKey, JSON.stringify(existentes));
-    } catch {}
-  };
-
   const handleSubmit = async () => {
     setError("");
     setFieldErrors({});
@@ -286,9 +231,6 @@ export default function FormularioLegalizar({ matriculaId, onClose, onLegalizado
       };
 
       const res = await legalizarMatricula(matriculaId, payload);
-      // Guardar estado local también cuando la API funciona
-      const codigo = res?.cuenta_creada?.codigo_unico || `MAT-LOCAL-${String(matriculaId).slice(-6)}`;
-      guardarLocal(codigo);
       if (res?.cuenta_creada) {
         setCredenciales(res.cuenta_creada);
       } else {
@@ -296,15 +238,12 @@ export default function FormularioLegalizar({ matriculaId, onClose, onLegalizado
         onLegalizado();
       }
     } catch (err: any) {
-      const codigo = `MAT-LOCAL-${String(matriculaId).slice(-6)}`;
-      guardarLocal(codigo);
-      setCredenciales({
-        codigo_unico: codigo,
-        nombre_usuario: form.nombre_usuario,
-        contrasena: form.contrasena,
-        correo_institucional: form.correo_institucional,
-        estudiante_nombre: `${form.nombres} ${form.apellidos}`.trim(),
-      });
+      // Antes aquí se guardaba en localStorage y se mostraban credenciales "falsas",
+      // aunque el backend NO hubiera creado al estudiante ni su cuenta.
+      // Ahora se muestra el error real para que la secretaría pueda corregirlo.
+      const mensaje = err?.data?.error || getErrorMessage(err);
+      setError(mensaje);
+      showError(mensaje);
     } finally {
       setEnviando(false);
     }

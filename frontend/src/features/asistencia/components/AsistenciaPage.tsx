@@ -1,200 +1,420 @@
-import { useEffect, useState } from "react";
-import { apiGet } from "../../../services/apiClient";
-import { obtenerMatrizAsistencia, marcarAsistencia } from "../services/asistenciaApi";
+// Registro de asistencia del docente (US-042 y US-043).
+// Flujo: el docente elige una de SUS asignaturas del distributivo y la fecha →
+// se cargan los horarios de ese día y los estudiantes con matrícula
+// LEGALIZADA en el paralelo → registra el tema de la clase y la asistencia.
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { showError, showInfo, showSuccess, showWarning } from "../../../components/Toast";
+import {
+  obtenerMisAsignaturas,
+  obtenerMatrizAsistencia,
+  marcarAsistencia,
+  marcarTodosPresentes,
+  registrarClase,
+  type AsignaturaDocente,
+  type EstudianteMatriz,
+  type MatrizAsistencia,
+  type TipoAsistencia,
+} from "../services/asistenciaApi";
 
-const TIPOS = [
-  { value: "Asistencia", label: "Asistencia", icon: "✅", color: "#16a34a" },
-  { value: "Inasistencia", label: "Inasistencia", icon: "❌", color: "#dc2626" },
-  { value: "Justificado", label: "Justificado", icon: "📋", color: "#d97706" },
-  { value: "Atrasado", label: "Atrasado", icon: "⏰", color: "#2563eb" },
+// Qué acción del docente disparó el guardado (para elegir el mensaje)
+type AccionMarcar = "tipo" | "observacion" | "notificar";
+const MENSAJE_CORTO = { duration: 2000 };
+
+const fechaDDMMAAAA = (iso: string) => iso.split("-").reverse().join("/");
+
+export const TIPOS: { value: TipoAsistencia; label: string; icon: string; color: string; fondo: string }[] = [
+  { value: "Asistencia", label: "Asistió", icon: "✅", color: "#15803d", fondo: "#dcfce7" },
+  { value: "Inasistencia", label: "Faltó", icon: "❌", color: "#b91c1c", fondo: "#fee2e2" },
+  { value: "Justificado", label: "Justificado", icon: "📋", color: "#b45309", fondo: "#fef3c7" },
+  { value: "Atrasado", label: "Atrasado", icon: "⏰", color: "#1d4ed8", fondo: "#dbeafe" },
 ];
 
 const fieldStyle: React.CSSProperties = {
   width: "100%", height: "42px", padding: "0 12px", borderRadius: "8px",
-  border: "1px solid var(--outline-variant)", fontSize: "14px"
+  border: "1px solid var(--outline-variant)", fontSize: "14px",
+  background: "var(--surface)", color: "var(--on-surface)",
+};
+const labelStyle: React.CSSProperties = { display: "block", marginBottom: "4px", fontWeight: 600, fontSize: "13px" };
+const tarjeta: React.CSSProperties = {
+  background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)",
+  borderRadius: "8px", padding: "16px 20px",
 };
 
+const hoyISO = () => {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); // fecha local, no UTC
+  return d.toISOString().slice(0, 10);
+};
+
+const etiquetaAsignatura = (a: AsignaturaDocente) =>
+  `${a.asignatura} — ${a.grado} "${a.paralelo}"${a.anio_lectivo ? ` (${a.anio_lectivo})` : ""}`;
+
 export function AsistenciaPage() {
-  const [anios, setAnios] = useState<any[]>([]);
-  const [grados, setGrados] = useState<any[]>([]);
-  const [asignaturas, setAsignaturas] = useState<any[]>([]);
-  const [anioId, setAnioId] = useState("");
-  const [gradoId, setGradoId] = useState("");
-  const [asignaturaId, setAsignaturaId] = useState("");
-  const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10));
-  const [matriz, setMatriz] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [asignaturas, setAsignaturas] = useState<AsignaturaDocente[]>([]);
+  const [cargandoAsignaturas, setCargandoAsignaturas] = useState(true);
+  const [daId, setDaId] = useState<number | "">("");
+  const [fecha, setFecha] = useState(hoyISO);
+  const [matriz, setMatriz] = useState<MatrizAsistencia | null>(null);
+  const [horarioId, setHorarioId] = useState<number | null>(null);
+  const [cargando, setCargando] = useState(false);
+  const [errorMatriz, setErrorMatriz] = useState("");
+  const [guardando, setGuardando] = useState<string | null>(null); // acción en curso
+
+  // Tema de la clase y borradores de observación por estudiante
+  const [tema, setTema] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+  const [observaciones, setObservaciones] = useState<Record<number, string>>({});
 
   useEffect(() => {
-    apiGet<any[]>("/planificacion/anios-lectivos/").then(setAnios).catch(() => setAnios([]));
+    obtenerMisAsignaturas()
+      .then((lista) => {
+        setAsignaturas(lista);
+        if (lista.length === 1) setDaId(lista[0].distributivo_asignatura_id);
+      })
+      .catch((e) => showError(e.message))
+      .finally(() => setCargandoAsignaturas(false));
   }, []);
 
-  useEffect(() => {
-    if (!anioId) { setGrados([]); setAsignaturas([]); return; }
-    apiGet<any[]>(`/planificacion/grados-ofertados/?anio_lectivo_id=${anioId}`)
-      .then(setGrados).catch(() => setGrados([]));
-  }, [anioId]);
-
-  useEffect(() => {
-    if (!gradoId) { setAsignaturas([]); return; }
-    apiGet<any[]>(`/planificacion/asignaturas-ofertadas/?grado_ofertado_id=${gradoId}`)
-      .then(setAsignaturas).catch(() => setAsignaturas([]));
-  }, [gradoId]);
-
-  const cargarMatriz = async () => {
-    if (!asignaturaId || !fecha) return;
-    setLoading(true);
+  const cargarMatriz = useCallback(async (mantenerHorario?: number | null) => {
+    if (!daId || !fecha) { setMatriz(null); return; }
+    setCargando(true);
+    setErrorMatriz("");
     try {
-      const data = await obtenerMatrizAsistencia(Number(asignaturaId), fecha);
+      const data = await obtenerMatrizAsistencia(Number(daId), fecha);
       setMatriz(data);
-    } catch { setMatriz(null); }
-    setLoading(false);
-  };
+      const sigue = data.horarios.find((h) => h.id === mantenerHorario);
+      setHorarioId(sigue ? sigue.id : data.horarios[0]?.id ?? null);
+    } catch (e: any) {
+      setMatriz(null);
+      setErrorMatriz(e.message);
+    } finally {
+      setCargando(false);
+    }
+  }, [daId, fecha]);
 
-  const handleMarcar = async (matriculaId: number, horarioId: number | null, tipo: string) => {
+  useEffect(() => { cargarMatriz(); }, [cargarMatriz]);
+
+  const horario = useMemo(
+    () => matriz?.horarios.find((h) => h.id === horarioId) ?? null,
+    [matriz, horarioId]
+  );
+
+  // Al cambiar de horario (o recargar), precargar tema y observaciones guardadas
+  useEffect(() => {
+    setTema(horario?.tema ?? "");
+    setDescripcion(horario?.descripcion ?? "");
+    const obs: Record<number, string> = {};
+    matriz?.estudiantes.forEach((e) => {
+      obs[e.matricula_id] = (horario && e.asistencias[String(horario.id)]?.observacion) || "";
+    });
+    setObservaciones(obs);
+  }, [horario, matriz]);
+
+  const base = () => ({ distributivo_asignatura_id: Number(daId), fecha, horario_id: horarioId as number });
+
+  const marcar = async (estudiante: EstudianteMatriz, tipo: TipoAsistencia, notificar: boolean, accion: AccionMarcar) => {
+    const matriculaId = estudiante.matricula_id;
+    const nombre = estudiante.estudiante_nombre;
+    const antes = horario ? estudiante.asistencias[String(horario.id)] : null;
+    const claseNueva = !!horario && !horario.clase_id;
+    const notificarFinal = tipo === "Asistencia" ? false : notificar;
+    setGuardando(`fila-${matriculaId}`);
     try {
       await marcarAsistencia({
-        distributivo_asignatura_id: Number(asignaturaId),
-        fecha,
-        horario_id: horarioId || undefined,
+        ...base(),
         matricula_id: matriculaId,
         tipo,
+        observacion: observaciones[matriculaId] || "",
+        notificar: notificarFinal,
       });
-      await cargarMatriz();
-    } catch {
-      alert("Error al marcar asistencia");
+      await cargarMatriz(horarioId);
+
+      if (accion === "tipo") {
+        if (antes?.notificar && tipo === "Asistencia") {
+          showWarning(`Se quitó la notificación porque ${nombre} asistió`);
+        } else {
+          const etiqueta = TIPOS.find((t) => t.value === tipo)?.label ?? tipo;
+          showSuccess(`${nombre}: ${etiqueta} (guardado)`, MENSAJE_CORTO);
+        }
+      } else if (accion === "observacion") {
+        showSuccess(`Observación guardada para ${nombre}`, MENSAJE_CORTO);
+      } else {
+        showInfo(notificarFinal ? `${nombre} quedó marcado para notificar` : `Se quitó la notificación de ${nombre}`);
+      }
+      if (claseNueva && matriz) {
+        showInfo(
+          `La clase se guardó con el tema "${matriz.asignatura} - ${fechaDDMMAAAA(fecha)}". Puedes cambiarlo arriba.`,
+          { duration: 6000 }
+        );
+      }
+    } catch (e: any) {
+      showError(e.message);
+    } finally {
+      setGuardando(null);
     }
   };
 
-  const cellStyle = (tipo: string | null): React.CSSProperties => {
-    const colors: Record<string, string> = {
-      Asistencia: "#dcfce7", Inasistencia: "#fee2e2",
-      Justificado: "#fef3c7", Atrasado: "#dbeafe",
-    };
-    return {
-      background: colors[tipo || ""] || "transparent",
-      textAlign: "center", padding: "4px", fontSize: "13px",
-      borderBottom: "1px solid var(--outline-variant)",
-      minWidth: "90px",
-    };
+  const guardarTema = async () => {
+    if (!tema.trim()) { showError("Escribe el tema de la clase."); return; }
+    setGuardando("tema");
+    try {
+      const r = await registrarClase({ ...base(), tema, descripcion });
+      showSuccess(`Clase guardada${r.periodo_academico ? ` en ${r.periodo_academico}` : ""}.`);
+      await cargarMatriz(horarioId);
+    } catch (e: any) {
+      showError(e.message);
+    } finally {
+      setGuardando(null);
+    }
   };
+
+  const todosPresentes = async () => {
+    setGuardando("todos");
+    try {
+      const r = await marcarTodosPresentes(base());
+      showSuccess(r.registrados ? `Se marcó asistencia a ${r.registrados} estudiante(s).` : "Todos ya tenían registro.");
+      await cargarMatriz(horarioId);
+    } catch (e: any) {
+      showError(e.message);
+    } finally {
+      setGuardando(null);
+    }
+  };
+
+  const resumen = useMemo(() => {
+    const r: Record<string, number> = { sin: 0 };
+    TIPOS.forEach((t) => (r[t.value] = 0));
+    if (!matriz || !horario) return r;
+    matriz.estudiantes.forEach((e) => {
+      const c = e.asistencias[String(horario.id)];
+      r[c ? c.tipo : "sin"] += 1;
+    });
+    return r;
+  }, [matriz, horario]);
+
+  const bloqueado = !!matriz?.es_futura;
 
   return (
     <div className="dashboard-content" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-      <div style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)", borderRadius: "8px", padding: "16px 20px" }}>
+      <div style={tarjeta}>
         <h2 style={{ margin: 0, color: "var(--primary)", fontSize: "18px" }}>Registro de Asistencia</h2>
+        <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--on-surface-variant)" }}>
+          Elige una de tus asignaturas y la fecha. Solo aparecen los estudiantes con matrícula legalizada en el paralelo.
+        </p>
       </div>
 
-      <div style={{ background: "var(--surface-container-lowest)", borderRadius: "8px", border: "1px solid var(--outline-variant)", padding: "16px" }}>
+      {/* Filtros */}
+      <div style={tarjeta}>
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "flex-end" }}>
-          <div style={{ minWidth: "180px", flex: 1 }}>
-            <label style={{ display: "block", marginBottom: "4px", fontWeight: 600, fontSize: "13px" }}>Año Lectivo</label>
-            <select style={fieldStyle} value={anioId} onChange={e => { setAnioId(e.target.value); setGradoId(""); setAsignaturaId(""); }}>
-              <option value="">Seleccione...</option>
-              {anios.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
-            </select>
-          </div>
-          <div style={{ minWidth: "180px", flex: 1 }}>
-            <label style={{ display: "block", marginBottom: "4px", fontWeight: 600, fontSize: "13px" }}>Grado</label>
-            <select style={fieldStyle} value={gradoId} onChange={e => { setGradoId(e.target.value); setAsignaturaId(""); }} disabled={!anioId}>
-              <option value="">Seleccione...</option>
-              {grados.map(g => <option key={g.id} value={g.id}>{g.grado_nombre || g.nombre}</option>)}
-            </select>
-          </div>
-          <div style={{ minWidth: "180px", flex: 1 }}>
-            <label style={{ display: "block", marginBottom: "4px", fontWeight: 600, fontSize: "13px" }}>Asignatura</label>
-            <select style={fieldStyle} value={asignaturaId} onChange={e => setAsignaturaId(e.target.value)} disabled={!gradoId}>
-              <option value="">Seleccione...</option>
-              {asignaturas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+          <div style={{ minWidth: "280px", flex: 3 }}>
+            <label style={labelStyle}>Mi asignatura</label>
+            <select
+              style={fieldStyle}
+              value={daId}
+              disabled={cargandoAsignaturas}
+              onChange={(e) => setDaId(e.target.value ? Number(e.target.value) : "")}
+            >
+              <option value="">{cargandoAsignaturas ? "Cargando..." : "Seleccione..."}</option>
+              {asignaturas.map((a) => (
+                <option key={a.distributivo_asignatura_id} value={a.distributivo_asignatura_id}>
+                  {etiquetaAsignatura(a)}
+                </option>
+              ))}
             </select>
           </div>
           <div style={{ minWidth: "160px", flex: 1 }}>
-            <label style={{ display: "block", marginBottom: "4px", fontWeight: 600, fontSize: "13px" }}>Fecha</label>
-            <input type="date" style={fieldStyle} value={fecha} onChange={e => setFecha(e.target.value)} />
-          </div>
-          <div>
-            <button onClick={cargarMatriz} disabled={!asignaturaId || loading}
-              style={{ padding: "10px 24px", borderRadius: "8px", border: "none", background: "var(--secondary)", color: "white", fontWeight: 600, cursor: !asignaturaId || loading ? "not-allowed" : "pointer", opacity: !asignaturaId || loading ? 0.6 : 1 }}>
-              {loading ? "Cargando..." : "Cargar Asistencia"}
-            </button>
+            <label style={labelStyle}>Fecha</label>
+            <input type="date" style={fieldStyle} value={fecha} max={hoyISO()} onChange={(e) => setFecha(e.target.value)} />
           </div>
         </div>
+        {!cargandoAsignaturas && asignaturas.length === 0 && (
+          <p style={{ margin: "12px 0 0", color: "#b45309", fontSize: "13px" }}>
+            No tienes asignaturas en el distributivo. Pide a la Autoridad que te asigne asignaturas y paralelos.
+          </p>
+        )}
       </div>
 
-      {matriz && (
-        <div style={{ background: "var(--surface-container-lowest)", borderRadius: "8px", border: "1px solid var(--outline-variant)", overflow: "auto" }}>
-          <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--outline-variant)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      {errorMatriz && <div style={{ ...tarjeta, color: "#b91c1c" }}>{errorMatriz}</div>}
+      {cargando && !matriz && <div style={tarjeta}>Cargando...</div>}
+
+      {matriz && daId !== "" && (
+        <>
+          {/* Encabezado de la clase */}
+          <div style={{ ...tarjeta, display: "flex", flexWrap: "wrap", gap: "12px", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <strong>{matriz.asignatura}</strong> — {matriz.paralelo}
-              <span style={{ marginLeft: "12px", color: "var(--on-surface-variant)", fontSize: "13px" }}>
-                {matriz.fecha} ({matriz.dia_semana})
+              <strong>{matriz.asignatura}</strong> — Paralelo {matriz.paralelo}
+              <span style={{ marginLeft: "10px", fontSize: "13px", color: "var(--on-surface-variant)" }}>
+                {matriz.dia_semana.toLowerCase()} {matriz.fecha}
               </span>
             </div>
-            <div style={{ display: "flex", gap: "8px", fontSize: "12px" }}>
-              {TIPOS.map(t => <span key={t.value} style={{ color: t.color }}>{t.icon} {t.label}</span>)}
-            </div>
+            <span style={{
+              fontSize: "12px", padding: "4px 10px", borderRadius: "999px",
+              background: matriz.periodo_academico ? "#e0f2fe" : "#fef3c7",
+              color: matriz.periodo_academico ? "#075985" : "#92400e",
+            }}>
+              {matriz.periodo_academico ? `Período: ${matriz.periodo_academico.nombre}` : "La fecha no está dentro de ningún período académico"}
+            </span>
           </div>
 
           {matriz.horarios.length === 0 ? (
-            <div style={{ padding: "40px", textAlign: "center", color: "var(--on-surface-variant)" }}>
-              No hay horarios programados para {matriz.dia_semana} en esta asignatura.
+            <div style={{ ...tarjeta, textAlign: "center", color: "var(--on-surface-variant)", padding: "40px" }}>
+              No tienes horario de esta asignatura el {matriz.dia_semana.toLowerCase()}. Elige otra fecha.
             </div>
           ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "600px" }}>
-              <thead>
-                <tr style={{ background: "var(--primary)", color: "white" }}>
-                  <th style={{ padding: "10px", textAlign: "left", position: "sticky", left: 0, background: "var(--primary)", minWidth: "180px" }}>Estudiante</th>
-                  {matriz.horarios.map((h: any) => (
-                    <th key={h.id} style={{ padding: "10px", textAlign: "center", minWidth: "90px" }}>
-                      {h.hora_inicio}-{h.hora_fin}
-                    </th>
+            <>
+              {/* Horas del día */}
+              {matriz.horarios.length > 1 && (
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  {matriz.horarios.map((h) => (
+                    <button
+                      key={h.id}
+                      onClick={() => setHorarioId(h.id)}
+                      style={{
+                        padding: "8px 14px", borderRadius: "8px", cursor: "pointer", fontWeight: 600,
+                        border: h.id === horarioId ? "2px solid var(--primary)" : "1px solid var(--outline-variant)",
+                        background: h.id === horarioId ? "var(--primary)" : "var(--surface-container-lowest)",
+                        color: h.id === horarioId ? "white" : "var(--on-surface)",
+                      }}
+                    >
+                      {h.hora_inicio} - {h.hora_fin}{h.clase_id ? " ✓" : ""}
+                    </button>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {matriz.estudiantes.length === 0 ? (
-                  <tr><td colSpan={matriz.horarios.length + 1} style={{ padding: "20px", textAlign: "center" }}>No hay estudiantes legalizados en este paralelo.</td></tr>
-                ) : (
-                  matriz.estudiantes.map((e: any) => (
-                    <tr key={e.matricula_id} style={{ borderBottom: "1px solid var(--outline-variant)" }}>
-                      <td style={{ padding: "8px 10px", fontWeight: 600, position: "sticky", left: 0, background: "var(--surface-container-lowest)" }}>
-                        {e.estudiante_nombre}
-                      </td>
-                      {matriz.horarios.map((h: any) => {
-                        const asis = e.asistencias?.[String(h.id)];
-                        const tipo = asis?.tipo;
+                </div>
+              )}
 
-                        const ciclo = () => {
-                          const idx = TIPOS.findIndex(t => t.value === tipo);
-                          const next = TIPOS[(idx + 1) % TIPOS.length].value;
-                          handleMarcar(e.matricula_id, h.id, next);
-                        };
+              {horario && (
+                <>
+                  {/* Tema de la clase (US-042) */}
+                  <div style={tarjeta}>
+                    <h3 style={{ margin: "0 0 10px", fontSize: "15px" }}>
+                      Clase de {horario.hora_inicio} a {horario.hora_fin}
+                    </h3>
+                    <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "flex-end" }}>
+                      <div style={{ flex: 2, minWidth: "220px" }}>
+                        <label style={labelStyle}>Tema de la clase *</label>
+                        <input style={fieldStyle} value={tema} disabled={bloqueado} maxLength={255}
+                          placeholder="Ej: Suma de fracciones" onChange={(e) => setTema(e.target.value)} />
+                      </div>
+                      <div style={{ flex: 3, minWidth: "220px" }}>
+                        <label style={labelStyle}>Descripción (opcional)</label>
+                        <input style={fieldStyle} value={descripcion} disabled={bloqueado} maxLength={500}
+                          onChange={(e) => setDescripcion(e.target.value)} />
+                      </div>
+                      <button onClick={guardarTema} disabled={bloqueado || guardando === "tema"}
+                        style={{ height: "42px", padding: "0 20px", borderRadius: "8px", border: "none", background: "var(--secondary)", color: "white", fontWeight: 600, cursor: "pointer", opacity: bloqueado ? 0.5 : 1 }}>
+                        {guardando === "tema" ? "Guardando..." : "Guardar tema"}
+                      </button>
+                    </div>
+                  </div>
 
-                        return (
-                          <td key={h.id} style={cellStyle(tipo)}
-                            onClick={() => ciclo()}
-                            title="Click para cambiar estado">
-                            {tipo ? (
-                              <span style={{ fontSize: "18px", cursor: "pointer" }}>
-                                {TIPOS.find(t => t.value === tipo)?.icon}
-                              </span>
-                            ) : (
-                              <span style={{ cursor: "pointer", fontSize: "16px", opacity: 0.4 }}>⬜</span>
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  {/* Lista de estudiantes (US-043) */}
+                  <div style={{ ...tarjeta, padding: 0, overflow: "auto" }}>
+                    <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--outline-variant)", display: "flex", flexWrap: "wrap", gap: "12px", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ display: "flex", gap: "12px", fontSize: "13px", flexWrap: "wrap" }}>
+                        {TIPOS.map((t) => (
+                          <span key={t.value} style={{ color: t.color, fontWeight: 600 }}>{t.icon} {t.label}: {resumen[t.value]}</span>
+                        ))}
+                        <span style={{ color: "var(--on-surface-variant)" }}>Sin registrar: {resumen.sin}</span>
+                      </div>
+                      <button onClick={todosPresentes} disabled={bloqueado || guardando === "todos" || resumen.sin === 0}
+                        style={{ padding: "8px 16px", borderRadius: "8px", border: "1px solid #15803d", background: "white", color: "#15803d", fontWeight: 600, cursor: "pointer", opacity: bloqueado || resumen.sin === 0 ? 0.5 : 1 }}>
+                        {guardando === "todos" ? "Marcando..." : "✅ Marcar asistencia a los que faltan"}
+                      </button>
+                    </div>
+
+                    {bloqueado && (
+                      <div style={{ padding: "10px 16px", background: "#fef3c7", color: "#92400e", fontSize: "13px" }}>
+                        No se puede registrar asistencia en una fecha futura.
+                      </div>
+                    )}
+
+                    <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "760px" }}>
+                      <thead>
+                        <tr style={{ background: "var(--primary)", color: "white", fontSize: "13px" }}>
+                          <th style={{ padding: "10px", textAlign: "left", width: "36px" }}>#</th>
+                          <th style={{ padding: "10px", textAlign: "left" }}>Estudiante</th>
+                          <th style={{ padding: "10px", textAlign: "center" }}>Asistencia</th>
+                          <th style={{ padding: "10px", textAlign: "left" }}>Observación</th>
+                          <th style={{ padding: "10px", textAlign: "center" }}>Notificar</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {matriz.estudiantes.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "var(--on-surface-variant)" }}>
+                              No hay estudiantes con matrícula legalizada en este paralelo.
+                            </td>
+                          </tr>
+                        ) : matriz.estudiantes.map((e, i) => {
+                          const celda = e.asistencias[String(horario.id)];
+                          const ocupada = guardando === `fila-${e.matricula_id}`;
+                          const puedeNotificar = !!celda && celda.tipo !== "Asistencia";
+                          return (
+                            <tr key={e.matricula_id} style={{ borderBottom: "1px solid var(--outline-variant)", opacity: ocupada ? 0.6 : 1 }}>
+                              <td style={{ padding: "8px 10px", fontSize: "13px", color: "var(--on-surface-variant)" }}>{i + 1}</td>
+                              <td style={{ padding: "8px 10px" }}>
+                                <div style={{ fontWeight: 600 }}>{e.estudiante_nombre}</div>
+                                <div style={{ fontSize: "12px", color: "var(--on-surface-variant)" }}>{e.identificacion}</div>
+                              </td>
+                              <td style={{ padding: "8px 10px" }}>
+                                <div style={{ display: "flex", gap: "4px", justifyContent: "center" }}>
+                                  {TIPOS.map((t) => {
+                                    const activo = celda?.tipo === t.value;
+                                    return (
+                                      <button
+                                        key={t.value}
+                                        title={t.label}
+                                        disabled={bloqueado || ocupada}
+                                        onClick={() => marcar(e, t.value, celda?.notificar ?? false, "tipo")}
+                                        style={{
+                                          padding: "6px 8px", borderRadius: "6px", fontSize: "12px", cursor: "pointer",
+                                          border: activo ? `2px solid ${t.color}` : "1px solid var(--outline-variant)",
+                                          background: activo ? t.fondo : "transparent",
+                                          color: activo ? t.color : "var(--on-surface-variant)",
+                                          fontWeight: activo ? 700 : 400,
+                                        }}
+                                      >
+                                        {t.icon} {t.label}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </td>
+                              <td style={{ padding: "8px 10px", minWidth: "200px" }}>
+                                <input
+                                  style={{ ...fieldStyle, height: "34px" }}
+                                  placeholder={celda ? "Opcional" : "Marca primero la asistencia"}
+                                  disabled={bloqueado || !celda || ocupada}
+                                  maxLength={500}
+                                  value={observaciones[e.matricula_id] ?? ""}
+                                  onChange={(ev) => setObservaciones((p) => ({ ...p, [e.matricula_id]: ev.target.value }))}
+                                  onBlur={() => {
+                                    if (celda && (observaciones[e.matricula_id] ?? "") !== (celda.observacion ?? "")) {
+                                      marcar(e, celda.tipo, celda.notificar, "observacion");
+                                    }
+                                  }}
+                                />
+                              </td>
+                              <td style={{ padding: "8px 10px", textAlign: "center" }}>
+                                <input
+                                  type="checkbox"
+                                  title={puedeNotificar ? "Notificar al estudiante o representante" : "Solo se notifica una falta, justificación o atraso"}
+                                  disabled={bloqueado || !puedeNotificar || ocupada}
+                                  checked={!!celda?.notificar}
+                                  onChange={(ev) => celda && marcar(e, celda.tipo, ev.target.checked, "notificar")}
+                                />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </>
           )}
-
-          <div style={{ padding: "10px 16px", borderTop: "1px solid var(--outline-variant)", fontSize: "12px", color: "var(--on-surface-variant)" }}>
-            Click en cada celda para cambiar: ⬜ Sin marca → ✅ Asistencia → ❌ Inasistencia → 📋 Justificado → ⏰ Atrasado → 🔄
-          </div>
-        </div>
+        </>
       )}
     </div>
   );

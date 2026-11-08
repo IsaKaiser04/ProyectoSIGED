@@ -13,6 +13,17 @@ import uuid
 
 class MatriculaService:
     @staticmethod
+    def _error_sin_cupo(paralelo):
+        """Bloquea el paralelo y devuelve un error si ya no tiene cupo (None si hay cupo)."""
+        if not paralelo:
+            return None
+        from apps.planificacion.models import Paralelo
+        paralelo = Paralelo.objects.select_for_update().get(pk=paralelo.pk)
+        if paralelo.cuposOcupados >= paralelo.cuposMaximo:
+            return {"error": f"El paralelo {paralelo.nombre} no tiene cupos disponibles."}
+        return None
+
+    @staticmethod
     def list_all():
         instances = MatriculaRepository.get_all()
         return MatriculaListSerializer(instances, many=True).data
@@ -25,6 +36,7 @@ class MatriculaService:
         return MatriculaDetailSerializer(instance).data
 
     @staticmethod
+    @transaction.atomic
     def create(data, user_id=None):
         estudiante_id = data.get('estudiante_id')
         anio_lectivo_id = data.get('anio_lectivo_id')
@@ -36,6 +48,9 @@ class MatriculaService:
         serializer = MatriculaCreateSerializer(data=data)
         if serializer.is_valid():
             validated = serializer.validated_data
+            sin_cupo = MatriculaService._error_sin_cupo(validated.get('paralelo'))
+            if sin_cupo:
+                return None, sin_cupo
             instance = MatriculaRepository.create(validated)
             return MatriculaDetailSerializer(instance).data, None
         return None, serializer.errors
@@ -58,6 +73,10 @@ class MatriculaService:
         if not serializer.is_valid():
             return None, serializer.errors
 
+        sin_cupo = MatriculaService._error_sin_cupo(serializer.validated_data.get('paralelo'))
+        if sin_cupo:
+            return None, sin_cupo
+
         instance = MatriculaRepository.create(serializer.validated_data)
 
         for req_id_str, archivo in requisito_files.items():
@@ -77,11 +96,31 @@ class MatriculaService:
         matricula = MatriculaRepository.get_by_id(pk)
         if not matricula:
             return None, {"error": "Matrícula no encontrada"}
-        allowed = ['estado', 'tiene_discapacidad', 'tipo_discapacidad', 'grado_discapacidad', 'paralelo_id',
+        # El estado y el paralelo solo cambian con legalizar, anular y rechazar
+        # (que cuidan los cupos); por edición se rechazan.
+        if 'estado' in data or 'paralelo_id' in data:
+            return None, {"error": "El estado y el paralelo no se cambian por edición. "
+                                   "Use legalizar, anular o rechazar."}
+        allowed = ['tiene_discapacidad', 'tipo_discapacidad', 'grado_discapacidad',
                     'asp_nombres', 'asp_apellidos', 'asp_identificacion', 'asp_tipo_identificacion',
                     'asp_fecha_nacimiento', 'asp_celular', 'asp_correo_personal']
         filtered = {k: v for k, v in data.items() if k in allowed}
         instance = MatriculaRepository.update(matricula, filtered)
+        return MatriculaDetailSerializer(MatriculaRepository.get_con_requisitos(pk)).data, None
+
+    @staticmethod
+    @transaction.atomic
+    def rechazar(pk):
+        try:
+            matricula = Matricula.objects.select_for_update().get(pk=pk)
+        except Matricula.DoesNotExist:
+            return None, None
+        if matricula.estado == MatriculaEstado.LEGALIZADA:
+            return None, {"error": "Una matrícula legalizada se anula, no se rechaza."}
+        if matricula.estado in (MatriculaEstado.ANULADA, MatriculaEstado.RECHAZADA):
+            return None, {"error": f"La matrícula ya está {matricula.estado.lower()}."}
+        matricula.estado = MatriculaEstado.RECHAZADA
+        matricula.save(update_fields=['estado', 'updated_at'])
         return MatriculaDetailSerializer(MatriculaRepository.get_con_requisitos(pk)).data, None
 
     @staticmethod
@@ -92,27 +131,35 @@ class MatriculaService:
         from django.contrib.auth.hashers import make_password
         from apps.ubicacion.models import Direccion, Parroquia
 
-        # Intentar obtener la matrícula (puede no existir si es local)
-        matricula = None
+        def _error(mensaje):
+            # Deshace todo lo hecho en esta transacción (estado, cupos, dirección...)
+            transaction.set_rollback(True)
+            return None, {"error": mensaje}
+
+        # Sin matrícula real no se crea nada (antes se creaba el estudiante igual).
         try:
             matricula = Matricula.objects.select_for_update().get(pk=pk)
         except Matricula.DoesNotExist:
-            pass
+            return _error("Matrícula no encontrada")
 
-        if matricula:
+        # Matrículas que quedaron "Legalizadas" sin estudiante por el error anterior:
+        # se permite completarlas sin volver a descontar cupo.
+        incompleta = matricula.estado == MatriculaEstado.LEGALIZADA and not matricula.estudiante_id
+
+        if not incompleta:
             if matricula.estado == MatriculaEstado.LEGALIZADA:
-                return None, {"error": "La matrícula ya está legalizada"}
+                return _error("La matrícula ya está legalizada")
 
             pendientes = matricula.requisitos.exclude(estado='Validado').count()
             if pendientes > 0:
-                return None, {"error": f"No se puede legalizar. Hay {pendientes} requisito(s) pendiente(s) o rechazado(s)."}
+                return _error(f"No se puede legalizar. Hay {pendientes} requisito(s) pendiente(s) o rechazado(s).")
 
             if matricula.paralelo_id and not matricula.exceder_cupo_autorizado:
                 try:
                     from apps.planificacion.models import Paralelo
                     paralelo = Paralelo.objects.select_for_update().get(pk=matricula.paralelo_id)
                     if paralelo.cuposOcupados >= paralelo.cuposMaximo:
-                        return None, {"error": "El paralelo no tiene cupos disponibles."}
+                        return _error("El paralelo no tiene cupos disponibles.")
                     paralelo.cuposOcupados += 1
                     paralelo.save()
                 except Paralelo.DoesNotExist:
@@ -129,14 +176,14 @@ class MatriculaService:
         credenciales = None
         estudiante_data = data.get('estudiante', {})
         if not estudiante_data:
-            if matricula:
-                resultado = MatriculaDetailSerializer(
-                    Matricula.objects.select_related('matricula_periodo').get(pk=pk)
-                ).data
-                return resultado, None
-            return None, {"error": "No se proporcionaron datos del estudiante"}
+            resultado = MatriculaDetailSerializer(
+                Matricula.objects.select_related('matricula_periodo').get(pk=pk)
+            ).data
+            return resultado, None
 
-        institucion_id = estudiante_data.get('institucion_id')
+        institucion_id = estudiante_data.pop('institucion_id', None)
+        if not institucion_id and matricula.institucion_id:
+            institucion_id = matricula.institucion_id
         if not institucion_id:
             sec = Secretaria.objects.filter(cuenta_id=user_id).first()
             if sec:
@@ -146,6 +193,12 @@ class MatriculaService:
                 if aut:
                     institucion_id = aut.institucion_id
 
+        if not institucion_id:
+            return _error(
+                "No se pudo determinar la institución del estudiante. "
+                "Legalice la matrícula con un usuario de Secretaría o Autoridad asignado a una institución."
+            )
+
         direccion_data = estudiante_data.pop('direccion_domicilio', None)
         cuenta_data = estudiante_data.pop('cuenta', None)
         identificacion = estudiante_data.get('identificacion')
@@ -153,6 +206,17 @@ class MatriculaService:
         existing = None
         if identificacion:
             existing = Estudiante.objects.filter(identificacion=identificacion).first()
+
+        correo_personal = estudiante_data.get('correo_personal')
+        if correo_personal:
+            otros = Estudiante.objects.filter(correo_personal=correo_personal)
+            if existing:
+                otros = otros.exclude(pk=existing.pk)
+            if otros.exists():
+                return _error(
+                    f"El correo personal {correo_personal} ya está registrado para otro estudiante. "
+                    "Cada estudiante necesita un correo personal distinto."
+                )
 
         if direccion_data:
             parroquia_val = direccion_data.pop('parroquia', None)
@@ -164,9 +228,9 @@ class MatriculaService:
 
         if cuenta_data:
             if Cuenta.objects.filter(nombre_usuario=cuenta_data['nombre_usuario']).exists():
-                return None, {"error": "El nombre de usuario ya existe"}
+                return _error("El nombre de usuario ya existe")
             if Cuenta.objects.filter(correo_institucional=cuenta_data['correo_institucional']).exists():
-                return None, {"error": "El correo institucional ya existe"}
+                return _error("El correo institucional ya existe")
             cuenta = Cuenta.objects.create(
                 nombre_usuario=cuenta_data['nombre_usuario'],
                 contrasena=make_password(cuenta_data['contrasena']),
@@ -199,20 +263,13 @@ class MatriculaService:
                 **estudiante_data
             )
 
-        if matricula:
-            matricula.estudiante = estudiante
-            matricula.institucion_id = institucion_id
-            matricula.save()
+        matricula.estudiante = estudiante
+        matricula.institucion_id = institucion_id
+        matricula.save()
 
-        if matricula:
-            resultado = MatriculaDetailSerializer(
-                Matricula.objects.select_related('matricula_periodo').get(pk=pk)
-            ).data
-        else:
-            resultado = {
-                "mensaje": "Estudiante y cuenta creados exitosamente",
-                "estudiante_id": estudiante.id,
-            }
+        resultado = MatriculaDetailSerializer(
+            Matricula.objects.select_related('matricula_periodo').get(pk=pk)
+        ).data
         if credenciales:
             resultado['cuenta_creada'] = credenciales
         return resultado, None

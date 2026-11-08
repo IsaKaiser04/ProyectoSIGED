@@ -18,6 +18,7 @@ import { PeriodosMatriculaPage } from "../features/matricula/PeriodosMatriculaPa
 import { RequisitosConfigPage } from "../features/matricula/RequisitosConfigPage";
 import { EstudiantesListado } from "../features/matricula/components/EstudiantesListado";
 import { AulaVirtualApp } from "../features/aula-virtual";
+import { ReporteAsistenciaPage } from "../features/asistencia";
 import { useAuth } from "../features/autenticacion/context/AuthContext";
 import { apiGet } from "../services/apiClient";
 import { DialogCard, GlassInfoCard } from "../components/DashboardCards";
@@ -268,6 +269,10 @@ export function AutoridadApp() {
 
       case "aulas-virtuales":
         return <AulaVirtualApp />;
+
+      // --- Reporte de asistencia por asignatura (US-045) ---
+      case "reporte-asistencia":
+        return <ReporteAsistenciaPage />;
 
       default:
         return <InicioAutoridad institucionNombre={institucionNombre} />;

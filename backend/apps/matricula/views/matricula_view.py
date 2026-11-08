@@ -62,7 +62,7 @@ class MatriculaViewSet(viewsets.ViewSet):
 
     @action(detail=True, methods=['post'])
     def rechazar(self, request, pk=None):
-        data, errors = MatriculaService.update(pk, {'estado': MatriculaEstado.RECHAZADA})
+        data, errors = MatriculaService.rechazar(pk)
         if not data and not errors:
             return Response({'error': 'Matricula no encontrada'}, status=status.HTTP_404_NOT_FOUND)
         if errors:

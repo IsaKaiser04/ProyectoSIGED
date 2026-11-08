@@ -10,10 +10,9 @@ interface Props {
   paraleloMap: Record<number, any>;
   onRevisar: (id: number) => void;
   onAccionRealizada: () => void;
-  onAccionLocal: (id: number, estado: string, codigo?: string) => void;
 }
 
-export default function MatriculaTable({ matriculas, paraleloMap, onRevisar, onAccionRealizada, onAccionLocal }: Props) {
+export default function MatriculaTable({ matriculas, paraleloMap, onRevisar, onAccionRealizada }: Props) {
   const [legalizarMatriculaId, setLegalizarMatriculaId] = useState<number | null>(null);
   const [rechazarMatriculaId, setRechazarMatriculaId] = useState<number | null>(null);
   const [motivoRechazo, setMotivoRechazo] = useState("");
@@ -21,9 +20,8 @@ export default function MatriculaTable({ matriculas, paraleloMap, onRevisar, onA
   const [motivoAnulacion, setMotivoAnulacion] = useState("");
 
   const cerrarLegalizar = () => {
-    const id = legalizarMatriculaId;
     setLegalizarMatriculaId(null);
-    if (id) onAccionLocal(id, "Legalizada");
+    onAccionRealizada(); // recarga desde el backend
   };
 
   const abrirRechazar = (id: number) => {
@@ -39,9 +37,8 @@ export default function MatriculaTable({ matriculas, paraleloMap, onRevisar, onA
       setRechazarMatriculaId(null);
       onAccionRealizada();
     } catch (error) {
+      // No se cambia nada: la ventana queda abierta con el motivo escrito
       showError(getErrorMessage(error));
-      onAccionLocal(rechazarMatriculaId, "Rechazada");
-      setRechazarMatriculaId(null);
     }
   };
 
@@ -58,9 +55,8 @@ export default function MatriculaTable({ matriculas, paraleloMap, onRevisar, onA
       setAnularMatriculaId(null);
       onAccionRealizada();
     } catch (error) {
+      // No se cambia nada: la ventana queda abierta con el motivo escrito
       showError(getErrorMessage(error));
-      onAccionLocal(anularMatriculaId, "Anulada");
-      setAnularMatriculaId(null);
     }
   };
 

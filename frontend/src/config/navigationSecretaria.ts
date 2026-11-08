@@ -47,6 +47,12 @@ export const NAVIGATION_SECRETARIA: NavGroup[] = [
     ],
   },
   {
+    groupLabel: "Gobernanza",
+    items: [
+      { view: "documentacion-gobernanza", label: "Documentación (PEI/CC/PGR)", icon: "folder" },
+    ],
+  },
+  {
     groupLabel: "Comunicación",
     items: [
       { view: "mensajeria-notificaciones", label: "Buzón y Alertas", icon: "mail" },

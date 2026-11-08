@@ -1,6 +1,24 @@
 ﻿import { useEffect, useState, useCallback } from "react";
 import { obtenerMatriculas } from "../services/matriculaApi";
 import type { Matricula } from "../../../types/entities/matricula";
+import { showError } from "../../../components/Toast";
+import { getErrorMessage } from "../utils/errorMapper";
+
+// Claves que dejó la versión anterior (matrículas, requisitos en base64 y
+// contraseñas en texto plano). El backend es la única fuente de verdad.
+const CLAVES_LOCALES_ANTIGUAS = ["siged_usuarios_locales", "siged_matriculas_v2"];
+const PREFIJO_REQUISITOS_LOCALES = "siged_requisitos_";
+
+function limpiarDatosLocalesAntiguos() {
+  try {
+    CLAVES_LOCALES_ANTIGUAS.forEach((clave) => localStorage.removeItem(clave));
+    Object.keys(localStorage)
+      .filter((clave) => clave.startsWith(PREFIJO_REQUISITOS_LOCALES))
+      .forEach((clave) => localStorage.removeItem(clave));
+  } catch {
+    /* sin acceso a localStorage: no hay nada que limpiar */
+  }
+}
 
 export function useMatriculas() {
   const [matriculas, setMatriculas] = useState<Matricula[]>([]);
@@ -9,69 +27,20 @@ export function useMatriculas() {
   const cargarDatos = useCallback(async () => {
     try {
       setLoading(true);
-      let desdeApi: Matricula[] = [];
-      try {
-        const data = await obtenerMatriculas();
-        if (data && data.length > 0) desdeApi = data;
-      } catch {}
-      setMatriculas(desdeApi);
-      return desdeApi;
+      const data = await obtenerMatriculas();
+      setMatriculas(data || []);
     } catch (error) {
-      console.error("Error al cargar matrículas:", error);
-      return [];
+      setMatriculas([]);
+      showError(`No se pudieron cargar las matrículas: ${getErrorMessage(error)}`);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    cargarDatos().then((actuales) => {
-      const ids = new Set(actuales.map(m => m.id));
-      for (const key of Object.keys(localStorage)) {
-        if (key.startsWith("siged_requisitos_")) {
-          const id = Number(key.replace("siged_requisitos_", ""));
-          if (!ids.has(id)) {
-            localStorage.removeItem(key);
-          }
-        }
-      }
-      // Backfill credenciales locales para matrículas legalizadas sin ellas
-      try {
-        const localesKey = "siged_usuarios_locales";
-        const existentes: any[] = JSON.parse(localStorage.getItem(localesKey) || "[]");
-        const correosExistentes = new Set(existentes.map((u: any) => u.correo_institucional));
-        let nuevos = false;
-        for (const m of actuales) {
-          if (m.estado !== "Legalizada") continue;
-          const institucional = m.asp_correo_institucional || `${(m.asp_identificacion || m.asp_nombres || "estudiante").toLowerCase()}@institucion.edu.ec`;
-          if (correosExistentes.has(institucional)) continue;
-          existentes.push({
-            correo_institucional: institucional,
-            nombre_usuario: m.asp_nombre_usuario || m.asp_identificacion || (m.asp_nombres || "estudiante").toLowerCase(),
-            contrasena: m.asp_contrasena || "123456",
-            nombres: m.asp_nombres || "Estudiante",
-            apellidos: m.asp_apellidos || "",
-            id: m.id,
-          });
-          correosExistentes.add(institucional);
-          nuevos = true;
-        }
-        if (nuevos) localStorage.setItem(localesKey, JSON.stringify(existentes));
-      } catch {}
-    });
+    limpiarDatosLocalesAntiguos();
+    cargarDatos();
   }, [cargarDatos]);
 
-  const updateMatriculaState = (id: number, newState: string, codigo?: string) => {
-    setMatriculas(prev =>
-      prev.map(m =>
-        m.id === id ? { ...m, estado: newState, codigo_unico: codigo || m.codigo_unico } : m
-      )
-    );
-  };
-
-  const agregarMatricula = (matricula: Matricula) => {
-    setMatriculas(prev => [matricula, ...prev]);
-  };
-
-  return { matriculas, loading, refrescarTablas: () => cargarDatos(), updateMatriculaState, agregarMatricula };
+  return { matriculas, loading, refrescarTablas: () => cargarDatos() };
 }

@@ -4,13 +4,14 @@ import { DocenteLayout } from "../layouts/DocenteLayout"; // Importación correg
 
 // ──────────────────────────────────────────────────────────────────────────
 import { VinculacionCurricularPage } from "../features/vinculacion-curricular";
-import { AsistenciaPage } from "../features/asistencia";
+import { AsistenciaPage, ReporteAsistenciaPage } from "../features/asistencia";
 import { PcaHorariosDocente } from "../features/planificacion-curricular/components/PcaHorariosDocente";
 import { CalificacionesDocentePage, DistributivoDocentePage } from "../features/calificaciones";
 import { AulaVirtualApp } from "../features/aula-virtual";
 import { DocenteInicioDashboard } from "../features/docente-panel/DocenteInicioDashboard";
 import { BuzonNotificaciones } from "../features/comunicacion/BuzonNotificaciones";
 import { ConsolaTutoria } from "../features/tutoria";
+import { DocumentosGobernanzaDocente } from "../features/gobernanza/components/DocumentosGobernanzaDocente";
 // ──────────────────────────────────────────────────────────────────────────
 
 const EnDesarrollo = ({ titulo }: { titulo: string }) => (
@@ -48,6 +49,8 @@ export function DocenteApp() {
         return <CalificacionesDocentePage />;
       case "control-asistencia":
         return <AsistenciaPage />;
+      case "reporte-asistencia":
+        return <ReporteAsistenciaPage />;
 
       // Planificación (Lectura)
       case "pca-horarios":
@@ -56,6 +59,10 @@ export function DocenteApp() {
       // Vinculación Curricular — Subida de PCA
       case "vinculacion-curricular":
         return <VinculacionCurricularPage />;
+
+      // Institución — documentos de gobernanza (US-074, solo lectura)
+      case "documentacion-institucional":
+        return <DocumentosGobernanzaDocente />;
 
       // Comunicación
       case "buzon-notificaciones":

@@ -8,6 +8,7 @@ import { RequisitosConfigPage } from "../features/matricula/RequisitosConfigPage
 import DocumentosMatriculaListado from "../features/matricula/components/DocumentosMatriculaListado";
 import { DocentesMateriasListado } from "../features/matricula/components/DocentesMateriasListado";
 import { EstudiantesListado } from "../features/matricula/components/EstudiantesListado";
+import { GobernanzaDashboard } from "../features/gobernanza/GobernanzaDashboard";
 import { DialogCard, GlassInfoCard } from "../components/DashboardCards";
 
 const InicioSecretaria = () => (
@@ -179,6 +180,10 @@ export function SecretariaApp() {
         return <EnDesarrollo titulo="Reportes de Rendimiento y Calificaciones" />;
       case "seguimiento-asistencia":
         return <EnDesarrollo titulo="Seguimiento de Asistencia e Incidencias" />;
+
+      // Gobernanza (EUS-07)
+      case "documentacion-gobernanza":
+        return <GobernanzaDashboard readOnly={false} />;
 
       // Comunicación
       case "mensajeria-notificaciones":

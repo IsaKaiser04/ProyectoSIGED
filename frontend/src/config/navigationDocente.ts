@@ -37,6 +37,7 @@ export const getNavigationDocente = (esTutor: boolean): NavGroup[] => {
       groupLabel: "Evaluación y seguimiento",
       items: [
         { view: "control-asistencia", label: "Asistencia e incidencias", icon: "calendar-check" },
+        { view: "reporte-asistencia", label: "Reporte de asistencia", icon: "bar-chart" },
       ],
     },
     {
@@ -49,6 +50,12 @@ export const getNavigationDocente = (esTutor: boolean): NavGroup[] => {
       groupLabel: "Vinculación curricular",
       items: [
         { view: "vinculacion-curricular", label: "Subir PCA", icon: "file-up" },
+      ],
+    },
+    {
+      groupLabel: "Institución",
+      items: [
+        { view: "documentacion-institucional", label: "Documentación institucional", icon: "folder" },
       ],
     },
     {

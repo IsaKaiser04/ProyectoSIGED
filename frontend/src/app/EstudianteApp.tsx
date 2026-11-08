@@ -4,10 +4,8 @@ import { GraduationCap, BookOpen, CalendarClock, CheckCircle2, Building2, Shield
 import { EstudianteLayout } from "../layouts/EstudianteLayout";
 import HorarioEscolarPage from "../features/estudiante/components/HorarioEscolarPage";
 import { DialogCard, GlassInfoCard } from "../components/DashboardCards";
-
-// ──────────────────────────────────────────────────────────────────────────
 import { CalificacionesEstudiantePage, AulaVirtualEstudiantePage } from "../features/calificaciones-estudiante";
-// ──────────────────────────────────────────────────────────────────────────
+import { MiAsistenciaPage } from "../features/asistencia";
 
 const InicioEstudiante = () => (
   <div style={{ padding: 24 }}>
@@ -157,7 +155,7 @@ export function EstudianteApp() {
       case "mis-notas":
         return <CalificacionesEstudiantePage />;
       case "mi-asistencia":
-        return <EnDesarrollo titulo="Reporte Semanal de Asistencia, Atrasos e Justificaciones" />;
+        return <MiAsistenciaPage />;
       case "horario-escolar":
         return <HorarioEscolarPage />;
 

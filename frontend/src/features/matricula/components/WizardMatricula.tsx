@@ -2,7 +2,7 @@
 import { apiGet } from "../../../services/apiClient";
 import { MatriculaRequisito } from "../../../types/entities/matricula";
 import { obtenerPeriodosMatricula, crearMatriculaConRequisitos } from "../services/matriculaApi";
-import { showSuccess, showError, showWarning } from "../../../components/Toast";
+import { showError } from "../../../components/Toast";
 import { getErrorMessage } from "../utils/errorMapper";
 
 interface Props {
@@ -25,14 +25,11 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
   
   // Requisitos dinámicos del backend
   const [requisitosDelSistema, setRequisitosDelSistema] = useState<MatriculaRequisito[]>([]);
-  const [usarRequisitosMock, setUsarRequisitosMock] = useState(false);
   const [cargandoRequisitos, setCargandoRequisitos] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [nuevaMatricula, setNuevaMatricula] = useState<any>(null);
   const enviandoRef = useRef(false);
-  const paralelosRef = useRef<any[]>([]);
-  const gradosOfertadosRef = useRef<any[]>([]);
 
   const [formData, setFormData] = useState<any>({
     asp_nombres: "",
@@ -90,19 +87,14 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
     cargarParalelos();
   }, [formData.grado_ofertado_id]);
 
-  useEffect(() => { paralelosRef.current = paralelos; }, [paralelos]);
-  useEffect(() => { gradosOfertadosRef.current = gradosOfertados; }, [gradosOfertados]);
-
   useEffect(() => {
     const cargarCatalogos = async () => {
       try {
-        const [anios] = await Promise.all([
-          apiGet<any[]>("/planificacion/anios-lectivos/").catch(() => [])
-        ]);
-
-        setAniosLectivos(anios.length > 0 ? anios : [{ id: 1, nombre: "2024-2025 (Prueba)" }]);
+        const anios = await apiGet<any[]>("/planificacion/anios-lectivos/");
+        setAniosLectivos(anios || []);
       } catch (error) {
-        setAniosLectivos([{ id: 1, nombre: "2024-2025 (Prueba)" }]);
+        setAniosLectivos([]);
+        showError(`No se pudieron cargar los años lectivos: ${getErrorMessage(error)}`);
       }
 
       // Cargar periodos de matrícula
@@ -123,24 +115,10 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
     try {
       const query = paraleloId ? `?paralelo_id=${paraleloId}` : "";
       const reqs = await apiGet<MatriculaRequisito[]>(`/matricula/requisitos-config/${query}`);
-      if (reqs && reqs.length > 0) {
-        setRequisitosDelSistema(reqs);
-        setUsarRequisitosMock(false);
-      } else if (paraleloId) {
-        // No hay requisitos para el nivel del paralelo seleccionado
-        setRequisitosDelSistema([]);
-        setUsarRequisitosMock(false);
-      } else {
-        setRequisitosDelSistema([]);
-        setUsarRequisitosMock(true);
-      }
+      setRequisitosDelSistema(reqs || []);
     } catch (error) {
-      if (paraleloId) {
-        setRequisitosDelSistema([]);
-        setUsarRequisitosMock(false);
-      } else {
-        setUsarRequisitosMock(true);
-      }
+      setRequisitosDelSistema([]);
+      showError(`No se pudieron cargar los requisitos: ${getErrorMessage(error)}`);
     } finally {
       setCargandoRequisitos(false);
     }
@@ -197,99 +175,12 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
         payload.append(`requisito_${reqId}`, archivo as File);
       }
 
-      // Convertir archivos a base64 para almacenamiento local
-      const reqsLocales: any[] = [];
-      for (const [reqId, archivo] of Object.entries(formData.archivosRequisitos)) {
-        const file = archivo as File;
-        const base64 = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(file);
-        });
-        const reqDef = requisitosAMostrar.find(r => String(r.id) === reqId);
-        reqsLocales.push({
-          id: parseInt(String(reqId).replace(/\D/g, '')) || reqId,
-          archivo: base64,
-          estado: "Pendiente",
-          estado_display: "Pendiente",
-          observacion: "",
-          matricula_requisito: reqId,
-          matricula_requisito_detalle: { nombre: reqDef?.nombre || "Documento" },
-          revisado_por: null,
-          fecha_revision: null,
-        });
-      }
-
-      try {
-        await crearMatriculaConRequisitos(payload);
-        setSuccessMessage("Solicitud de matrícula y documentos creados correctamente.");
-      } catch (_err) {
-        setSuccessMessage("Solicitud registrada en modo local. Los datos se sincronizarán cuando el servidor esté disponible.");
-      }
-
-      // Construir objeto para que aparezca en la tabla aunque la API falle
-      const paraleloSel = paralelosRef.current.find((p: any) => p.id === Number(formData.paralelo_id));
-      const gradoSel = gradosOfertadosRef.current.find((g: any) => g.id === Number(formData.grado_ofertado_id));
-      const nuevaId = Date.now();
-      console.log("[Wizard] Creando nuevaMatricula id:", nuevaId, "nombre:", `${formData.asp_nombres} ${formData.asp_apellidos}`.trim());
-
-      // Liberar espacio: eliminar requisitos huérfanos (sin matrícula vigente)
-      try {
-        const raw = localStorage.getItem("siged_matriculas_v2");
-        if (raw) {
-          const ids = new Set(JSON.parse(raw).map((m: any) => m.id));
-          for (const key of Object.keys(localStorage)) {
-            if (key.startsWith("siged_requisitos_")) {
-              const id = Number(key.replace("siged_requisitos_", ""));
-              if (!ids.has(id)) {
-                localStorage.removeItem(key);
-              }
-            }
-          }
-        }
-      } catch {}
-
-      try {
-        localStorage.setItem(`siged_requisitos_${nuevaId}`, JSON.stringify(reqsLocales));
-        console.log("[Wizard] Guardados", reqsLocales.length, "requisitos en localStorage con key: siged_requisitos_${nuevaId}");
-      } catch (e) {
-        console.warn("[Wizard] No se pudieron guardar los archivos localmente (cuota excedida).", e);
-        showWarning("No hay suficiente espacio para guardar los documentos. La matrícula se creó sin archivos adjuntos.");
-      }
-
-      setNuevaMatricula({
-        id: nuevaId,
-        codigo_unico: null,
-        estado: "Solicitud",
-        estado_display: "Solicitud",
-        estudiante_id: 0,
-        paralelo_id: Number(formData.paralelo_id),
-        anio_lectivo_id: Number(formData.anio_lectivo_id),
-        institucion_id: null,
-        representante_id: 0,
-        secretaria_id: null,
-        matricula_periodo: periodoId,
-        tiene_discapacidad: formData.tiene_discapacidad,
-        tipo_discapacidad: formData.tipo_discapacidad || null,
-        grado_discapacidad: null,
-        fecha_registro: new Date().toISOString().split("T")[0],
-        promedio_anual: null,
-        estudiante_nombre: `${formData.asp_nombres} ${formData.asp_apellidos}`.trim(),
-        asp_nombres: formData.asp_nombres,
-        asp_apellidos: formData.asp_apellidos,
-        asp_identificacion: formData.asp_identificacion,
-        asp_tipo_identificacion: formData.asp_tipo_identificacion || "CEDULA",
-        asp_fecha_nacimiento: formData.asp_fecha_nacimiento || null,
-        asp_celular: formData.asp_celular || "",
-        asp_correo_personal: formData.asp_correo_personal || "",
-        grado_nombre: paraleloSel?.gradoOfertadoGradoNombre || paraleloSel?.gradoOfertadoNombre || gradoSel?.grado_nombre || gradoSel?.nombre || "",
-        paralelo_nombre: paraleloSel?.nombre || "",
-      });
-
-      console.log("[Wizard] nuevaMatricula seteada con id:", nuevaId);
+      // Solo se confirma si el backend crea la matrícula; si falla, se muestra su error.
+      const creada = await crearMatriculaConRequisitos(payload);
+      setSuccessMessage("Solicitud de matrícula y documentos creados correctamente.");
+      setNuevaMatricula(creada);
       setShowSuccessModal(true);
     } catch (error: any) {
-      console.error("[Wizard] Error en handleSubmit:", error);
       showError(getErrorMessage(error));
     } finally {
       setEnviando(false);
@@ -304,13 +195,7 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
 
   const paralelosFiltrados = paralelos;
 
-  // Lógica para mostrar requisitos (reales o mock)
-  const requisitosAMostrar = usarRequisitosMock 
-    ? [
-        { id: "mock_1", nombre: "Certificado de Cédula (PDF)", es_obligatorio: true },
-        { id: "mock_2", nombre: "Cédula del Representante (PDF)", es_obligatorio: true },
-      ]
-    : requisitosDelSistema;
+  const requisitosAMostrar = requisitosDelSistema;
 
   return (
     <div style={{ background: "var(--surface-container-lowest)", borderRadius: "10px", overflow: "hidden" }}>
@@ -434,15 +319,8 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
                 <select style={{ ...fieldStyle, borderColor: fieldErrors.paralelo_id ? "#dc2626" : "var(--outline-variant)", borderWidth: fieldErrors.paralelo_id ? "2px" : "1px" }} value={formData.paralelo_id} onChange={(e) => { setFormData({...formData, paralelo_id: e.target.value}); setFieldErrors(prev => { const n = {...prev}; delete n.paralelo_id; return n; }); }} disabled={!formData.grado_ofertado_id}>
                   <option value="">Seleccione...</option>
                   {paralelosFiltrados.map(p => {
-                    const consumidosLocal = (() => {
-                      try {
-                        const raw = localStorage.getItem("siged_matriculas_v2");
-                        if (!raw) return 0;
-                        const lista: any[] = JSON.parse(raw);
-                        return lista.filter((m: any) => m.estado === "Legalizada" && m.paralelo_id === p.id).length;
-                      } catch { return 0; }
-                    })();
-                    const disponibles = (p.cuposDisponibles ?? p.cuposMaximo - p.cuposOcupados) - consumidosLocal;
+                    // Cupos solo según el backend
+                    const disponibles = p.cuposDisponibles ?? (p.cuposMaximo - p.cuposOcupados);
                     const lleno = disponibles <= 0;
                     return <option key={p.id} value={p.id} disabled={lleno} style={{ color: lleno ? "red" : "black" }}>Paralelo {p.nombre} ({p.jornada}) - Cupos: {disponibles}/{p.cuposMaximo} {lleno ? "— LLENO" : ""}</option>;
                   })}
@@ -457,8 +335,7 @@ export const WizardMatricula: React.FC<Props> = ({ onSaveSuccess, onCancel }) =>
         {currentStep === 3 && (
           <div>
             <h3 style={{ color: "var(--primary)" }}>Carga de Requisitos Documentales</h3>
-            {usarRequisitosMock && <p style={{ fontSize: "12px", color: "#ca8a04", marginBottom: "20px", background: "#fefce8", padding: "10px", borderRadius: "6px" }}>⚠ Modo de prueba: Los requisitos se cargarán desde la configuración oficial una vez que el módulo esté completamente configurado.</p>}
-            {!formData.paralelo_id && !usarRequisitosMock && (
+            {!formData.paralelo_id && (
               <p style={{ fontSize: "12px", color: "#ca8a04", marginBottom: "20px", background: "#fefce8", padding: "10px", borderRadius: "6px" }}>
                 ⚠ Aún no ha asignado el paralelo en el paso anterior. Se muestran todos los requisitos configurados.
               </p>

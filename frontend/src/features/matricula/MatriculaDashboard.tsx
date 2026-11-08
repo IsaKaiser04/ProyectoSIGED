@@ -4,41 +4,34 @@ import MatriculaTable from "./components/MatriculaTable";
 import RevisarRequisitos from "./components/RevisarRequisitos";
 import { useMatriculas } from "./hooks/useMatricula";
 import { apiGet } from "../../services/apiClient";
-import { ToastContainer } from "../../components/Toast";
+import { ToastContainer, showError } from "../../components/Toast";
+import { getErrorMessage } from "./utils/errorMapper";
 
 function MatriculaDashboard() {
   const [showWizard, setShowWizard] = useState(false);
   const [showRevisar, setShowRevisar] = useState(false);
   const [matriculaToRevisar, setMatriculaToRevisar] = useState<number | null>(null);
   
-  const { matriculas, loading, refrescarTablas, updateMatriculaState, agregarMatricula } = useMatriculas();
+  const { matriculas, loading, refrescarTablas } = useMatriculas();
 
   const [filtroEstado, setFiltroEstado] = useState("");
   const [paralelos, setParalelos] = useState<any[]>([]);
 
-  const getCuposConsumidos = () => {
-    try {
-      const consumidos: Record<number, number> = {};
-      const raw = localStorage.getItem("siged_matriculas_v2");
-      if (raw) {
-        const lista: any[] = JSON.parse(raw);
-        for (const m of lista) {
-          if (m.estado === "Legalizada" && m.paralelo_id) {
-            consumidos[m.paralelo_id] = (consumidos[m.paralelo_id] || 0) + 1;
-          }
-        }
-      }
-      return consumidos;
-    } catch { return {}; }
+  const cargarParalelos = () => {
+    apiGet<any[]>("/planificacion/paralelos/").then(setParalelos).catch((e) => {
+      setParalelos([]);
+      showError(`No se pudieron cargar los paralelos: ${getErrorMessage(e)}`);
+    });
   };
 
-  useEffect(() => {
-    apiGet<any[]>("/planificacion/paralelos/").then(setParalelos).catch(() => {
-      setParalelos([]);
-    });
-  }, []);
+  useEffect(() => { cargarParalelos(); }, []);
 
-  const cuposConsumidos = getCuposConsumidos();
+  // Recarga matrículas y cupos desde el backend (única fuente de verdad)
+  const recargar = () => {
+    refrescarTablas();
+    cargarParalelos();
+  };
+
   const totalSolicitudes = matriculas.length;
   const legalizadas = matriculas.filter(m => m.estado === "Legalizada").length;
   const pendientes = matriculas.filter(m => m.estado === "Solicitud" || m.estado === "Prematricula").length;
@@ -46,8 +39,7 @@ function MatriculaDashboard() {
   const cuposDisponibles = paralelos.reduce((acc, p) => {
     const max = p.cuposMaximo || p.cupos_maximo || 0;
     const ocup = p.cuposOcupados || p.cupos_ocupados || 0;
-    const consumido = cuposConsumidos[p.id] || 0;
-    return acc + (max - ocup - consumido);
+    return acc + Math.max(0, max - ocup);
   }, 0);
   const paraleloMap = Object.fromEntries(paralelos.map(p => [p.id, p]));
 
@@ -103,16 +95,15 @@ function MatriculaDashboard() {
         <MatriculaTable 
           matriculas={matriculasFiltradas} 
           paraleloMap={paraleloMap}
-          onRevisar={handleRevisar} 
-          onAccionRealizada={refrescarTablas} 
-          onAccionLocal={updateMatriculaState} 
+          onRevisar={handleRevisar}
+          onAccionRealizada={recargar}
         />
       )}
 
       {showWizard && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 9999 }}>
           <div style={{ width: "90%", maxWidth: "1000px", maxHeight: "90vh", overflowY: "auto", background: "white", borderRadius: "10px" }}>
-            <WizardMatricula onCancel={() => setShowWizard(false)} onSaveSuccess={(nueva: any) => { console.log("[Dashboard] onSaveSuccess llamado, nueva:", nueva); setShowWizard(false); if (nueva) { console.log("[Dashboard] llamando agregarMatricula"); agregarMatricula(nueva); } else { console.warn("[Dashboard] nueva es null/undefined"); } }} />
+            <WizardMatricula onCancel={() => setShowWizard(false)} onSaveSuccess={() => { setShowWizard(false); recargar(); }} />
           </div>
         </div>
       )}
@@ -124,8 +115,8 @@ function MatriculaDashboard() {
               matriculaId={matriculaToRevisar} 
               aspiranteNombre={aspiranteActual?.estudiante_nombre || ""}
               onClose={() => setShowRevisar(false)} 
-              onLegalizado={() => { if (matriculaToRevisar) updateMatriculaState(matriculaToRevisar, "Legalizada"); setShowRevisar(false); refrescarTablas(); }} 
-              onRechazo={(id) => updateMatriculaState(id, "Prematricula")}
+              onLegalizado={() => { setShowRevisar(false); recargar(); }}
+              onRechazo={() => refrescarTablas()}
             />
           </div>
         </div>
