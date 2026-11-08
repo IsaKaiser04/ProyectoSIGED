@@ -7,7 +7,7 @@ import type { Gobernanza } from "../../../types/entities/gobernanza";
 interface AnioLectivo {
   id: number;
   nombre: string;
-  esActivo: boolean;
+  estado: string; // el backend envía "BORRADOR" | "ACTIVO" | "CERRADO"
 }
 
 type FieldName = "institucionId" | "gobernanzaTipo" | "archivo" | "vigenteDesde" | "vigenteHasta" | "anioLectivoId";
@@ -102,7 +102,7 @@ export function useGobernanzaForm(
       setInstituciones(instData);
       setAniosLectivos(aniosData);
       if (instData.length > 0 && institucionId === "") setInstitucionId(instData[0].id);
-      const activo = aniosData.find((a) => a.esActivo);
+      const activo = aniosData.find((a) => a.estado === "ACTIVO");
       if (activo && anioLectivoId === "") setAnioLectivoId(activo.id);
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Error al cargar datos del formulario.";
@@ -209,7 +209,7 @@ export function useGobernanzaForm(
     setVigenteHasta("");
     setGobernanzaTipo("");
     setInstitucionId("");
-    const activo = aniosLectivos.find((a) => a.esActivo);
+    const activo = aniosLectivos.find((a) => a.estado === "ACTIVO");
     setAnioLectivoId(activo ? activo.id : "");
   };
 

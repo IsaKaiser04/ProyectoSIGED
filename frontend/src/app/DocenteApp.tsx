@@ -11,6 +11,7 @@ import { AulaVirtualApp } from "../features/aula-virtual";
 import { DocenteInicioDashboard } from "../features/docente-panel/DocenteInicioDashboard";
 import { BuzonNotificaciones } from "../features/comunicacion/BuzonNotificaciones";
 import { ConsolaTutoria } from "../features/tutoria";
+import { DocumentosGobernanzaDocente } from "../features/gobernanza/components/DocumentosGobernanzaDocente";
 // ──────────────────────────────────────────────────────────────────────────
 
 
@@ -59,6 +60,10 @@ export function DocenteApp() {
       // Vinculación Curricular — Subida de PCA
       case "vinculacion-curricular":
         return <VinculacionCurricularPage />;
+
+      // Institución — documentos de gobernanza (US-074, solo lectura)
+      case "documentacion-institucional":
+        return <DocumentosGobernanzaDocente />;
 
       // Comunicación
       case "buzon-notificaciones":

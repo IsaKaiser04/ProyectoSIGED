@@ -163,7 +163,7 @@ export const FormularioGobernanza: React.FC<Props> = ({
                 onBlur={() => validarCampo("anioLectivoId")}
               >
                 <option value="">Seleccione...</option>
-                {aniosLectivos.filter((a) => a.esActivo).map((anio) => (
+                {aniosLectivos.filter((a) => a.estado === "ACTIVO").map((anio) => (
                   <option key={anio.id} value={anio.id}>{anio.nombre}</option>
                 ))}
               </select>

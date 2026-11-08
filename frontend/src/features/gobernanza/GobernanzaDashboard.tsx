@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useGobernanzas } from "./hooks/useGobernanza";
-import { eliminarGobernanza } from "./services/gobernanzaApi";
+import { eliminarGobernanza, abrirArchivoGobernanza } from "./services/gobernanzaApi";
 import { FormularioGobernanza } from "./components/FormularioGobernanza";
 import { PanelFiltrosGobernanza } from "./components/PanelFiltrosGobernanza";
 import type { Gobernanza } from "../../types/entities/gobernanza";
@@ -184,7 +184,7 @@ interface DashboardProps {
 }
 
 export const GobernanzaDashboard: React.FC<DashboardProps> = ({ readOnly = false }) => {
-  const { gobernanzas, loading, refrescarTablas } = useGobernanzas();
+  const { gobernanzas, loading, error: errorCarga, refrescarTablas } = useGobernanzas();
   const [showForm, setShowForm] = useState(false);
   const [gobernanzaEdit, setGobernanzaEdit] = useState<Gobernanza | null>(null);
   const [filtroTipo, setFiltroTipo] = useState("");
@@ -218,6 +218,16 @@ export const GobernanzaDashboard: React.FC<DashboardProps> = ({ readOnly = false
       mostrarNotificacion({ type: "error", title: "Error", message: "Error al eliminar el documento." });
     } finally {
       setEliminando(false);
+    }
+  };
+
+  // El PDF se pide al endpoint protegido (comprueba la institución), no al enlace público de /media
+  const verArchivo = async (id: number) => {
+    try {
+      await abrirArchivoGobernanza(id);
+    } catch (error) {
+      const mensaje = error instanceof Error ? error.message : "No se pudo abrir el documento.";
+      mostrarNotificacion({ type: "error", title: "Error", message: mensaje });
     }
   };
 
@@ -266,6 +276,12 @@ export const GobernanzaDashboard: React.FC<DashboardProps> = ({ readOnly = false
           Gestión de Gobernanza
         </h2>
       </div>
+
+      {errorCarga && (
+        <div style={{ background: "#fee2e2", color: "#991b1b", border: "1px solid #fecaca", borderRadius: "8px", padding: "12px 16px" }}>
+          No se pudieron cargar los documentos: {errorCarga}
+        </div>
+      )}
 
       <PanelFiltrosGobernanza filtroTipo={filtroTipo} setFiltroTipo={setFiltroTipo} onLimpiar={limpiarFiltros} />
 
@@ -350,9 +366,12 @@ export const GobernanzaDashboard: React.FC<DashboardProps> = ({ readOnly = false
                   </td>
                   <td style={{ padding: "clamp(8px, 1.5vw, 12px)" }}>{g.anioLectivoNombre}</td>
                   <td style={{ padding: "clamp(8px, 1.5vw, 12px)" }}>
-                    <a href={g.archivo} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)" }}>
+                    <button
+                      onClick={() => verArchivo(g.id)}
+                      style={{ background: "transparent", border: "none", padding: 0, color: "var(--primary)", textDecoration: "underline", cursor: "pointer" }}
+                    >
                       Ver archivo
-                    </a>
+                    </button>
                   </td>
                   <td style={{ padding: "clamp(8px, 1.5vw, 12px)" }}>
                     {!readOnly ? (
