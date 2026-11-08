@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { DocenteLayout } from "../layouts/DocenteLayout"; // Importación corregida
 
-// ──────────────────────────────────────────────────────────────────────────
 import { VinculacionCurricularPage } from "../features/vinculacion-curricular";
 import { AsistenciaPage, ReporteAsistenciaPage } from "../features/asistencia";
 import { PcaHorariosDocente } from "../features/planificacion-curricular/components/PcaHorariosDocente";
@@ -12,7 +11,7 @@ import { DocenteInicioDashboard } from "../features/docente-panel/DocenteInicioD
 import { BuzonNotificaciones } from "../features/comunicacion/BuzonNotificaciones";
 import { ConsolaTutoria } from "../features/tutoria";
 import { DocumentosGobernanzaDocente } from "../features/gobernanza/components/DocumentosGobernanzaDocente";
-// ──────────────────────────────────────────────────────────────────────────
+
 
 const EnDesarrollo = ({ titulo }: { titulo: string }) => (
   <div className="content-heading" style={{ padding: "24px" }}>
