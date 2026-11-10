@@ -25,25 +25,41 @@ function recalcularFila(fila: MatrizEstudiante, matriz: MatrizCalificaciones, pe
   const valores: Record<string, number> = {};
   for (const [id, n] of Object.entries(fila.notas)) valores[id] = n.valor;
 
-  // Si el backend marcó el periodo como mal configurado, su promedio sigue en null.
-  const promedio = periodo.error_configuracion ? null : calcularPromedioPeriodo(periodo.actividades, valores);
+  const { valor: promedio, porSeccion } = calcularPromedioPeriodo(
+    matriz.rubrica.secciones,
+    periodo.actividades,
+    valores
+  );
   const promedios_periodo = {
     ...fila.promedios_periodo,
     [String(periodo.id)]: { valor: promedio, cualitativa: cualitativa(promedio) },
   };
+  const promedios_seccion = {
+    ...fila.promedios_seccion,
+    [String(periodo.id)]: Object.fromEntries(
+      Object.entries(porSeccion).map(([id, v]) => [id, { valor: v, cualitativa: cualitativa(v) }])
+    ),
+  };
+  const notas_pendientes = matriz.periodos.reduce(
+    (acc, p) => acc + p.actividades.filter((a) => fila.notas[String(a.id)] == null).length,
+    0
+  );
   const final = calcularNotaFinal(
     matriz.periodos.map((p) => promedios_periodo[String(p.id)]?.valor ?? null),
     matriz.periodos.length
   );
+  const completa = final.completa && notas_pendientes === 0;
   const minima = matriz.nota_minima_aprobacion;
   return {
     ...fila,
     promedios_periodo,
+    promedios_seccion,
+    notas_pendientes,
     nota_final: final.valor,
     cualitativa_final: cualitativa(final.valor),
-    nota_final_completa: final.completa,
-    supletorio_habilitado: supletorioHabilitado(final.valor, final.completa, minima),
-    estado_final: estadoFinal(final.valor, final.completa, fila.supletorio, minima),
+    nota_final_completa: completa,
+    supletorio_habilitado: supletorioHabilitado(final.valor, completa, minima),
+    estado_final: estadoFinal(final.valor, completa, fila.supletorio, minima),
   };
 }
 

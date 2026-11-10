@@ -2,11 +2,12 @@ import type { EstadoFinalAsignatura } from "../../../types/entities";
 import { ETIQUETA_ESTADO_FINAL } from "../utils/constantes";
 import { insignia } from "./estilos";
 
+// Misma paleta que los estados de asistencia (AsistenciaPage.TIPOS).
 const COLORES: Record<EstadoFinalAsignatura, [string, string]> = {
-  EN_CURSO: ["var(--surface-container-low)", "var(--on-surface-variant)"],
-  APROBADO: ["var(--secondary-container)", "var(--on-secondary-container)"],
-  SUPLETORIO: ["var(--warning-container)", "var(--warning-text)"],
-  REPROBADO: ["var(--error-container)", "var(--error)"],
+  EN_CURSO: ["#e0f2fe", "#075985"],
+  APROBADO: ["#dcfce7", "#15803d"],
+  SUPLETORIO: ["#fef3c7", "#b45309"],
+  REPROBADO: ["#fee2e2", "#b91c1c"],
 };
 
 export function EstadoFinal({ estado }: { estado: EstadoFinalAsignatura }) {

@@ -5,7 +5,6 @@ from rest_framework.exceptions import NotFound
 from apps.calificaciones.repositories.matriz_repository import MatrizRepository
 from apps.calificaciones.services.periodo_service import PeriodoService
 from apps.calificaciones.services.promedio_service import (
-    ConfiguracionPeriodoInvalida,
     NOTA_MINIMA_APROBACION,
     PromedioService,
 )
@@ -59,14 +58,30 @@ class MatrizService:
         data = self.construir_matriz(distributivo_asignatura, [matricula])
         return data['estudiantes'][0] if data['estudiantes'] else None
 
-    def construir_matriz(self, da, matriculas):
+    def construir_matriz(self, da, matriculas, hasta=None):
+        """
+        :param hasta: fecha opcional. Si se pasa, solo cuentan las actividades con fecha de
+            entrega hasta ese día (lo usa el reporte de notas para el "promedio a la fecha").
+        """
         matricula_ids = [m.id for m in matriculas]
-        actividades = self.repo.actividades(da)
-        periodos = list(self.repo.periodos_del_anio(da.distributivo.anio_lectivo_id))
+        anio_id = da.distributivo.anio_lectivo_id
+        secciones = PromedioService.secciones_del_anio(anio_id)
+        orden_seccion = {s.id: i for i, s in enumerate(secciones)}
+        # Solo cuentan las actividades de una sección de la rúbrica del año.
+        actividades = [
+            a for a in self.repo.actividades(da)
+            if a.evaluacion_categoria_id in orden_seccion
+            and (hasta is None or a.fecha_entrega is None or a.fecha_entrega <= hasta)
+        ]
+        periodos = list(self.repo.periodos_del_anio(anio_id))
 
-        # --- índices en memoria: 5 consultas en total, sin N+1 ---
+        # --- índices en memoria: 6 consultas en total, sin N+1 ---
+        def orden_actividad(a):
+            fecha = a.fecha_entrega.isoformat() if a.fecha_entrega else ''
+            return orden_seccion[a.evaluacion_categoria_id], fecha, a.id
+
         acts_por_periodo = defaultdict(list)
-        for a in actividades:
+        for a in sorted(actividades, key=orden_actividad):
             acts_por_periodo[a.periodo_academico_id].append(a)
 
         notas = defaultdict(dict)           # matricula_id -> {actividad_id: Calificacion}
@@ -76,19 +91,8 @@ class MatrizService:
         supletorios = {s.matricula_id: s for s in self.repo.supletorios(da, matricula_ids)}
 
         # --- bloque de períodos (cabeceras de la matriz) ---
-        periodos_json, periodos_invalidos = [], {}
+        periodos_json = []
         for p in periodos:
-            acts = acts_por_periodo.get(p.id, [])
-            error = None
-            if acts:
-                try:
-                    if {a.tipo_calculo for a in acts} == {'PONDERADO'}:
-                        PromedioService.validar_pesos(acts)
-                    elif len({a.tipo_calculo for a in acts}) > 1:
-                        raise ConfiguracionPeriodoInvalida('Tipos de cálculo mezclados.')
-                except ConfiguracionPeriodoInvalida as e:
-                    error = e.detalle
-                    periodos_invalidos[p.id] = error
             periodos_json.append({
                 'id': p.id,
                 'orden': p.orden,
@@ -96,18 +100,15 @@ class MatrizService:
                 'fecha_inicio': p.fechaInicio.isoformat(),
                 'fecha_fin': p.fechaFin.isoformat(),
                 'cerrado': PeriodoService.esta_cerrado(p),   # el front deshabilita edición
-                'tipo_calculo': acts[0].tipo_calculo if acts else None,
-                'error_configuracion': error,
                 'actividades': [
                     {
                         'id': a.id,
                         'nombre': a.nombre,
                         'descripcion': a.descripcion,
-                        'tipo_calculo': a.tipo_calculo,
+                        'seccion_id': a.evaluacion_categoria_id,
                         'fecha_entrega': a.fecha_entrega.isoformat() if a.fecha_entrega else None,
-                        'peso': _num(a.peso),
                     }
-                    for a in acts
+                    for a in acts_por_periodo.get(p.id, [])
                 ],
             })
 
@@ -117,16 +118,17 @@ class MatrizService:
             notas_m = notas.get(m.id, {})
             valores = {aid: c.valor for aid, c in notas_m.items()}
 
-            promedios = {}
+            promedios, promedios_seccion = {}, {}
             for p in periodos:
-                if p.id in periodos_invalidos:
-                    promedios[p.id] = None
-                else:
-                    promedios[p.id] = PromedioService.calcular_promedio_periodo(
-                        acts_por_periodo.get(p.id, []), valores
-                    )
+                promedios[p.id], promedios_seccion[p.id] = PromedioService.calcular_promedio_periodo(
+                    secciones, acts_por_periodo.get(p.id, []), valores
+                )
 
-            final, completo = PromedioService.calcular_nota_final(promedios.values(), len(periodos))
+            # Una actividad sin nota cuenta como 0, pero mientras haya pendientes el año
+            # no está completo y el supletorio no se habilita.
+            pendientes = sum(1 for a in actividades if a.id not in notas_m)
+            final, periodos_completos = PromedioService.calcular_nota_final(promedios.values(), len(periodos))
+            completo = periodos_completos and pendientes == 0
             supl = supletorios.get(m.id)
             est = m.estudiante
             estudiantes_json.append({
@@ -147,6 +149,14 @@ class MatrizService:
                     str(pid): {'valor': _num(v), 'cualitativa': PromedioService.cualitativa(v)}
                     for pid, v in promedios.items()
                 },
+                'promedios_seccion': {
+                    str(pid): {
+                        str(sid): {'valor': _num(v), 'cualitativa': PromedioService.cualitativa(v)}
+                        for sid, v in por_seccion.items()
+                    }
+                    for pid, por_seccion in promedios_seccion.items()
+                },
+                'notas_pendientes': pendientes,
                 'nota_final': _num(final),
                 'cualitativa_final': PromedioService.cualitativa(final),
                 'nota_final_completa': completo,
@@ -168,6 +178,14 @@ class MatrizService:
                 'anio_lectivo': {'id': anio.id, 'nombre': anio.nombre} if anio else None,
             },
             'nota_minima_aprobacion': _num(NOTA_MINIMA_APROBACION),
+            # Rúbrica del año: igual para todos los períodos y grados.
+            'rubrica': {
+                'configurada': bool(secciones),
+                'secciones': [
+                    {'id': s.id, 'nombre': s.nombre, 'peso': _num(s.peso), 'orden': s.orden}
+                    for s in secciones
+                ],
+            },
             # El reporte anual y el supletorio solo se editan con todos los períodos cerrados.
             'anio_cerrado': bool(periodos) and all(PeriodoService.esta_cerrado(p) for p in periodos),
             'periodos': periodos_json,

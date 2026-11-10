@@ -1,4 +1,3 @@
-import { Info, Printer } from "lucide-react";
 import type { AsignaturaDocente } from "../../../types/entities";
 import { CabeceraMatriz } from "../components/CabeceraMatriz";
 import { Cargando, ErrorCarga } from "../components/EstadoCarga";
@@ -20,7 +19,7 @@ export function VistaReporte({ asignatura, onVolver }: Props) {
   const abiertos = matriz?.periodos.filter((p) => !p.cerrado) ?? [];
 
   return (
-    <section style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <section className="dashboard-content" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <CabeceraMatriz
         ruta="Mis asignaturas / Registro de notas / Reporte anual"
         titulo={`Reporte anual · ${asignatura.asignatura.nombre}`}
@@ -29,7 +28,7 @@ export function VistaReporte({ asignatura, onVolver }: Props) {
         acciones={
           matriz ? (
             <button type="button" style={btnSecundario} onClick={() => window.print()}>
-              <Printer size={16} /> Imprimir acta
+              🖨️ Imprimir acta
             </button>
           ) : undefined
         }
@@ -43,8 +42,8 @@ export function VistaReporte({ asignatura, onVolver }: Props) {
         <>
           {!matriz.anio_cerrado && (
             <div style={aviso("info")} className="cal-no-imprimir">
-              <Info size={16} style={{ flexShrink: 0, marginTop: 2 }} />
               <span>
+                ℹ️
                 El reporte se puede editar cuando cierren todos los periodos del año.
                 {abiertos.length > 0 &&
                   ` Aún abiertos: ${abiertos.map((p) => `${p.nombre} (hasta ${formatearFecha(p.fecha_fin)})`).join(", ")}.`}

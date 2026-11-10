@@ -7,5 +7,5 @@ class PromedioCategoriaSerializer(serializers.ModelSerializer):
         model = PromedioCategoria
         fields = [
             'id', 'valor', 'observacion',
-            'promedio', 'evaluacion_categoria', 'promedio_categoria_padre',
+            'promedio', 'evaluacion_categoria',
         ]

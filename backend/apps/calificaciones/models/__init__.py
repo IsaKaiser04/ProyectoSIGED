@@ -1,4 +1,3 @@
-from apps.calificaciones.models.tipoCalculo import TipoCalculo
 from apps.calificaciones.models.evaluacionTipo import EvaluacionTipo
 from apps.calificaciones.models.incidenciaTipo import IncidenciaTipo
 from apps.calificaciones.models.calificacionesMejoraTipo import CalificacionMejoraTipo

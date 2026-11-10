@@ -1,3 +1,4 @@
+from collections import defaultdict
 from decimal import Decimal, ROUND_HALF_UP
 
 from django.db import transaction
@@ -5,9 +6,9 @@ from django.utils import timezone
 
 from apps.calificaciones.models.asignaturaEvaluacion import AsignaturaEvaluacion
 from apps.calificaciones.models.calificacion import Calificacion
+from apps.calificaciones.models.evaluacionCategoria import EvaluacionCategoria
 from apps.calificaciones.models.promedio import Promedio
 from apps.calificaciones.models.promedioCategoria import PromedioCategoria
-from apps.calificaciones.models.tipoCalculo import TipoCalculo
 
 CENTESIMA = Decimal('0.01')
 NOTA_MINIMA_APROBACION = Decimal('7.00')
@@ -21,14 +22,6 @@ ESCALA_CUALITATIVA = (
     (Decimal('4.01'), 'Regular'),
     (Decimal('0.00'), 'Insuficiente'),
 )
-
-
-class ConfiguracionPeriodoInvalida(Exception):
-    """Actividades del período mal configuradas (tipos mezclados o pesos != 1)."""
-
-    def __init__(self, detalle):
-        super().__init__(detalle)
-        self.detalle = detalle
 
 
 def _redondear(valor):
@@ -51,65 +44,53 @@ class PromedioService:
         return ESCALA_CUALITATIVA[-1][1]
 
     @staticmethod
-    def validar_pesos(actividades):
-        """Regla 3: en un período ponderado la suma de pesos debe ser 1.0 (100 %)."""
-        actividades = list(actividades)
-        if any(a.peso is None for a in actividades):
-            raise ConfiguracionPeriodoInvalida(
-                'Hay actividades ponderadas sin peso definido.'
-            )
-        suma = sum((a.peso for a in actividades), Decimal('0'))
-        if abs(suma - Decimal('1')) > TOLERANCIA_PESOS:
-            raise ConfiguracionPeriodoInvalida(
-                f'Los pesos del período suman {suma * 100:.2f} % y deben sumar 100 %.'
-            )
-
-    @classmethod
-    def calcular_promedio_periodo(cls, actividades, notas):
+    def calcular_promedio_periodo(secciones, actividades, notas):
         """
-        Regla 3 – promedio de UN período para UN estudiante.
+        Promedio de UN período para UN estudiante según la rúbrica del año.
 
+        :param secciones: EvaluacionCategoria de la rúbrica (con `peso`).
         :param actividades: AsignaturaEvaluacion del período (de una sola asignatura).
-        :param notas: dict {actividad_id: Decimal}. Una actividad sin nota cuenta como 0,
-                      porque la regla divide entre el TOTAL de actividades.
-        :return: Decimal (2 decimales) o None si el período no tiene actividades.
+        :param notas: dict {actividad_id: Decimal}. Una actividad sin nota cuenta como 0.
+        :return: (promedio | None, {seccion_id: promedio_seccion}).
+
+        - Nota de la sección = promedio simple de sus actividades.
+        - Nota del período = Σ nota_sección × peso. Si una sección no tiene actividades
+          en el período, su peso se reparte entre las que sí tienen (se divide entre la
+          suma de pesos usados), para que el período siga siendo sobre 10.
+        - Actividades sin sección (creadas fuera de la rúbrica) no cuentan.
         """
-        actividades = list(actividades)
-        if not actividades:
-            return None
-
-        tipos = {a.tipo_calculo for a in actividades}
-        if len(tipos) > 1:
-            raise ConfiguracionPeriodoInvalida(
-                'No se pueden mezclar actividades Simples y Ponderadas en el mismo período.'
-            )
-
         cero = Decimal('0')
-        if tipos == {TipoCalculo.PONDERADO}:
-            cls.validar_pesos(actividades)
-            total = sum((notas.get(a.id, cero) * a.peso for a in actividades), cero)
-        else:  # SIMPLE
-            total = sum((notas.get(a.id, cero) for a in actividades), cero) / len(actividades)
+        por_seccion = defaultdict(list)
+        for a in actividades:
+            if a.evaluacion_categoria_id is not None:
+                por_seccion[a.evaluacion_categoria_id].append(a)
 
-        return _redondear(total)
+        promedios_seccion = {}
+        suma, pesos = cero, cero
+        for s in secciones:
+            acts = por_seccion.get(s.id)
+            if not acts:
+                continue
+            prom = _redondear(sum((notas.get(a.id, cero) for a in acts), cero) / len(acts))
+            promedios_seccion[s.id] = prom
+            suma += prom * s.peso
+            pesos += s.peso
 
-    @classmethod
-    def calcular_nota_final(cls, promedios_periodo, total_periodos):
+        if pesos <= cero:
+            return None, promedios_seccion
+        return _redondear(suma / pesos), promedios_seccion
+
+    @staticmethod
+    def calcular_nota_final(promedios_periodo, total_periodos):
         """
-        Nota final del año a partir de los promedios de cada período.
+        Nota final del año = promedio de los promedios de cada período.
 
-        ⚠ La regla de negocio dice "suma de los promedios de cada período". Con 3 períodos
-        sobre 10 esa suma llega a 30 y nunca sería < 7.0, así que el supletorio jamás se
-        habilitaría. Aquí se usa el PROMEDIO de los promedios de período. Si de verdad se
-        necesita la suma, es cambiar la línea marcada abajo.
-
-        :return: (valor | None, completo: bool). `completo` = todos los períodos del año
-                 tienen promedio; hasta entonces la nota es parcial.
+        :return: (valor | None, todos_los_periodos_calculados: bool).
         """
         calculados = [p for p in promedios_periodo if p is not None]
         if not calculados:
             return None, False
-        valor = _redondear(sum(calculados, Decimal('0')) / len(calculados))  # <- promedio
+        valor = _redondear(sum(calculados, Decimal('0')) / len(calculados))
         return valor, len(calculados) == total_periodos
 
     @staticmethod
@@ -122,7 +103,7 @@ class PromedioService:
         """
         Estado de la asignatura en el año.
 
-        EN_CURSO    -> faltan promedios de período (nota parcial).
+        EN_CURSO    -> faltan promedios de período o notas por registrar.
         APROBADO    -> nota final >= mínima, o supletorio >= mínima.
         SUPLETORIO  -> nota final < mínima y aún no se registra el supletorio.
         REPROBADO   -> supletorio registrado y < mínima.
@@ -136,11 +117,18 @@ class PromedioService:
         return 'APROBADO' if supletorio >= nota_minima else 'REPROBADO'
 
     # ------------------------------------------------------------------ #
-    # Persistencia (modelo Promedio, uno por matrícula + asignatura + período)
+    # Persistencia: Promedio (matrícula + asignatura + período) y un
+    # PromedioCategoria por cada sección con actividades.
     # ------------------------------------------------------------------ #
+    @staticmethod
+    def secciones_del_anio(anio_lectivo_id):
+        return list(EvaluacionCategoria.objects.filter(libro__anio_lectivo_id=anio_lectivo_id))
+
     @classmethod
     @transaction.atomic
-    def persistir_promedio_periodo(cls, matricula, distributivo_asignatura, periodo):
+    def persistir_promedio_periodo(cls, matricula, distributivo_asignatura, periodo, secciones=None):
+        if secciones is None:
+            secciones = cls.secciones_del_anio(distributivo_asignatura.distributivo.anio_lectivo_id)
         actividades = list(
             AsignaturaEvaluacion.objects.filter(
                 distributivo_asignatura=distributivo_asignatura,
@@ -159,13 +147,10 @@ class PromedioService:
             distributivo_asignatura=distributivo_asignatura,
             periodo_academico=periodo,
         )
-        try:
-            valor = cls.calcular_promedio_periodo(actividades, notas)
-        except ConfiguracionPeriodoInvalida:
-            valor = None
+        valor, por_seccion = cls.calcular_promedio_periodo(secciones, actividades, notas)
 
         if valor is None:
-            # Promedio es un dato derivado: si ya no se puede calcular, no dejar uno viejo.
+            # Dato derivado: si ya no se puede calcular, no dejar uno viejo.
             Promedio.objects.filter(**filtro).delete()
             return None
 
@@ -173,27 +158,11 @@ class PromedioService:
             **filtro,
             defaults={'valor': valor, 'fecha_calculo': timezone.now()},
         )
-        return promedio
-
-    # Se conserva del servicio anterior (lo usa el módulo EVA / PromedioCategoria).
-    @transaction.atomic
-    def recalcular_promedios_categoria(self, promedio):
-        categorias = set(
-            Calificacion.objects.filter(
-                promedio_categoria__promedio=promedio,
-            ).values_list('promedio_categoria__evaluacion_categoria', flat=True)
-        )
-        for categoria_id in categorias:
-            calificaciones = Calificacion.objects.filter(
-                promedio_categoria__promedio=promedio,
-                promedio_categoria__evaluacion_categoria_id=categoria_id,
-            )
-            if calificaciones.exists():
-                total = sum(c.valor for c in calificaciones)
-                valor = _redondear(total / calificaciones.count())
-            else:
-                valor = Decimal('0.00')
-            PromedioCategoria.objects.filter(
+        promedio.promedios_categoria.exclude(evaluacion_categoria_id__in=por_seccion).delete()
+        for seccion_id, prom in por_seccion.items():
+            PromedioCategoria.objects.update_or_create(
                 promedio=promedio,
-                evaluacion_categoria_id=categoria_id,
-            ).update(valor=valor)
+                evaluacion_categoria_id=seccion_id,
+                defaults={'valor': prom},
+            )
+        return promedio

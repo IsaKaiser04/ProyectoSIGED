@@ -1,4 +1,3 @@
-import { CalendarClock, Lock } from "lucide-react";
 import type { MatrizPeriodo } from "../../../types/entities";
 import { estadoPeriodo, formatearFecha } from "../utils/calculos";
 
@@ -8,8 +7,9 @@ interface Props {
   onCambiar: (id: number) => void;
 }
 
-const ETIQUETA = { ABIERTO: "Abierto", CERRADO: "Cerrado", NO_INICIADO: "No iniciado" } as const;
+const ETIQUETA = { ABIERTO: "Abierto", CERRADO: "🔒 Cerrado", NO_INICIADO: "📅 No iniciado" } as const;
 
+/** Botones de periodo, con el mismo estilo que las horas del día en Registro de Asistencia. */
 export function SelectorPeriodo({ periodos, periodoId, onCambiar }: Props) {
   if (periodos.length === 0) return null;
 
@@ -17,7 +17,6 @@ export function SelectorPeriodo({ periodos, periodoId, onCambiar }: Props) {
     <div role="tablist" aria-label="Periodo académico" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
       {periodos.map((p) => {
         const activo = p.id === periodoId;
-        const estado = estadoPeriodo(p);
         return (
           <button
             key={p.id}
@@ -27,23 +26,17 @@ export function SelectorPeriodo({ periodos, periodoId, onCambiar }: Props) {
             onClick={() => onCambiar(p.id)}
             title={`${formatearFecha(p.fecha_inicio)} – ${formatearFecha(p.fecha_fin)}`}
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
               padding: "8px 14px",
               borderRadius: 8,
               cursor: "pointer",
-              fontSize: "var(--font-body-sm, 14px)",
               fontWeight: 600,
-              border: `1px solid ${activo ? "var(--primary)" : "var(--outline-variant)"}`,
-              background: activo ? "var(--primary)" : "var(--surface)",
+              fontSize: 14,
+              border: activo ? "2px solid var(--primary)" : "1px solid var(--outline-variant)",
+              background: activo ? "var(--primary)" : "var(--surface-container-lowest)",
               color: activo ? "#fff" : "var(--on-surface)",
             }}
           >
-            {estado === "CERRADO" && <Lock size={14} />}
-            {estado === "NO_INICIADO" && <CalendarClock size={14} />}
-            {p.nombre}
-            <span style={{ fontSize: 11, fontWeight: 500, opacity: 0.75 }}>{ETIQUETA[estado]}</span>
+            {p.nombre} <span style={{ fontSize: 12, fontWeight: 500, opacity: 0.8 }}>· {ETIQUETA[estadoPeriodo(p)]}</span>
           </button>
         );
       })}

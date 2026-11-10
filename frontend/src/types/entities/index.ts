@@ -28,10 +28,10 @@ export {
   calcularEstadoFinal,
 } from "./calificacionesUtils";
 export type {
-  TipoCalculoActividad,
   EstadoFinalAsignatura,
   AsignaturaDocente,
   AsignaturasDocenteResponse,
+  MatrizSeccion,
   MatrizActividad,
   MatrizPeriodo,
   MatrizNota,
@@ -44,4 +44,12 @@ export type {
   NotaRegistrada,
   SupletorioPayload,
   SupletorioRegistrado,
+  SeccionRubrica,
+  RubricaActividades,
+  SeccionRubricaPayload,
+  RubricaActividadesPayload,
+  SemanaAvance,
+  NivelReporte,
+  FilaReporteNotas,
+  ReporteNotas,
 } from "./calificaciones";

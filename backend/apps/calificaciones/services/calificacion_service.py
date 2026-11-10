@@ -1,74 +1,3 @@
-from decimal import Decimal
-from django.db import transaction
-from django.utils import timezone
-
-from apps.calificaciones.models.calificacion import Calificacion
-from apps.calificaciones.models.calificacionHistorico import CalificacionHistorico
-from apps.calificaciones.models.promedio import Promedio
-from apps.calificaciones.models.promedioCategoria import PromedioCategoria
-
-
-class CalificacionService:
-
-    @transaction.atomic
-    def registrar_calificacion(self, asignatura_evaluacion, matricula, valor, observacion='', promedio_categoria=None):
-        calificacion, created = Calificacion.objects.update_or_create(
-            asignatura_evaluacion=asignatura_evaluacion,
-            matricula=matricula,
-            defaults={
-                'valor': valor,
-                'observacion': observacion,
-                'promedio_categoria': promedio_categoria,
-            },
-        )
-        if not created:
-            self._guardar_historico(calificacion, valor, observacion)
-        return calificacion, created
-
-    @transaction.atomic
-    def actualizar_calificacion(self, calificacion_id, valor, observacion=''):
-        try:
-            calificacion = Calificacion.objects.select_for_update().get(id=calificacion_id)
-        except Calificacion.DoesNotExist:
-            return None
-        self._guardar_historico(calificacion, valor, observacion)
-        calificacion.valor = valor
-        calificacion.observacion = observacion
-        calificacion.save()
-        return calificacion
-
-    def _guardar_historico(self, calificacion, valor_nuevo, observacion=''):
-        if calificacion.valor != valor_nuevo:
-            CalificacionHistorico.objects.create(
-                valor_anterior=calificacion.valor,
-                valor_nuevo=valor_nuevo,
-                observacion=observacion or calificacion.observacion,
-                calificacion=calificacion,
-            )
-
-    def calcular_promedio(self, calificaciones):
-        if not calificaciones:
-            return Decimal('0.00')
-        total = sum(c.valor for c in calificaciones)
-        return (total / len(calificaciones)).quantize(Decimal('0.01'))
-
-    def calcular_equivalencia(self, valor, rubrica=None):
-        if not rubrica:
-            return ''
-        equivalencia = rubrica.equivalencias.filter(
-            evaluacioncriterio__cuantitativaMinima__lte=valor,
-            evaluacioncriterio__cuantitativaMaxima__gte=valor,
-        ).first()
-        if equivalencia:
-            criterio = equivalencia.criterios.filter(
-                cuantitativaMinima__lte=valor,
-                cuantitativaMaxima__gte=valor,
-            ).first()
-            return criterio.cualitativa if criterio else equivalencia.nombre
-        return ''
-
-    def calcular_estado_final(self, promedio, nota_minima_aprobacion=Decimal('7.00')):
-        return 'APROBADO' if promedio >= nota_minima_aprobacion else 'REPROBADO'
 from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
@@ -77,15 +6,11 @@ from rest_framework.exceptions import NotFound, PermissionDenied, ValidationErro
 from apps.calificaciones.models.asignaturaEvaluacion import AsignaturaEvaluacion
 from apps.calificaciones.models.calificacion import Calificacion
 from apps.calificaciones.models.calificacionHistorico import CalificacionHistorico
+from apps.calificaciones.models.evaluacionCategoria import EvaluacionCategoria
 from apps.calificaciones.models.supletorio import Supletorio
-from apps.calificaciones.models.tipoCalculo import TipoCalculo
 from apps.calificaciones.repositories.matriz_repository import MatrizRepository
 from apps.calificaciones.services.periodo_service import PeriodoService
-from apps.calificaciones.services.promedio_service import (
-    NOTA_MINIMA_APROBACION,
-    TOLERANCIA_PESOS,
-    PromedioService,
-)
+from apps.calificaciones.services.promedio_service import PromedioService
 
 
 class CalificacionService:
@@ -98,31 +23,45 @@ class CalificacionService:
     # ------------------------------------------------------------------ #
     @transaction.atomic
     def crear_actividad(self, docente, distributivo_asignatura_id, nombre, fecha_entrega,
-                        descripcion='', tipo_calculo=TipoCalculo.SIMPLE, peso=None):
+                        evaluacion_categoria, descripcion=''):
         """
         Regla 1: la asignatura debe ser del docente.
         Regla 2: el período se asigna solo, según fecha_entrega (400 si no existe).
         Regla 5: si ese período ya cerró -> 403.
+        La sección debe ser de la rúbrica del año lectivo de la asignatura.
         """
         da = self.repo.obtener_asignatura_del_docente(docente, distributivo_asignatura_id)
         if da is None:
             raise NotFound('Asignatura no encontrada en tu distributivo.')
 
+        seccion = self._seccion_de_la_rubrica(da, evaluacion_categoria)
         periodo = PeriodoService.asignar_periodo(da, fecha_entrega)
         PeriodoService.validar_periodo_abierto(periodo)
 
-        peso = self._normalizar_peso(tipo_calculo, peso)
-        self._validar_coherencia_periodo(da, periodo, tipo_calculo, peso)
-
-        return AsignaturaEvaluacion.objects.create(
+        actividad = AsignaturaEvaluacion.objects.create(
             nombre=nombre,
             descripcion=descripcion,
             fecha_entrega=fecha_entrega,
-            tipo_calculo=tipo_calculo,
-            peso=peso,
+            evaluacion_categoria=seccion,
             distributivo_asignatura=da,
             periodo_academico=periodo,
         )
+        # Una actividad nueva cuenta como 0 para todos: cambia el promedio del período.
+        self._recalcular_promedios(da, {periodo})
+        return actividad
+
+    @staticmethod
+    def _seccion_de_la_rubrica(da, seccion_id):
+        anio_id = da.distributivo.anio_lectivo_id
+        seccion = EvaluacionCategoria.objects.filter(pk=seccion_id, libro__anio_lectivo_id=anio_id).first()
+        if seccion is None:
+            if not EvaluacionCategoria.objects.filter(libro__anio_lectivo_id=anio_id).exists():
+                raise ValidationError({
+                    'evaluacion_categoria': 'La autoridad aún no configura la rúbrica de '
+                                            'actividades de este año lectivo.'
+                })
+            raise ValidationError({'evaluacion_categoria': 'La sección no pertenece a la rúbrica de este año.'})
+        return seccion
 
     def _actividad_del_docente(self, docente, actividad_id):
         actividad = (
@@ -154,16 +93,11 @@ class CalificacionService:
         periodo = PeriodoService.asignar_periodo(da, fecha_entrega)
         PeriodoService.validar_periodo_abierto(periodo)
 
-        tipo_calculo = datos.get('tipo_calculo', actividad.tipo_calculo)
-        peso = datos['peso'] if 'peso' in datos else actividad.peso
-        peso = self._normalizar_peso(tipo_calculo, peso)
-        self._validar_coherencia_periodo(da, periodo, tipo_calculo, peso, excluir_id=actividad.id)
-
+        if 'evaluacion_categoria' in datos:
+            actividad.evaluacion_categoria = self._seccion_de_la_rubrica(da, datos['evaluacion_categoria'])
         actividad.nombre = datos.get('nombre', actividad.nombre)
         actividad.descripcion = datos.get('descripcion', actividad.descripcion)
         actividad.fecha_entrega = fecha_entrega
-        actividad.tipo_calculo = tipo_calculo
-        actividad.peso = peso
         periodo_anterior = actividad.periodo_academico
         actividad.periodo_academico = periodo
         actividad.save()
@@ -185,49 +119,13 @@ class CalificacionService:
         self._recalcular_promedios(actividad.distributivo_asignatura, {actividad.periodo_academico})
 
     def _recalcular_promedios(self, da, periodos):
+        secciones = PromedioService.secciones_del_anio(da.distributivo.anio_lectivo_id)
+        matriculas = list(self.repo.matriculas_del_curso(da))
         for periodo in periodos:
             if periodo is None:
                 continue
-            for matricula in self.repo.matriculas_del_curso(da):
-                PromedioService.persistir_promedio_periodo(matricula, da, periodo)
-
-    @staticmethod
-    def _normalizar_peso(tipo_calculo, peso):
-        if tipo_calculo == TipoCalculo.SIMPLE:
-            return None
-        if tipo_calculo != TipoCalculo.PONDERADO:
-            raise ValidationError({'tipo_calculo': 'Debe ser SIMPLE o PONDERADO.'})
-        if peso is None:
-            raise ValidationError({'peso': 'Una actividad ponderada requiere peso.'})
-        try:
-            peso = Decimal(str(peso))
-        except InvalidOperation:
-            raise ValidationError({'peso': 'Peso inválido.'})
-        if not (Decimal('0') < peso <= Decimal('1')):
-            raise ValidationError({'peso': 'El peso debe ser una fracción entre 0 y 1 (0.30 = 30 %).'})
-        return peso
-
-    @staticmethod
-    def _validar_coherencia_periodo(da, periodo, tipo_calculo, peso, excluir_id=None):
-        existentes = AsignaturaEvaluacion.objects.filter(
-            distributivo_asignatura=da, periodo_academico=periodo, activo=True,
-        )
-        if excluir_id:
-            existentes = existentes.exclude(pk=excluir_id)
-        existentes = list(existentes)
-        if not existentes:
-            return
-        if any(a.tipo_calculo != tipo_calculo for a in existentes):
-            raise ValidationError({
-                'tipo_calculo': f'El período "{periodo.nombre}" ya usa cálculo '
-                                f'{existentes[0].tipo_calculo}; no se puede mezclar.'
-            })
-        if tipo_calculo == TipoCalculo.PONDERADO:
-            suma = sum((a.peso or Decimal('0') for a in existentes), Decimal('0')) + peso
-            if suma - Decimal('1') > TOLERANCIA_PESOS:
-                raise ValidationError({
-                    'peso': f'Los pesos del período sumarían {suma * 100:.2f} %; el máximo es 100 %.'
-                })
+            for matricula in matriculas:
+                PromedioService.persistir_promedio_periodo(matricula, da, periodo, secciones)
 
     # ------------------------------------------------------------------ #
     # Notas
@@ -238,16 +136,10 @@ class CalificacionService:
         Crea o actualiza la nota de un estudiante. El docente envía SOLO el número;
         la cualitativa se deriva al leer (regla 6).
         """
-        actividad = (
-            AsignaturaEvaluacion.objects
-            .select_related('distributivo_asignatura__distributivo', 'periodo_academico')
-            .filter(pk=actividad_id, distributivo_asignatura__distributivo__docente=docente)  # regla 1
-            .first()
-        )
-        if actividad is None:
-            raise NotFound('Actividad no encontrada en tu distributivo.')
-
-        PeriodoService.validar_periodo_abierto(actividad.periodo_academico)       # regla 5
+        actividad = self._actividad_del_docente(docente, actividad_id)       # regla 1
+        if actividad.periodo_academico is None:
+            raise ValidationError({'actividad': 'La actividad no tiene período académico asignado.'})
+        PeriodoService.validar_periodo_abierto(actividad.periodo_academico)   # regla 5
 
         da = actividad.distributivo_asignatura
         matricula = self.repo.matriculas_del_curso(da).filter(pk=matricula_id).first()
@@ -267,8 +159,7 @@ class CalificacionService:
                 valor=valor, observacion=observacion,
             )
         else:
-            # El histórico se guarda ANTES de sobrescribir (el servicio anterior lo hacía
-            # después, comparaba valor contra sí mismo y nunca registraba nada).
+            # El histórico se guarda ANTES de sobrescribir.
             self._guardar_historico(calificacion, valor, observacion)
             calificacion.valor = valor
             calificacion.observacion = observacion
@@ -321,8 +212,7 @@ class CalificacionService:
         if matricula is None:
             raise ValidationError({'matricula': 'El estudiante no pertenece a este curso.'})
 
-        # Import local: matriz_service no depende de este módulo, pero así se evita
-        # cualquier ciclo futuro.
+        # Import local: matriz_service importa este módulo de forma indirecta.
         from apps.calificaciones.services.matriz_service import MatrizService
         fila = MatrizService(self.repo).fila_estudiante(da, matricula)
         if not fila or not fila['supletorio_habilitado']:
@@ -338,7 +228,3 @@ class CalificacionService:
             defaults={'valor': valor, 'observacion': observacion},
         )
         return da, matricula
-
-    # Se conserva: lo usan calificacion_view.py (legacy) y tests.py
-    def calcular_estado_final(self, promedio, nota_minima_aprobacion=NOTA_MINIMA_APROBACION):
-        return 'APROBADO' if promedio >= nota_minima_aprobacion else 'REPROBADO'

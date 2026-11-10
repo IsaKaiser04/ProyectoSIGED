@@ -33,6 +33,23 @@ class MatrizRepository:
         """None si no existe O si pertenece a otro docente (la vista responde 404 en ambos casos)."""
         return self.asignaturas_del_docente(docente).filter(pk=distributivo_asignatura_id).first()
 
+    def asignaturas_del_anio(self, anio_lectivo_id):
+        """
+        Todas las asignaturas del año lectivo (reporte de Autoridad y Secretaría).
+        Excepción a la Regla 1: el servicio valida antes que el año sea de la
+        institución del usuario.
+        """
+        return (
+            DistributivoAsignatura.objects
+            .filter(distributivo__anio_lectivo_id=anio_lectivo_id)
+            .select_related(
+                'distributivo__anio_lectivo',
+                'distributivo__docente',
+                'asignatura_ofertada__gradoOfertado',
+                'paralelo',
+            )
+        )
+
     def matriculas_del_curso(self, distributivo_asignatura):
         """Estudiantes del paralelo con matrícula legalizada en el año lectivo del distributivo."""
         if distributivo_asignatura.paralelo_id is None:

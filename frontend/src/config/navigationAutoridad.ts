@@ -45,7 +45,7 @@ export const NAVIGATION_AUTORIDAD: NavGroup[] = [
     groupLabel: "Planificación Temporal",
     items: [
       { view: "anios-lectivos", label: "Año Lectivo", icon: "calendar" },
-      { view: "periodos-academicos", label: "Período Académico", icon: "hourglass" },
+      { view: "periodos-academicos", label: "Períodos y Rúbrica", icon: "hourglass" },
       { view: "jornadas", label: "Jornadas Horarias", icon: "sunrise" },
     ],
   },

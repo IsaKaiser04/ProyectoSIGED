@@ -6,6 +6,7 @@ import type {
   EstadoFinalAsignatura,
   MatrizActividad,
   MatrizPeriodo,
+  MatrizSeccion,
 } from "../../../types/entities";
 import {
   ESCALA_CUALITATIVA,
@@ -50,7 +51,8 @@ export function parsearNota(texto: string): { ok: true; valor: number } | { ok: 
 /** Suma de pesos (fracciones) y si cuadra con 1.0 dentro de la tolerancia. */
 export function validarPesos(pesos: number[]): { suma: number; cuadra: boolean } {
   const suma = pesos.reduce((acc, p) => acc + p, 0);
-  return { suma, cuadra: Math.abs(suma - 1) <= TOLERANCIA_PESOS };
+  // 1e-9 absorbe el error de coma flotante (3 × 0.3333 no da exactamente 0.9999).
+  return { suma, cuadra: Math.abs(suma - 1) <= TOLERANCIA_PESOS + 1e-9 };
 }
 
 /** Convierte porcentaje (0–100) a fracción con 4 decimales, como espera el backend. */
@@ -63,36 +65,42 @@ export function fraccionAPorcentaje(fraccion: number | null): number {
 }
 
 /**
- * Promedio de un periodo para un estudiante (calcular_promedio_periodo).
- * Una actividad sin nota cuenta como 0. null si no hay actividades o la
- * configuración no es válida (tipos mezclados o pesos que no suman 100 %).
+ * Promedio de un periodo para un estudiante (PromedioService.calcular_promedio_periodo).
+ * - Sección = promedio simple de sus actividades (sin nota cuenta como 0).
+ * - Periodo = Σ sección × peso; el peso de una sección sin actividades se reparte
+ *   entre las demás. null si el periodo no tiene actividades.
  */
 export function calcularPromedioPeriodo(
+  secciones: MatrizSeccion[],
   actividades: MatrizActividad[],
   notas: Record<string, number | undefined>
-): number | null {
-  if (actividades.length === 0) return null;
-  const tipos = new Set(actividades.map((a) => a.tipo_calculo));
-  if (tipos.size > 1) return null;
-
-  if (tipos.has("PONDERADO")) {
-    const pesos = actividades.map((a) => a.peso);
-    if (pesos.some((p) => p == null)) return null;
-    if (!validarPesos(pesos as number[]).cuadra) return null;
-    const total = actividades.reduce((acc, a) => acc + (notas[String(a.id)] ?? 0) * (a.peso as number), 0);
-    return redondear2(total);
+): { valor: number | null; porSeccion: Record<string, number> } {
+  const porSeccion: Record<string, number> = {};
+  let suma = 0;
+  let pesos = 0;
+  for (const s of secciones) {
+    const acts = actividades.filter((a) => a.seccion_id === s.id);
+    if (acts.length === 0) continue;
+    const prom = redondear2(acts.reduce((acc, a) => acc + (notas[String(a.id)] ?? 0), 0) / acts.length);
+    porSeccion[String(s.id)] = prom;
+    suma += prom * s.peso;
+    pesos += s.peso;
   }
-
-  const total = actividades.reduce((acc, a) => acc + (notas[String(a.id)] ?? 0), 0);
-  return redondear2(total / actividades.length);
+  return { valor: pesos > 0 ? redondear2(suma / pesos) : null, porSeccion };
 }
 
-/**
- * Nota final del año (calcular_nota_final).
- * La guía pedía "suma de promedios"; el backend usa el PROMEDIO de los promedios
- * de periodo porque con 3 periodos sobre 10 la suma nunca bajaría de 7 y el
- * supletorio no se habilitaría. Se replica el backend.
- */
+/** Columnas de la matriz: cada sección de la rúbrica con sus actividades del periodo. */
+export function agruparPorSeccion(
+  secciones: MatrizSeccion[],
+  periodo: MatrizPeriodo
+): Array<{ seccion: MatrizSeccion; actividades: MatrizActividad[] }> {
+  return secciones.map((seccion) => ({
+    seccion,
+    actividades: periodo.actividades.filter((a) => a.seccion_id === seccion.id),
+  }));
+}
+
+/** Nota final del año = promedio de los promedios de cada periodo (calcular_nota_final). */
 export function calcularNotaFinal(
   promediosPeriodo: Array<number | null>,
   totalPeriodos: number

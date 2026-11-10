@@ -1,53 +1,41 @@
-import { useEffect, useMemo, useState } from "react";
-import { X } from "lucide-react";
-import type {
-  ActividadDocentePayload,
-  MatrizActividad,
-  MatrizPeriodo,
-  TipoCalculoActividad,
-} from "../../../types/entities";
-import type { AjustePeso } from "../hooks/useActividadesPeriodo";
-import {
-  fechaEnPeriodo,
-  formatearFecha,
-  fraccionAPorcentaje,
-  hoyISO,
-  porcentajeAFraccion,
-  validarPesos,
-} from "../utils/calculos";
+import { useEffect, useState } from "react";
+import type { ActividadDocentePayload, MatrizActividad, MatrizPeriodo, MatrizSeccion } from "../../../types/entities";
+import { fechaEnPeriodo, formatearFecha, fraccionAPorcentaje, hoyISO } from "../utils/calculos";
 import { aviso, btnPrimario, btnSecundario, deshabilitado, fieldStyle, labelStyle, modalBox, modalWrap } from "./estilos";
 
 interface Props {
   abierto: boolean;
   periodo: MatrizPeriodo;
+  /** Secciones de la rúbrica del año lectivo. */
+  secciones: MatrizSeccion[];
   /** null = nueva actividad. */
   actividad: MatrizActividad | null;
+  /** Sección preseleccionada al crear desde la cabecera de una sección. */
+  seccionInicial?: number | null;
   procesando: boolean;
   onCerrar: () => void;
-  onGuardar: (payload: ActividadDocentePayload, ajustes: AjustePeso[]) => Promise<boolean>;
+  onGuardar: (payload: ActividadDocentePayload) => Promise<boolean>;
 }
-
-const numero = (texto: string) => Number(texto.replace(",", "."));
 
 /**
  * Crear o editar una actividad del periodo seleccionado.
  * - La fecha de entrega debe caer dentro del periodo (el backend asigna el periodo con ella).
- * - Un periodo no mezcla actividades simples y ponderadas.
- * - Si es ponderada, se muestran los pesos de todo el periodo y deben sumar 100 %.
+ * - La actividad va en una sección de la rúbrica; el peso lo da la sección.
  */
-export function ModalActividad({ abierto, periodo, actividad, procesando, onCerrar, onGuardar }: Props) {
-  const otras = useMemo(
-    () => periodo.actividades.filter((a) => a.id !== actividad?.id),
-    [periodo.actividades, actividad?.id]
-  );
-  const tipoFijo: TipoCalculoActividad | null = otras.length > 0 ? otras[0].tipo_calculo : null;
-
+export function ModalActividad({
+  abierto,
+  periodo,
+  secciones,
+  actividad,
+  seccionInicial = null,
+  procesando,
+  onCerrar,
+  onGuardar,
+}: Props) {
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [fecha, setFecha] = useState("");
-  const [tipo, setTipo] = useState<TipoCalculoActividad>("SIMPLE");
-  const [peso, setPeso] = useState("");
-  const [pesosOtras, setPesosOtras] = useState<Record<number, string>>({});
+  const [seccionId, setSeccionId] = useState<number>(0);
   const [intentado, setIntentado] = useState(false);
 
   useEffect(() => {
@@ -56,31 +44,19 @@ export function ModalActividad({ abierto, periodo, actividad, procesando, onCerr
     setNombre(actividad?.nombre ?? "");
     setDescripcion(actividad?.descripcion ?? "");
     setFecha(actividad?.fecha_entrega ?? (fechaEnPeriodo(hoy, periodo) ? hoy : periodo.fecha_inicio));
-    setTipo(actividad?.tipo_calculo ?? tipoFijo ?? "SIMPLE");
-    setPeso(actividad?.peso != null ? String(fraccionAPorcentaje(actividad.peso)) : "");
-    setPesosOtras(Object.fromEntries(otras.map((a) => [a.id, String(fraccionAPorcentaje(a.peso))])));
+    setSeccionId(actividad?.seccion_id ?? seccionInicial ?? secciones[0]?.id ?? 0);
     setIntentado(false);
     // Solo al abrir: no se reinicia el formulario si la matriz se recarga detrás.
   }, [abierto, actividad?.id]);
 
-  const ponderado = tipo === "PONDERADO";
-  const porcentajes = ponderado ? [numero(peso), ...otras.map((a) => numero(pesosOtras[a.id] ?? "0"))] : [];
-  const { suma, cuadra } = validarPesos(porcentajes.map((p) => (Number.isFinite(p) ? porcentajeAFraccion(p) : NaN)));
-
   const errores: string[] = [];
   if (!nombre.trim()) errores.push("El nombre es obligatorio.");
+  if (!secciones.some((s) => s.id === seccionId)) errores.push("Elige la sección de la actividad.");
   if (!fecha) errores.push("La fecha de entrega es obligatoria.");
   else if (!fechaEnPeriodo(fecha, periodo)) {
     errores.push(
       `La fecha debe estar dentro de ${periodo.nombre} (${formatearFecha(periodo.fecha_inicio)} – ${formatearFecha(periodo.fecha_fin)}).`
     );
-  }
-  if (ponderado) {
-    if (porcentajes.some((p) => !Number.isFinite(p) || p <= 0 || p > 100)) {
-      errores.push("Cada peso debe ser mayor que 0 % y como máximo 100 %.");
-    } else if (!cuadra) {
-      errores.push(`Los pesos del periodo suman ${(suma * 100).toFixed(2)} % y deben sumar 100 %.`);
-    }
   }
 
   if (!abierto) return null;
@@ -92,15 +68,9 @@ export function ModalActividad({ abierto, periodo, actividad, procesando, onCerr
       nombre: nombre.trim(),
       descripcion: descripcion.trim(),
       fecha_entrega: fecha,
-      tipo_calculo: tipo,
-      peso: ponderado ? porcentajeAFraccion(numero(peso)) : null,
+      evaluacion_categoria: seccionId,
     };
-    const ajustes: AjustePeso[] = ponderado
-      ? otras
-          .map((a) => ({ actividad: a, peso: porcentajeAFraccion(numero(pesosOtras[a.id] ?? "0")) }))
-          .filter((a) => a.peso !== a.actividad.peso)
-      : [];
-    if (await onGuardar(payload, ajustes)) onCerrar();
+    if (await onGuardar(payload)) onCerrar();
   };
 
   const bloqueado = procesando || (intentado && errores.length > 0);
@@ -117,8 +87,9 @@ export function ModalActividad({ abierto, periodo, actividad, procesando, onCerr
               {periodo.nombre}: {formatearFecha(periodo.fecha_inicio)} – {formatearFecha(periodo.fecha_fin)}
             </p>
           </div>
-          <button type="button" onClick={onCerrar} aria-label="Cerrar" style={{ ...btnSecundario, padding: 8 }}>
-            <X size={16} />
+          <button type="button" onClick={onCerrar} aria-label="Cerrar" title="Cerrar"
+            style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 18, color: "var(--on-surface-variant)" }}>
+            ✕
           </button>
         </div>
 
@@ -140,6 +111,21 @@ export function ModalActividad({ abierto, periodo, actividad, procesando, onCerr
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16 }}>
             <div>
+              <label style={labelStyle} htmlFor="act-seccion">Sección</label>
+              <select
+                id="act-seccion"
+                style={fieldStyle}
+                value={seccionId}
+                onChange={(e) => setSeccionId(Number(e.target.value))}
+              >
+                {secciones.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.nombre} ({fraccionAPorcentaje(s.peso)} %)
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
               <label style={labelStyle} htmlFor="act-fecha">Fecha de entrega</label>
               <input
                 id="act-fecha"
@@ -151,54 +137,11 @@ export function ModalActividad({ abierto, periodo, actividad, procesando, onCerr
                 onChange={(e) => setFecha(e.target.value)}
               />
             </div>
-            <div>
-              <label style={labelStyle} htmlFor="act-tipo">Tipo de cálculo</label>
-              <select
-                id="act-tipo"
-                style={{ ...fieldStyle, ...(tipoFijo ? deshabilitado : {}) }}
-                value={tipo}
-                disabled={tipoFijo != null}
-                onChange={(e) => setTipo(e.target.value as TipoCalculoActividad)}
-              >
-                <option value="SIMPLE">Simple (promedio)</option>
-                <option value="PONDERADO">Ponderado (por pesos)</option>
-              </select>
-            </div>
           </div>
 
-          {tipoFijo && (
-            <p style={{ fontSize: 12, color: "var(--on-surface-variant)", marginTop: -8 }}>
-              Este periodo ya usa cálculo {tipoFijo === "SIMPLE" ? "simple" : "ponderado"}; no se pueden mezclar.
-            </p>
-          )}
-
-          {ponderado && (
-            <div style={{ border: "1px solid var(--outline-variant)", borderRadius: 8, padding: 14 }}>
-              <p style={{ ...labelStyle, marginBottom: 10 }}>Pesos del periodo</p>
-              <div style={{ display: "grid", gap: 8 }}>
-                <FilaPeso etiqueta={nombre.trim() || "Esta actividad"} valor={peso} onCambiar={setPeso} destacada />
-                {otras.map((a) => (
-                  <FilaPeso
-                    key={a.id}
-                    etiqueta={a.nombre}
-                    valor={pesosOtras[a.id] ?? ""}
-                    onCambiar={(v) => setPesosOtras((prev) => ({ ...prev, [a.id]: v }))}
-                  />
-                ))}
-              </div>
-              <p
-                className="cal-num"
-                style={{
-                  marginTop: 10,
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: cuadra ? "var(--secondary)" : "var(--warning-text)",
-                }}
-              >
-                Total: {Number.isFinite(suma) ? (suma * 100).toFixed(2) : "—"} % de 100 %
-              </p>
-            </div>
-          )}
+          <p style={{ fontSize: 12, color: "var(--on-surface-variant)", marginTop: -8 }}>
+            La nota de la sección es el promedio de sus actividades; el peso de cada sección lo define la rúbrica del año.
+          </p>
 
           {intentado && errores.length > 0 && (
             <div style={aviso("error")} role="alert">
@@ -216,40 +159,10 @@ export function ModalActividad({ abierto, periodo, actividad, procesando, onCerr
             Cancelar
           </button>
           <button type="button" style={{ ...btnPrimario, ...(bloqueado ? deshabilitado : {}) }} onClick={enviar} disabled={bloqueado}>
-            {procesando ? "Guardando…" : "Guardar"}
+            {procesando ? "Guardando..." : "💾 Guardar"}
           </button>
         </div>
       </div>
     </div>
-  );
-}
-
-function FilaPeso({
-  etiqueta,
-  valor,
-  onCambiar,
-  destacada = false,
-}: {
-  etiqueta: string;
-  valor: string;
-  onCambiar: (v: string) => void;
-  destacada?: boolean;
-}) {
-  return (
-    <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
-      <span style={{ fontWeight: destacada ? 700 : 400, color: "var(--on-surface)", overflow: "hidden", textOverflow: "ellipsis" }}>
-        {etiqueta}
-      </span>
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-        <input
-          className="cal-celda-input"
-          inputMode="decimal"
-          value={valor}
-          onChange={(e) => onCambiar(e.target.value)}
-          aria-label={`Peso de ${etiqueta} en porcentaje`}
-        />
-        %
-      </span>
-    </label>
   );
 }

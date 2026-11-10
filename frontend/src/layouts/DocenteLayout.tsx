@@ -13,6 +13,7 @@ interface DocenteLayoutProps {
   onNavigate: (view: string) => void;
   esTutor: boolean; // Flag controlado por el estado del usuario/distributivo
   children: React.ReactNode;
+  institucionNombre?: string;
 }
 
 export const DocenteLayout: React.FC<DocenteLayoutProps> = ({
@@ -20,6 +21,7 @@ export const DocenteLayout: React.FC<DocenteLayoutProps> = ({
   onNavigate,
   esTutor,
   children,
+  institucionNombre,
 }) => {
   const [collapsed, setCollapsed] = useState(() => {
     return localStorage.getItem("sidebar_collapsed") === "true";
@@ -42,7 +44,18 @@ export const DocenteLayout: React.FC<DocenteLayoutProps> = ({
         {/* Encabezado Dinámico de la Planta Docente */}
         <div className="sidebar-header">
           <h1>SIGED</h1>
-          <p>Planta Docente {esTutor && "• Tutor"}</p>
+          <p style={{ fontWeight: 600, margin: 0 }}>Planta Docente {esTutor && "• Tutor"}</p>
+          {institucionNombre && (
+            <p style={{
+              fontSize: "11px",
+              opacity: 0.8,
+              marginTop: "4px",
+              wordBreak: "break-word",
+              lineHeight: "1.3"
+            }}>
+              {institucionNombre}
+            </p>
+          )}
         </div>
 
         {/* Menú de Navegación Pedagógica */}

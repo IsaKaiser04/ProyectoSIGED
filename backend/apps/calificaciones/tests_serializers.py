@@ -1,68 +1,9 @@
 from django.test import TestCase
-from rest_framework.exceptions import ValidationError
-from decimal import Decimal
 
-from apps.calificaciones.models.evaluacionCategoria import EvaluacionCategoria
 from apps.calificaciones.models.evaluacionRubrica import EvaluacionRubrica
 from apps.calificaciones.models.evaluacionEquivalencia import EvaluacionEquivalencia
 from apps.calificaciones.models.evaluacionCriterio import EvaluacionCriterio
-from apps.calificaciones.serializers.evaluacion_categoria_serializer import EvaluacionCategoriaSerializer
 from apps.calificaciones.serializers.evaluacion_criterio_serializer import EvaluacionCriterioSerializer
-
-
-class EvaluacionCategoriaSerializerTest(TestCase):
-    def setUp(self):
-        self.categoria = EvaluacionCategoria.objects.create(
-            nombre='Tareas',
-            nota_minima=0,
-            nota_maxima=10,
-            periodoAcademico_id=1,
-            tipo_calculo='SIMPLE',
-        )
-
-    def test_serializa_campos_esperados(self):
-        serializer = EvaluacionCategoriaSerializer(self.categoria)
-        self.assertIn('id', serializer.data)
-        self.assertIn('nombre', serializer.data)
-        self.assertIn('subcategorias', serializer.data)
-        self.assertIn('tipo_calculo', serializer.data)
-        self.assertEqual(serializer.data['nombre'], 'Tareas')
-
-    def test_subcategorias_vacia_por_defecto(self):
-        serializer = EvaluacionCategoriaSerializer(self.categoria)
-        self.assertEqual(serializer.data['subcategorias'], [])
-
-    def test_subcategorias_anidadas(self):
-        hija = EvaluacionCategoria.objects.create(
-            nombre='Tarea Individual',
-            nota_minima=0,
-            nota_maxima=10,
-            periodoAcademico_id=1,
-            padre=self.categoria,
-        )
-        serializer = EvaluacionCategoriaSerializer(self.categoria)
-        self.assertEqual(len(serializer.data['subcategorias']), 1)
-        self.assertEqual(serializer.data['subcategorias'][0]['nombre'], 'Tarea Individual')
-
-    def test_validacion_tipo_calculo_invalido(self):
-        serializer = EvaluacionCategoriaSerializer(data={
-            'nombre': 'Test',
-            'nota_minima': 0,
-            'nota_maxima': 10,
-            'periodoAcademico_id': 1,
-            'tipo_calculo': 'INVALIDO',
-        })
-        self.assertFalse(serializer.is_valid())
-
-    def test_validacion_tipo_calculo_valido(self):
-        serializer = EvaluacionCategoriaSerializer(data={
-            'nombre': 'Test',
-            'nota_minima': 0,
-            'nota_maxima': 10,
-            'periodoAcademico_id': 1,
-            'tipo_calculo': 'PONDERADO',
-        })
-        self.assertTrue(serializer.is_valid(), msg=serializer.errors)
 
 
 class EvaluacionCriterioSerializerTest(TestCase):

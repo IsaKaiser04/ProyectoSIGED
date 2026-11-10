@@ -4,7 +4,7 @@ import { AutoridadLayout } from "../layouts/AutoridadLayout";
 import GestionPlanesEstudio from "../features/planificacion/components/GestionPlanesEstudio";
 import GestionGradosAsignaturas from "../features/planificacion/components/GestionGradosAsignaturas";
 import GestionAnioLectivo from "../features/planificacion/components/GestionAnioLectivo";
-import GestionPeriodoAcademico from "../features/planificacion/components/GestionPeriodoAcademico";
+import GestionPeriodosRubrica from "../features/planificacion/components/GestionPeriodosRubrica";
 import { GestionJornadas } from "../features/planificacion/components/GestionJornadas";
 import GestionOfertaAcademica from "../features/planificacion/components/GestionOfertaAcademica";
 import { DistributivosDashboard } from "../features/distributivos/DistributivosDashboard";
@@ -216,9 +216,9 @@ export function AutoridadApp() {
       case "anios-lectivos":
         return <GestionAnioLectivo />;
 
-      // --- Períodos Académicos ---
+      // --- Períodos Académicos y Rúbrica de actividades ---
       case "periodos-academicos":
-        return <GestionPeriodoAcademico />;
+        return <GestionPeriodosRubrica />;
 
       // --- Jornadas ---
       case "jornadas":

@@ -22,11 +22,6 @@ class CalificacionListCreateView(generics.ListCreateAPIView):
     filterset_fields = ['asignatura_evaluacion', 'matricula', 'promedio_categoria']
     search_fields = ['matricula__estudiante__nombres', 'matricula__estudiante__apellidos']
 
-    def perform_create(self, serializer):
-        service = CalificacionService()
-        instance = serializer.save()
-        service.calcular_estado_final(instance.valor)
-
 
 class CalificacionDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Calificacion.objects.select_related(

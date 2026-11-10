@@ -16,7 +16,7 @@ from apps.calificaciones.models.promedioCategoria import PromedioCategoria
 
 @admin.register(EvaluacionCategoria)
 class EvaluacionCategoriaAdmin(admin.ModelAdmin):
-    list_display = ['nombre', 'nota_minima', 'nota_maxima', 'tipo_calculo']
+    list_display = ['nombre', 'peso', 'orden', 'libro']
 
 
 @admin.register(EvaluacionRubrica)
@@ -36,12 +36,12 @@ class EvaluacionCriterioAdmin(admin.ModelAdmin):
 
 @admin.register(EvaluacionLibro)
 class EvaluacionLibroAdmin(admin.ModelAdmin):
-    list_display = ['nombre']
+    list_display = ['nombre', 'anio_lectivo']
 
 
 @admin.register(AsignaturaEvaluacion)
 class AsignaturaEvaluacionAdmin(admin.ModelAdmin):
-    list_display = ['nombre', 'distributivo_asignatura', 'periodo_academico', 'activo']
+    list_display = ['nombre', 'distributivo_asignatura', 'periodo_academico', 'evaluacion_categoria', 'activo']
 
 
 @admin.register(Calificacion)

@@ -22,6 +22,14 @@ export const ESCALA_CUALITATIVA: ReadonlyArray<{ desde: number; etiqueta: string
   { desde: 0, etiqueta: "Insuficiente" },
 ];
 
+/** Franjas del reporte de notas: verde, amarillo, naranja y rojo, por nivel. */
+export const COLORES_NIVEL: Record<string, { fondo: string; color: string }> = {
+  Excelente: { fondo: "#dcfce7", color: "#15803d" },
+  "Muy bueno": { fondo: "#fef9c3", color: "#a16207" },
+  Regular: { fondo: "#ffedd5", color: "#c2410c" },
+  Insuficiente: { fondo: "#fee2e2", color: "#b91c1c" },
+};
+
 export const ETIQUETA_ESTADO_FINAL = {
   EN_CURSO: "En curso",
   APROBADO: "Aprobado",

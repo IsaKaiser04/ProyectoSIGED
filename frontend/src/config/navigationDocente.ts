@@ -27,17 +27,17 @@ export const getNavigationDocente = (esTutor: boolean): NavGroup[] => {
       ],
     },
     {
-      groupLabel: "Gestión académica",
+      groupLabel: "Actividades docente",
       items: [
-        { view: "aulas-virtuales",   label: "Aulas virtuales",     icon: "monitor"        },
-        { view: "registro-notas",    label: "Registro de notas",   icon: "clipboard-list" },
+        { view: "aulas-virtuales",    label: "Aulas virtuales",          icon: "monitor"        },
+        { view: "control-asistencia", label: "Asistencia e incidencias", icon: "calendar-check" },
       ],
     },
     {
-      groupLabel: "Evaluación y seguimiento",
+      groupLabel: "Seguimiento y reportes",
       items: [
-        { view: "control-asistencia", label: "Asistencia e incidencias", icon: "calendar-check" },
-        { view: "reporte-asistencia", label: "Reporte de asistencia", icon: "bar-chart" },
+        { view: "reporte-notas",      label: "Reporte de notas",      icon: "clipboard-list" },
+        { view: "reporte-asistencia", label: "Reporte de asistencia", icon: "bar-chart"      },
       ],
     },
     {

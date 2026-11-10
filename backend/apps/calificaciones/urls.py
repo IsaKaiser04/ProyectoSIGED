@@ -1,8 +1,5 @@
 from django.urls import path
 
-from apps.calificaciones.views.evaluacion_categoria_view import (
-    EvaluacionCategoriaListCreateView, EvaluacionCategoriaDetailView,
-)
 from apps.calificaciones.views.evaluacion_rubrica_view import (
     EvaluacionRubricaListView, EvaluacionRubricaDetailView,
 )
@@ -13,7 +10,7 @@ from apps.calificaciones.views.evaluacion_criterio_view import (
     EvaluacionCriterioListView, EvaluacionCriterioDetailView,
 )
 from apps.calificaciones.views.evaluacion_libro_view import (
-    EvaluacionLibroListView, EvaluacionLibroDetailView,
+    RubricaActividadesView, CopiarRubricaActividadesView,
 )
 from apps.calificaciones.views.asignatura_evaluacion_view import (
     AsignaturaEvaluacionListCreateView, AsignaturaEvaluacionDetailView,
@@ -39,18 +36,19 @@ from apps.calificaciones.views.docente_escritura_view import (
     ActividadDocenteCreateView, ActividadDocenteDetailView,
     NotaDocenteView, SupletorioDocenteView,
 )
+from apps.calificaciones.views.reporte_notas_view import (
+    ReporteNotasDocenteView, ReporteNotasInstitucionView,
+)
 
 urlpatterns = [
-    path('evaluacion-categorias/', EvaluacionCategoriaListCreateView.as_view(), name='evaluacion_categoria_list_create'),
-    path('evaluacion-categorias/<int:pk>/', EvaluacionCategoriaDetailView.as_view(), name='evaluacion_categoria_detail'),
+    path('rubrica-actividades/', RubricaActividadesView.as_view(), name='rubrica_actividades'),
+    path('rubrica-actividades/copiar/', CopiarRubricaActividadesView.as_view(), name='rubrica_actividades_copiar'),
     path('evaluacion-rubrica/', EvaluacionRubricaListView.as_view(), name='evaluacion_rubrica_list_create'),
     path('evaluacion-rubrica/<int:pk>/', EvaluacionRubricaDetailView.as_view(), name='evaluacion_rubrica_detail'),
     path('evaluacion-equivalencia/', EvaluacionEquivalenciaListView.as_view(), name='evaluacion_equivalencia_list_create'),
     path('evaluacion-equivalencia/<int:pk>/', EvaluacionEquivalenciaDetailView.as_view(), name='evaluacion_equivalencia_detail'),
     path('evaluacion-criterio/', EvaluacionCriterioListView.as_view(), name='evaluacion_criterio_list_create'),
     path('evaluacion-criterio/<int:pk>/', EvaluacionCriterioDetailView.as_view(), name='evaluacion_criterio_detail'),
-    path('evaluacion-libro/', EvaluacionLibroListView.as_view(), name='evaluacion_libro_list_create'),
-    path('evaluacion-libro/<int:pk>/', EvaluacionLibroDetailView.as_view(), name='evaluacion_libro_detail'),
     path('asignatura-evaluacion/', AsignaturaEvaluacionListCreateView.as_view(), name='asignatura_evaluacion_list_create'),
     path('asignatura-evaluacion/<int:pk>/', AsignaturaEvaluacionDetailView.as_view(), name='asignatura_evaluacion_detail'),
     path('calificaciones/', CalificacionListCreateView.as_view(), name='calificacion_list_create'),
@@ -69,5 +67,7 @@ urlpatterns = [
     path('docente/asignaturas/<int:distributivo_asignatura_id>/supletorio/', SupletorioDocenteView.as_view(), name='docente-supletorio'),
     path('docente/actividades/<int:actividad_id>/', ActividadDocenteDetailView.as_view(), name='docente-actividad-detail'),
     path('docente/actividades/<int:actividad_id>/nota/', NotaDocenteView.as_view(), name='docente-nota'),
+    path('docente/reporte-notas/', ReporteNotasDocenteView.as_view(), name='docente-reporte-notas'),
+    path('reporte-notas/', ReporteNotasInstitucionView.as_view(), name='reporte-notas'),
 ]
 

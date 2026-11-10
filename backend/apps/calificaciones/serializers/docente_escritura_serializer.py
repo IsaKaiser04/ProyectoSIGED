@@ -2,38 +2,28 @@
 Serializers de los endpoints de escritura del docente (actividades, notas, supletorio).
 
 Solo validan forma y tipos. Las reglas de negocio (período automático, bloqueo por
-fechas, pesos, pertenencia al distributivo) viven en CalificacionService.
+fechas, sección de la rúbrica, pertenencia al distributivo) viven en CalificacionService.
 """
 from rest_framework import serializers
 
 from apps.calificaciones.models.asignaturaEvaluacion import AsignaturaEvaluacion
-from apps.calificaciones.models.tipoCalculo import TipoCalculo
 
 
 class ActividadDocenteInputSerializer(serializers.Serializer):
     nombre = serializers.CharField(max_length=150)
     descripcion = serializers.CharField(required=False, allow_blank=True, default='')
     fecha_entrega = serializers.DateField()
-    tipo_calculo = serializers.ChoiceField(
-        choices=[TipoCalculo.SIMPLE, TipoCalculo.PONDERADO],
-        default=TipoCalculo.SIMPLE,
-    )
-    # Fracción 0-1 (0.30 = 30 %). Obligatorio solo si tipo_calculo == PONDERADO.
-    peso = serializers.DecimalField(max_digits=5, decimal_places=4, required=False, allow_null=True)
+    # id de la sección (EvaluacionCategoria) de la rúbrica del año.
+    evaluacion_categoria = serializers.IntegerField()
 
 
 class ActividadDocenteSerializer(serializers.ModelSerializer):
-    peso = serializers.SerializerMethodField()
-
     class Meta:
         model = AsignaturaEvaluacion
         fields = [
-            'id', 'nombre', 'descripcion', 'fecha_entrega', 'tipo_calculo', 'peso',
+            'id', 'nombre', 'descripcion', 'fecha_entrega', 'evaluacion_categoria',
             'periodo_academico', 'distributivo_asignatura',
         ]
-
-    def get_peso(self, obj):
-        return None if obj.peso is None else float(obj.peso)
 
 
 class NotaInputSerializer(serializers.Serializer):

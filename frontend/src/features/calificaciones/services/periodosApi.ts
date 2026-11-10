@@ -9,4 +9,6 @@ const P = (ep: string) => buildModulePath("planificacion", ep);
 export const periodosApi = {
   getAniosActivos: (signal?: AbortSignal) =>
     apiGet<AnioLectivo[]>(P("anios-lectivos/activos"), { signal }),
+  /** Todos los años lectivos (selector de la rúbrica de actividades). */
+  getAnios: (signal?: AbortSignal) => apiGet<AnioLectivo[]>(P("anios-lectivos"), { signal }),
 };
